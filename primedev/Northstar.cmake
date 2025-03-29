@@ -52,7 +52,6 @@ add_library(
     "core/memalloc.cpp"
     "core/memalloc.h"
     "core/sourceinterface.cpp"
-    "core/sourceinterface.h"
     "core/tier0.cpp"
     "core/tier0.h"
     "core/tier1.cpp"
@@ -64,6 +63,7 @@ add_library(
     "dedicated/dedicatedlogtoclient.cpp"
     "dedicated/dedicatedlogtoclient.h"
     "dedicated/dedicatedmaterialsystem.cpp"
+    "engine/gl_matsysiface.cpp"
     "engine/demo.h"
     "engine/demo.cpp"
     "engine/host.cpp"
@@ -72,6 +72,7 @@ add_library(
     "engine/r2engine.cpp"
     "engine/r2engine.h"
     "engine/runframe.cpp"
+    "game/client/clientmode_shared.cpp"
     "logging/crashhandler.cpp"
     "logging/crashhandler.h"
     "logging/logging.cpp"
@@ -88,6 +89,8 @@ add_library(
     "mods/compiled/modkeyvalues.cpp"
     "mods/compiled/modpdef.cpp"
     "mods/compiled/modscriptsrson.cpp"
+    "mods/mod.cpp"
+    "mods/mod.h"
     "mods/modmanager.cpp"
     "mods/modmanager.h"
     "mods/modsavefiles.cpp"
@@ -155,7 +158,6 @@ add_library(
     "squirrel/squirrelautobind.cpp"
     "squirrel/squirrelautobind.h"
     "squirrel/squirrelclasstypes.h"
-    "squirrel/squirreldatatypes.h"
     "util/printcommands.cpp"
     "util/printcommands.h"
     "util/printmaps.cpp"
@@ -166,6 +168,25 @@ add_library(
     "util/version.h"
     "util/wininfo.cpp"
     "util/wininfo.h"
+    "vscript/languages/squirrel_re/include/squirrel.h"
+    "vscript/languages/squirrel_re/squirrel/sqarray.h"
+    "vscript/languages/squirrel_re/squirrel/sqclosure.h"
+    "vscript/languages/squirrel_re/squirrel/sqcompiler.h"
+    "vscript/languages/squirrel_re/squirrel/sqfunctionproto.h"
+    "vscript/languages/squirrel_re/squirrel/sqlexer.h"
+    "vscript/languages/squirrel_re/squirrel/sqobject.h"
+    "vscript/languages/squirrel_re/squirrel/sqopcodes.h"
+    "vscript/languages/squirrel_re/squirrel/sqstate.h"
+    "vscript/languages/squirrel_re/squirrel/sqstring.h"
+    "vscript/languages/squirrel_re/squirrel/sqstruct.h"
+    "vscript/languages/squirrel_re/squirrel/sqtable.h"
+    "vscript/languages/squirrel_re/squirrel/squserdata.h"
+    "vscript/languages/squirrel_re/squirrel/sqvector.h"
+    "vscript/languages/squirrel_re/squirrel/sqvm.h"
+    "vscript/languages/squirrel_re/vsquirrel.h"
+    "vscript/vscript.h"
+    "windows/libsys.cpp"
+    "windows/libsys.h"
     "vgui/basemodui.cpp"
     "vgui/basemodui.h"
     "vgui/vgui.h"
@@ -181,13 +202,13 @@ target_link_libraries(
             libcurl
             minizip
             silver-bun
-            WS2_32.lib
-            Crypt32.lib
-            Cryptui.lib
+            ws2_32.lib
+            crypt32.lib
+            cryptui.lib
             dbghelp.lib
-            Wldap32.lib
-            Normaliz.lib
-            Bcrypt.lib
+            wldap32.lib
+            normaliz.lib
+            bcrypt.lib
             version.lib
     )
 
