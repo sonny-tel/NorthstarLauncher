@@ -1,15 +1,18 @@
 #include "engine/hoststate.h"
+#include "core/tier0.h"
+#include "dedicated/dedicated.h"
+#include "engine/r2engine.h"
 #include "masterserver/masterserver.h"
+#include "plugins/pluginmanager.h"
 #include "server/auth/serverauthentication.h"
 #include "server/serverpresence.h"
-#include "shared/playlist.h"
-#include "core/tier0.h"
-#include "engine/r2engine.h"
 #include "shared/exploit_fixes/ns_limits.h"
+#include "shared/playlist.h"
 #include "squirrel/squirrel.h"
-#include "plugins/pluginmanager.h"
 
 CHostState* g_pHostState;
+
+ConVar* Cvar_ns_is_northstar_server;
 
 std::string sLastMode;
 
@@ -19,6 +22,7 @@ static void(__fastcall* _Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bo
 void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
+	Cvar_ns_is_northstar_server->SetValue(true);
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
@@ -56,7 +60,11 @@ static void __fastcall h_CHostState__State_NewGame(CHostState* self)
 {
 	spdlog::info("HostState: NewGame");
 
-	Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_server", cmd_source_t::kCommandSrcCode);
+	if (IsDedicatedServer())
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_dedicatedserver", cmd_source_t::kCommandSrcCode);
+	else
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
+
 	Cbuf_Execute();
 
 	// need to do this to ensure we don't go to private match
@@ -86,7 +94,11 @@ static void __fastcall h_CHostState__State_LoadGame(CHostState* self)
 
 	spdlog::info("HostState: LoadGame");
 
-	Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_server", cmd_source_t::kCommandSrcCode);
+	if (IsDedicatedServer())
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_dedicatedserver", cmd_source_t::kCommandSrcCode);
+	else
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
+
 	Cbuf_Execute();
 
 	// this is normally done in ServerStartingOrChangingMap(), but seemingly the map name isn't set at this point
@@ -123,6 +135,7 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 	spdlog::info("HostState: GameShutdown");
 
 	g_pServerPresence->DestroyPresence();
+	Cvar_ns_is_northstar_server->SetValue(false);
 
 	o_pCHostState__State_GameShutdown(self);
 
@@ -190,5 +203,6 @@ ON_DLL_LOAD_RELIESON("engine.dll", HostState, ConVar, (CModule module))
 	Cvar_hostport = module.Offset(0x13FA6070).RCast<decltype(Cvar_hostport)>();
 	_Cmd_Exec_f = module.Offset(0x1232C0).RCast<decltype(_Cmd_Exec_f)>();
 
+	Cvar_ns_is_northstar_server = new ConVar("ns_is_northstar_server", "0", FCVAR_REPLICATED, "Whether the server is a northstar server");
 	g_pHostState = module.Offset(0x7CF180).RCast<CHostState*>();
 }

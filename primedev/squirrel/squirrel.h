@@ -1,11 +1,15 @@
 #pragma once
 
-#include "squirrelclasstypes.h"
+// clang-format off
+
 #include "squirrelautobind.h"
+#include "squirrelclasstypes.h"
 #include "core/math/vector.h"
 #include "mods/modmanager.h"
 
 namespace fs = std::filesystem;
+
+// clang-format on
 
 /*
 	definitions from hell
