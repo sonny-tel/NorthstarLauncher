@@ -3,8 +3,6 @@
 #include "core/vanilla.h"
 #include "masterserver/masterserver.h"
 
-AUTOHOOK_INIT()
-
 ConVar* Cvar_ns_has_agreed_to_send_token;
 char* pDummy3P = const_cast<char*>("Protocol 3: Protect the Pilot");
 
@@ -13,10 +11,8 @@ const int NOT_DECIDED_TO_SEND_TOKEN = 0;
 const int AGREED_TO_SEND_TOKEN = 1;
 const int DISAGREED_TO_SEND_TOKEN = 2;
 
-// clang-format off
-AUTOHOOK(AuthWithStryder, engine.dll + 0x1843A0,
-void, __fastcall, (void* a1))
-// clang-format on
+static void (*__fastcall o_pAuthWithStryder)(void* a1) = nullptr;
+static void __fastcall h_AuthWithStryder(void* a1)
 {
 	if (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone && Cvar_ns_has_agreed_to_send_token->GetInt() != DISAGREED_TO_SEND_TOKEN)
 	{
@@ -26,13 +22,11 @@ void, __fastcall, (void* a1))
 			g_pMasterServerManager->AuthenticateOriginWithMasterServer(g_pLocalPlayerUserID, g_pLocalPlayerOriginToken);
 	}
 
-	AuthWithStryder(a1);
+	o_pAuthWithStryder(a1);
 }
 
-// clang-format off
-AUTOHOOK(Auth3PToken, engine.dll + 0x183760,
-char*, __fastcall, ())
-// clang-format on
+static char* (*__fastcall o_pAuth3PToken)() = nullptr;
+static char* __fastcall h_Auth3PToken()
 {
 	// return a dummy token for northstar servers that don't need the session token stuff
 	// base it off serverfilter cvar since ns_is_northstar_server could be unset by an evil server
@@ -40,12 +34,16 @@ char*, __fastcall, ())
 	if (g_pCVar->FindVar("serverfilter")->GetBool() && g_pMasterServerManager->m_sOwnClientAuthToken[0])
 		return pDummy3P;
 
-	return Auth3PToken();
+	return o_pAuth3PToken();
 }
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientAuthHooks, ConVar, (CModule module))
 {
-	AUTOHOOK_DISPATCH()
+	o_pAuthWithStryder = module.Offset(0x1843A0).RCast<decltype(o_pAuthWithStryder)>();
+	HookAttach(&(PVOID&)o_pAuthWithStryder, (PVOID)h_AuthWithStryder);
+
+	o_pAuth3PToken = module.Offset(0x183760).RCast<decltype(o_pAuth3PToken)>();
+	HookAttach(&(PVOID&)o_pAuth3PToken, (PVOID)h_Auth3PToken);
 
 	// this cvar will save to cfg once initially agreed with
 	Cvar_ns_has_agreed_to_send_token = new ConVar(

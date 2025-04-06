@@ -10,6 +10,8 @@
 #include "util/version.h"
 #include "util/wininfo.h"
 
+#include "windows/libsys.h"
+
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/stringbuffer.h"
@@ -62,7 +64,11 @@ bool InitialiseNorthstar()
 	// Write launcher version to log
 	StartupLog();
 
-	InstallInitialHooks();
+	// Init minhook
+	HookSys_Init();
+
+	// Init loadlibrary callbacks
+	LibSys_Init();
 
 	g_pServerPresence = new ServerPresenceManager();
 
