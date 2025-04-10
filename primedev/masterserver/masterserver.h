@@ -122,7 +122,6 @@ public:
 	std::string m_sCurrentServerPassword;
 
 	std::unordered_set<std::string> m_handledServerConnections;
-	int m_iConnectionFailedRetries;
 
 public:
 	MasterServerManager();

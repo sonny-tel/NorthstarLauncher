@@ -164,23 +164,13 @@ void MasterServerManager::AuthenticateOriginWithMasterServer(const char* uid, co
 
 					if (originAuthInfo.HasMember("error") && originAuthInfo["error"].IsObject())
 					{
-						if (m_iConnectionFailedRetries < 5)
+						if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
 						{
-							m_bOriginAuthWithMasterServerInProgress = false;
-							m_iConnectionFailedRetries++;
-							AuthenticateOriginWithMasterServer(uidStr.c_str(), tokenStr.c_str());
+							m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
 						}
-						else
+						if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
 						{
-							if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
-							{
-								m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
-							}
-
-							if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
-							{
-								m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
-							}
+							m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
 						}
 					}
 				}

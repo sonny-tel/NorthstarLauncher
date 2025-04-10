@@ -1,6 +1,8 @@
 #pragma once
 
 void RemoveAsciiControlSequences(char* str, bool allow_color_codes);
+bool IsBadReadPtr2(void* p);
+bool IsBadStringPtr2(const char* str);
 
 template <typename T> class ScopeGuard
 {
