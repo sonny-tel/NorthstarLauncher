@@ -14,6 +14,7 @@ add_library(
     "client/clientauthhooks.cpp"
     "client/clientruihooks.cpp"
     "client/clientvideooverrides.cpp"
+	"client/community_cvar_patches.cpp"
     "client/debugoverlay.cpp"
     "client/demofixes.cpp"
     "client/diskvmtfixes.cpp"
