@@ -10,6 +10,6 @@ ON_DLL_LOAD_CLIENT_RELIESON("client.dll", ClientCVARPatches, ConVar, (CModule mo
 	ConVar* Cvar_openInvites_filterByRegion = g_pCVar->FindVar("openInvites_filterByRegion");
 	Cvar_openInvites_filterByRegion->AddFlags(FCVAR_ARCHIVE_PLAYERPROFILE);
 
-	ConVar* Cvar_openInvites_filterByRegion = g_pCVar->FindVar("mat_disable_bloom");
-	Cvar_openInvites_filterByRegion->AddFlags(FCVAR_ARCHIVE_PLAYERPROFILE);
+	ConVar* Cvar_mat_disable_bloom = g_pCVar->FindVar("mat_disable_bloom");
+	Cvar_mat_disable_bloom->AddFlags(FCVAR_ARCHIVE_PLAYERPROFILE);
 }
