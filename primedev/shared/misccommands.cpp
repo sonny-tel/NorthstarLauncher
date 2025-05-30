@@ -222,6 +222,9 @@ void FixupCvarFlags()
 		// however they're defined on client, so can't make replicated atm sadly
 		{"cl_footstep_event_max_dist", FCVAR_CHEAT},
 		{"cl_footstep_event_max_dist_titan", FCVAR_CHEAT},
+		{"mat_disable_bloom", FCVAR_ARCHIVE_PLAYERPROFILE},
+		{"openInvites_filterByLanguage", FCVAR_ARCHIVE_PLAYERPROFILE},
+		{"openInvites_filterByRegion", FCVAR_ARCHIVE_PLAYERPROFILE},
 	};
 
 	// array of cvars and the flags we want to remove from them
@@ -339,9 +342,9 @@ void FixupCvarFlags()
 		{"sv_single_core_dedi", FCVAR_DEVELOPMENTONLY},
 		{"sv_stressbots", FCVAR_DEVELOPMENTONLY},
 
-		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY},
-		{"fatal_script_errors_client", FCVAR_DEVELOPMENTONLY},
-		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY},
+		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
+		{"fatal_script_errors_client", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
+		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
 		{"script_error_on_midgame_load", FCVAR_DEVELOPMENTONLY}, // idk what this is
 
 		{"ai_ainRebuildOnMapStart", FCVAR_DEVELOPMENTONLY},
