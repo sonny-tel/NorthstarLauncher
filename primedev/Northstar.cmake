@@ -4,6 +4,7 @@ find_package(minhook REQUIRED)
 find_package(libcurl REQUIRED)
 find_package(minizip REQUIRED)
 find_package(silver-bun REQUIRED)
+find_package(tracy REQUIRED)
 
 add_library(
     NorthstarDLL SHARED
@@ -204,6 +205,7 @@ target_link_libraries(
             libcurl
             minizip
             silver-bun
+			TracyClient
             ws2_32.lib
             crypt32.lib
             cryptui.lib
@@ -225,6 +227,7 @@ target_compile_definitions(
     PRIVATE UNICODE
             _UNICODE
             CURL_STATICLIB
+			TRACY_ENABLE
     )
 
 set_target_properties(
