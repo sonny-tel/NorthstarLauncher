@@ -205,9 +205,7 @@ template <ScriptContext context> void SquirrelManager<context>::VMCreated(CSquir
 	defconst(m_pSQVM, "NS_VERSION_PATCH", version[2]);
 	defconst(m_pSQVM, "NS_VERSION_DEV", version[3]);
 
-	// temp fix for mods that use ion, assume >0 but not 1 if people really need to check this
-	int campatibilityMode = g_pVanillaCompatibility->GetVanillaCompatibility() ? 2 : 0;
-	defconst(m_pSQVM, "VANILLA", campatibilityMode);
+	defconst(m_pSQVM, "VANILLA", g_pVanillaCompatibility->GetVanillaCompatibility());
 	defconst(m_pSQVM, "ION_VER", true);
 
 	g_pSquirrel<context>->messageBuffer = new SquirrelMessageBuffer();
