@@ -1,5 +1,7 @@
 # NorthstarDLL
 
+set(TRACY_ENABLE OFF)
+
 find_package(minhook REQUIRED)
 find_package(libcurl REQUIRED)
 find_package(minizip REQUIRED)
@@ -226,7 +228,7 @@ target_compile_definitions(
     PRIVATE UNICODE
             _UNICODE
             CURL_STATICLIB
-			TRACY_ENABLE
+			$<$<NOT:$<CONFIG:Release>>:TRACY_ENABLE>
     )
 
 set_target_properties(
