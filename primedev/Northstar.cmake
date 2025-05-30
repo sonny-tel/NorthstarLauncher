@@ -123,6 +123,7 @@ add_library(
     "scripts/scripthttprequesthandler.h"
     "scripts/scriptjson.cpp"
     "scripts/scriptjson.h"
+	"scripts/scriptremotes.cpp"
     "scripts/scriptutility.cpp"
     "server/auth/bansystem.cpp"
     "server/auth/bansystem.h"
