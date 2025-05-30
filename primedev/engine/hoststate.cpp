@@ -9,6 +9,7 @@
 #include "shared/exploit_fixes/ns_limits.h"
 #include "shared/playlist.h"
 #include "squirrel/squirrel.h"
+#include "core/vanilla.h"
 
 CHostState* g_pHostState;
 
@@ -23,6 +24,7 @@ void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
 	Cvar_ns_is_northstar_server->SetValue(true);
+	g_pVanillaCompatibility->Enable();
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
@@ -136,6 +138,7 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 
 	g_pServerPresence->DestroyPresence();
 	Cvar_ns_is_northstar_server->SetValue(false);
+	g_pVanillaCompatibility->Disable();
 
 	o_pCHostState__State_GameShutdown(self);
 

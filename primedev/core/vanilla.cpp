@@ -1,5 +1,6 @@
 #include "core/vanilla.h"
 #include "engine/r2engine.h"
+#include "tracy/Tracy.hpp"
 
 VanillaCompatibility* g_pVanillaCompatibility;
 
@@ -7,12 +8,26 @@ ConVar* Cvar_ns_skip_vanilla_integrity_check;
 
 bool VanillaCompatibility::GetVanillaCompatibility()
 {
+	ZoneScoped;
+
+	static int matchSeed;
+
+	if ( m_bCheckedCompatThisMatch && matchSeed == m_iMatchSeed )
+		return m_bEnabled;
+
 	if (g_pCVar->FindVar("serverfilter")->GetBool() && !g_pCVar->FindVar("ns_is_northstar_server")->GetBool() &&
 		!g_pCVar->FindVar("ns_auth_allow_insecure")->GetBool())
 	{
 		// replicate old behaviour
 		if (Cvar_ns_skip_vanilla_integrity_check->GetBool())
+		{
+			m_bEnabled = false;
+			m_bCheckedCompatThisMatch = true;
+			matchSeed = m_iMatchSeed;
 			return false;
+		}
+
+		matchSeed = 0;
 
 		// directly call _Cmd_Exec_f to avoid weird cbuf crashes
 		char* commandBuf[1040];
@@ -24,7 +39,11 @@ bool VanillaCompatibility::GetVanillaCompatibility()
 		return false;
 	}
 
-	return g_pCVar->FindVar("ns_is_northstar_server")->GetBool() == 0;
+	m_bEnabled = g_pCVar->FindVar("ns_is_northstar_server")->GetBool() == 0;
+	m_bCheckedCompatThisMatch = true;
+	matchSeed = m_iMatchSeed;
+
+	return m_bEnabled;
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", VanillaCompat, ConVar, (CModule module))
