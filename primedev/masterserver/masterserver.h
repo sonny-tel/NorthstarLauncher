@@ -129,7 +129,7 @@ public:
 	void ClearServerList();
 	void RequestServerList();
 	void RequestMainMenuPromos();
-	void AuthenticateOriginWithMasterServer(const char* uid, const char* originToken);
+	void AuthenticateOriginWithMasterServer();
 	void AuthenticateWithOwnServer(const char* uid, const char* playerToken);
 	void AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password);
 	void WritePlayerPersistentData(const char* playerId, const char* pdata, size_t pdataSize);
