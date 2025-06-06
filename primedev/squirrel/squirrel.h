@@ -286,7 +286,9 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error(
-				"{} was called on context {} while VM was not initialized. This will crash", __FUNCTION__, GetContextName(context));
+				"{} was called on context {} while VM was not initialized.", __FUNCTION__, GetContextName(context));
+
+			return SQRESULT_ERROR;
 		}
 
 		SQObject functionobj {};
@@ -310,7 +312,9 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error(
-				"{} was called on context {} while VM was not initialized. This will crash", __FUNCTION__, GetContextName(context));
+				"{} was called on context {} while VM was not initialized.", __FUNCTION__, GetContextName(context));
+
+			return SQRESULT_ERROR;
 		}
 		SQObject functionobj {};
 		int result = sq_getfunction(m_pSQVM->sqvm, funcname, &functionobj, 0);
