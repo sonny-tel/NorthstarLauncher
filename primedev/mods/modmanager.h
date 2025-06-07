@@ -43,6 +43,7 @@ private:
 
 public:
 	std::vector<Mod> m_LoadedMods;
+	std::vector<std::string> m_LoadedKeyValueFilenames;
 	std::unordered_map<std::string, ModOverrideFile> m_ModFiles;
 	std::unordered_map<std::string, std::string> m_DependencyConstants;
 	std::unordered_set<std::string> m_PluginDependencyConstants;
@@ -69,6 +70,7 @@ private:
 	 * @returns nothing
 	 **/
 	void SearchFilesystemForMods();
+	void ProcessConditionalBlocks(const fs::path& filePath, bool keepNorthstar);
 
 public:
 	ModManager();

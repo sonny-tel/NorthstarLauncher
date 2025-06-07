@@ -507,6 +507,8 @@ void ModManager::UnloadMods()
 	// save mods configuration to disk
 	ExportModsConfigurationToFile();
 
+	m_LoadedKeyValueFilenames.clear();
+
 	// do we need to dealloc individual entries in m_loadedMods? idk, rework
 	m_LoadedMods.clear();
 }
@@ -515,6 +517,7 @@ void ModManager::SearchFilesystemForMods()
 {
 	std::vector<fs::path> modDirs;
 	m_LoadedMods.clear();
+	m_LoadedKeyValueFilenames.clear();
 
 	// get mod directories
 	std::filesystem::directory_iterator classicModsDir = fs::directory_iterator(GetModFolderPath());

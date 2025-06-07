@@ -24,7 +24,10 @@ void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
 	Cvar_ns_is_northstar_server->SetValue(true);
-	g_pVanillaCompatibility->Enable();
+
+	for(std::string& kvFile : g_pModManager->m_LoadedKeyValueFilenames)
+		g_pModManager->TryBuildKeyValues(kvFile.c_str());
+
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
@@ -139,6 +142,9 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 	g_pServerPresence->DestroyPresence();
 	Cvar_ns_is_northstar_server->SetValue(false);
 	g_pVanillaCompatibility->Disable();
+
+	for(std::string& kvFile : g_pModManager->m_LoadedKeyValueFilenames)
+		g_pModManager->TryBuildKeyValues(kvFile.c_str());
 
 	o_pCHostState__State_GameShutdown(self);
 

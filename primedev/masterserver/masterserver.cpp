@@ -102,7 +102,7 @@ void MasterServerManager::AuthenticateOriginWithMasterServer()
     std::thread requestThread(
         [this]()
         {
-            constexpr int maxAttempts = 50;
+            constexpr int maxAttempts = 5;
             int attempt = 0;
 
 			std::string uidStr(g_pLocalPlayerUserID);
@@ -144,12 +144,16 @@ void MasterServerManager::AuthenticateOriginWithMasterServer()
                     if (originAuthInfo.HasParseError())
                     {
 						// spdlog::error("Raw response: {}", readBuffer);
-						// long http_code = 0;
-						// curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+						long http_code = 0;
+						curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 						// spdlog::info("HTTP status code: {}", http_code);
                         spdlog::error(
                             "Failed reading origin auth info response: encountered parse error \"{}\"",
                             rapidjson::GetParseError_En(originAuthInfo.GetParseError()));
+
+						if (http_code == 429)
+						   break;
+
     					++attempt;
     					if (attempt < maxAttempts)
     					    std::this_thread::sleep_for(std::chrono::seconds(2));

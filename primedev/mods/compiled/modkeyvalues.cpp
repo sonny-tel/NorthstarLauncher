@@ -1,10 +1,63 @@
 #include "mods/modmanager.h"
 #include "core/filesystem/filesystem.h"
+#include "core/vanilla.h"
 
 #include <fstream>
 
+void ModManager::ProcessConditionalBlocks(const fs::path& filePath, bool keepNorthstar)
+{
+    std::ifstream inFile(filePath, std::ios::binary);
+    if (!inFile)
+        return;
+
+    std::ostringstream processed;
+    std::string line;
+    bool inConditional = false;
+    bool keepBlock = true;
+
+    while (std::getline(inFile, line))
+    {
+        // Remove trailing \r for Windows files
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+
+        if (line.find("#if VANILLA") != std::string::npos)
+        {
+            inConditional = true;
+            keepBlock = !keepNorthstar;
+            continue;
+        }
+        else if (line.find("#if NORTHSTAR") != std::string::npos)
+        {
+            inConditional = true;
+            keepBlock = keepNorthstar;
+            continue;
+        }
+        else if (line.find("#endif") != std::string::npos)
+        {
+            inConditional = false;
+            keepBlock = true;
+            continue;
+        }
+
+        if (!inConditional || keepBlock)
+            processed << line << "\n";
+    }
+    inFile.close();
+
+    std::ofstream outFile(filePath, std::ios::binary | std::ios::trunc);
+    outFile << processed.str();
+    outFile.close();
+}
+
 void ModManager::TryBuildKeyValues(const char* filename)
 {
+	for( std::string& path : m_LoadedKeyValueFilenames )
+	{
+		if( path != filename )
+			m_LoadedKeyValueFilenames.push_back(filename);
+	}
+
 	spdlog::info("Building KeyValues for file {}", filename);
 
 	std::string normalisedPath = g_pModManager->NormaliseModFilePath(fs::path(filename));
@@ -45,6 +98,8 @@ void ModManager::TryBuildKeyValues(const char* filename)
 			fs::remove(compiledDir / patchFilePath);
 
 			fs::copy_file(m_LoadedMods[i].m_ModDirectory / "keyvalues" / filename, compiledDir / patchFilePath);
+
+			ProcessConditionalBlocks(compiledDir / patchFilePath, !g_pVanillaCompatibility->GetVanillaCompatibility());
 		}
 	}
 

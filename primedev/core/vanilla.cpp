@@ -10,40 +10,7 @@ bool VanillaCompatibility::GetVanillaCompatibility()
 {
 	ZoneScoped;
 
-	static int matchSeed;
-
-	if ( m_bCheckedCompatThisMatch && matchSeed == m_iMatchSeed )
-		return m_bEnabled;
-
-	if (g_pCVar->FindVar("serverfilter")->GetBool() && !g_pCVar->FindVar("ns_is_northstar_server")->GetBool() &&
-		!g_pCVar->FindVar("ns_auth_allow_insecure")->GetBool())
-	{
-		// replicate old behaviour
-		if (Cvar_ns_skip_vanilla_integrity_check->GetBool())
-		{
-			m_bEnabled = false;
-			m_bCheckedCompatThisMatch = true;
-			matchSeed = m_iMatchSeed;
-			return false;
-		}
-
-		matchSeed = 0;
-
-		// directly call _Cmd_Exec_f to avoid weird cbuf crashes
-		char* commandBuf[1040];
-		memset(commandBuf, 0, sizeof(commandBuf));
-		CCommand tempCommand = *(CCommand*)&commandBuf;
-		CCommand__Tokenize(tempCommand, "disconnect \"Server outdated or evil!\"", cmd_source_t::kCommandSrcCode);
-		_Cmd_Exec_f(tempCommand, false, false);
-		Cbuf_Execute();
-		return false;
-	}
-
-	m_bEnabled = g_pCVar->FindVar("ns_is_northstar_server")->GetBool() == 0;
-	m_bCheckedCompatThisMatch = true;
-	matchSeed = m_iMatchSeed;
-
-	return m_bEnabled;
+	return !(g_pCVar->FindVar("ns_is_northstar_server")->GetBool() || g_pCVar->FindVar("serverfilter")->GetBool());
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", VanillaCompat, ConVar, (CModule module))
