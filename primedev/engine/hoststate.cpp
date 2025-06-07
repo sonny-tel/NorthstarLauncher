@@ -141,10 +141,6 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 
 	g_pServerPresence->DestroyPresence();
 	Cvar_ns_is_northstar_server->SetValue(false);
-	g_pVanillaCompatibility->Disable();
-
-	for(std::string& kvFile : g_pModManager->m_LoadedKeyValueFilenames)
-		g_pModManager->TryBuildKeyValues(kvFile.c_str());
 
 	o_pCHostState__State_GameShutdown(self);
 
