@@ -17,23 +17,22 @@ void ModManager::ProcessConditionalBlocks(const fs::path& filePath, bool keepNor
 
     while (std::getline(inFile, line))
     {
-        // Remove trailing \r for Windows files
         if (!line.empty() && line.back() == '\r')
             line.pop_back();
 
-        if (line.find("#if VANILLA") != std::string::npos)
+        if (line.find("///if VANILLA") != std::string::npos)
         {
             inConditional = true;
             keepBlock = !keepNorthstar;
             continue;
         }
-        else if (line.find("#if NORTHSTAR") != std::string::npos)
+        else if (line.find("///if NORTHSTAR") != std::string::npos)
         {
             inConditional = true;
             keepBlock = keepNorthstar;
             continue;
         }
-        else if (line.find("#endif") != std::string::npos)
+        else if (line.find("///endif") != std::string::npos)
         {
             inConditional = false;
             keepBlock = true;
