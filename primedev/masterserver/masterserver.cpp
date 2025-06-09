@@ -116,10 +116,12 @@ void MasterServerManager::AuthenticateOriginWithMasterServer()
 				std::string* newToken(GetNewOriginToken(5));
 				// spdlog::info("New origin token: {}", *newToken);
 
-				tokenStr = std::string(*newToken);
-
 				if (newToken)
+				{
+					tokenStr = std::string(*newToken);
 					delete newToken;
+				}
+
 
                 spdlog::info("Trying to authenticate with northstar masterserver for user {} (attempt {}/{})", uidStr, attempt + 1, maxAttempts);
 
