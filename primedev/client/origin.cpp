@@ -2,30 +2,37 @@
 #include "r2client.h"
 
 OriginRequestAuthCodeType OriginRequestAuthCode;
-char* tmpTok = nullptr;
+std::string* tmpTok = nullptr;
 
-void OriginAuthcodeStrcpyCallback(__int64 a1, char* a2)
+void OriginAuthcodeStrcpyCallback(__int64 a1, __int64* a2)
 {
-	if (tmpTok)
-		spdlog::error("OriginAuthcodeStrcpyCallback called while tmpTok is not null, do not use this in parallel!");
-
-	tmpTok = new char[256];
-
 	if (a2)
-		strcpy(tmpTok, a2);
+	{
+		if (*a2)
+		{
+			// spdlog::info("Token: {}", (char*)*a2);
+
+			if( tmpTok )
+				delete tmpTok;
+
+			tmpTok = new std::string((char*)*a2);
+		}
+	}
 }
 
 // do not use this on the main thread, this is blocking
-char* GetNewOriginToken(int timeoutSeconds)
+std::string* GetNewOriginToken(int timeoutSeconds)
 {
-	char* tok = new char[256];
+	std::string* tok = new std::string();
 
-	if( tmpTok )
-		delete[] tmpTok;
+	__int64 userId = 0;
+	__int64 res = 0;
 
-    __int64 userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
+	if (g_pLocalPlayerUserID)
+    	userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
 
-	__int64 res = OriginRequestAuthCode(userId, "TITANFALL2-PC-SERVER", OriginAuthcodeStrcpyCallback, 0, 30000, 0);
+	if (userId > 0)
+		res = OriginRequestAuthCode(userId, "TITANFALL2-PC-SERVER", OriginAuthcodeStrcpyCallback, 0, 30000, 0);
 
 	auto start = std::chrono::steady_clock::now();
 
@@ -37,19 +44,37 @@ char* GetNewOriginToken(int timeoutSeconds)
 
         if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeoutSeconds)
         {
-			if( tmpTok )
-				delete[] tmpTok;
+			if (tmpTok)
+			{
+				if( tmpTok->length() >= 0 )
+					delete tmpTok;
+			}
+
+			break;
 		}
 
 		if (!tmpTok)
+		    continue;
+
+		if (tmpTok->empty())
 			continue;
 
-		if (tmpTok[0] == '\0')
+		if (tmpTok->c_str()[0] == '\0')
 			continue;
 
-		strcpy(tok, tmpTok);
+		if (tmpTok->length() > 0)
+		{
+			tok->assign(*tmpTok);
+			// spdlog::info("Origin token: {}", *tok);
+		}
+		else
+		{
+			spdlog::error("Failed to get origin token, tmpTok is empty");
+			delete tok;
+			return nullptr;
+		}
 
-		delete[] tmpTok;
+		delete tmpTok;
 
 		break;
 	}

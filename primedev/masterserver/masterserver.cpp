@@ -17,6 +17,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "client/r2client.h"
+#include "client/origin.h"
 
 #include <cstring>
 #include <regex>
@@ -112,7 +113,13 @@ void MasterServerManager::AuthenticateOriginWithMasterServer()
 
             while (attempt < maxAttempts)
             {
-				tokenStr = std::string(g_pLocalPlayerOriginToken);
+				std::string* newToken(GetNewOriginToken(5));
+				// spdlog::info("New origin token: {}", *newToken);
+
+				tokenStr = std::string(*newToken);
+
+				if (newToken)
+					delete newToken;
 
                 spdlog::info("Trying to authenticate with northstar masterserver for user {} (attempt {}/{})", uidStr, attempt + 1, maxAttempts);
 
