@@ -26,6 +26,8 @@ add_library(
     "client/localchatwriter.cpp"
     "client/localchatwriter.h"
     "client/modlocalisation.cpp"
+	"client/origin.h"
+	"client/origin.cpp"
     "client/r2client.cpp"
     "client/r2client.h"
     "client/rejectconnectionfixes.cpp"
