@@ -50,7 +50,11 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 					delete tmpTok;
 			}
 
-			break;
+			delete tok;
+
+			spdlog::error("Failed to get origin token: timeout after {} seconds", timeoutSeconds);
+
+			return nullptr;
 		}
 
 		if (!tmpTok)
@@ -66,12 +70,6 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 		{
 			tok->assign(*tmpTok);
 			// spdlog::info("Origin token: {}", *tok);
-		}
-		else
-		{
-			spdlog::error("Failed to get origin token, tmpTok is empty");
-			delete tok;
-			return nullptr;
 		}
 
 		delete tmpTok;
