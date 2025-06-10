@@ -259,6 +259,14 @@ public:
 	{
 		// This function schedules a call to be executed on the next frame
 		// This is useful for things like threads and plugins, which do not run on the main thread
+		if (!m_pSQVM || !m_pSQVM->sqvm)
+		{
+			spdlog::error(
+				"AsyncCall {} was called on context {} while VM was not initialized.", funcname, GetContextName(context));
+
+			return SquirrelMessage();
+		}
+
 		FunctionVector functionVector;
 		SqRecurseArgs<context>(functionVector, args...);
 		SquirrelMessage message = {funcname, functionVector};
@@ -270,6 +278,14 @@ public:
 	{
 		// This function schedules a call to be executed on the next frame
 		// This is useful for things like threads and plugins, which do not run on the main thread
+		if (!m_pSQVM || !m_pSQVM->sqvm)
+		{
+			spdlog::error(
+				"AsyncCall {} was called on context {} while VM was not initialized.", funcname, GetContextName(context));
+
+			return SquirrelMessage();
+		}
+
 		FunctionVector functionVector = {};
 		SquirrelMessage message = {funcname, functionVector};
 		messageBuffer->push(message);
