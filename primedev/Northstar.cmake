@@ -31,6 +31,8 @@ add_library(
     "client/r2client.cpp"
     "client/r2client.h"
     "client/rejectconnectionfixes.cpp"
+	"client/room.h"
+	"client/room.cpp"
     "config/profile.cpp"
     "config/profile.h"
     "core/convar/concommand.cpp"
