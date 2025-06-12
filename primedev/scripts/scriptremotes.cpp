@@ -3,13 +3,15 @@
 
 REPLACE_SQFUNC(Remote_RegisterFunction, ScriptContext::CLIENT)
 {
-	SQStackInfos si;
-
-	if( !g_pSquirrel<context>->m_pSQVM || !g_pSquirrel<context>->m_pSQVM->sqvm )
-		return SQRESULT_NULL;
-
 	if( g_pVanillaCompatibility->GetVanillaCompatibility() )
 	{
+		SQStackInfos si;
+
+		// not sure what to do here, returning here causes out of sync but if you disconnect while loading
+		// you will crash, i really do not want to build an enormous list of vanilla remotes but that's all i can think of that would work in this case
+		// if( !g_pSquirrel<context>->m_pSQVM || !g_pSquirrel<context>->m_pSQVM->sqvm )
+		// 	return SQRESULT_NULL;
+
 		g_pSquirrel<context>->sq_stackinfos(sqvm, 1, si);
 
 		if( si._name == nullptr || si._sourceName == nullptr )

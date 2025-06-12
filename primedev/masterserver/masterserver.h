@@ -54,7 +54,7 @@ struct RemoteServerConnectionInfo
 {
 public:
 	char authToken[32];
-
+	std::string serverId;
 	in_addr ip;
 	unsigned short port;
 };

@@ -28,6 +28,7 @@ MasterServerManager* g_pMasterServerManager;
 
 ConVar* Cvar_ns_masterserver_hostname;
 ConVar* Cvar_ns_curl_log_enable;
+ConVar* Cvar_ns_last_tried_server_id;
 
 RemoteServerInfo::RemoteServerInfo(
 	const char* newId,
@@ -764,6 +765,7 @@ void MasterServerManager::AuthenticateWithServer(const char* uid, const char* pl
 
 				m_pendingConnectionInfo.ip.S_un.S_addr = inet_addr(connectionInfoJson["ip"].GetString());
 				m_pendingConnectionInfo.port = (unsigned short)connectionInfoJson["port"].GetUint();
+				m_pendingConnectionInfo.serverId = serverIdStr;
 
 				strncpy_s(
 					m_pendingConnectionInfo.authToken,
@@ -1055,6 +1057,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 
 	Cvar_ns_masterserver_hostname = new ConVar("ns_masterserver_hostname", "127.0.0.1", FCVAR_NONE, "");
 	Cvar_ns_curl_log_enable = new ConVar("ns_curl_log_enable", "0", FCVAR_NONE, "Whether curl should log to the console");
+	Cvar_ns_last_tried_server_id = new ConVar("ns_last_tried_server_id", "", FCVAR_NONE, "The last server id that was tried to connect to");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
 
