@@ -363,7 +363,7 @@ void FixupCvarFlags()
 		{"damagedefs_reparse_client", FCVAR_DEVELOPMENTONLY},
 		{"playerSettings_reparse", FCVAR_DEVELOPMENTONLY},
 		{"_playerSettings_reparse_Server", FCVAR_DEVELOPMENTONLY},
-
+		{"weapon_reparse", FCVAR_CHEAT},
 	};
 
 	const std::vector<std::tuple<const char*, const char*>> CVAR_FIXUP_DEFAULT_VALUES = {
