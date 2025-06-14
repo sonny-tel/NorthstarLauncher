@@ -4,7 +4,25 @@
 class VanillaCompatibility
 {
 public:
-	bool GetVanillaCompatibility();
+	enum class CompatibilityMode
+	{
+		Vanilla,
+		Northstar,
+	};
+
+	void SetCompatabilityMode(CompatibilityMode mode)
+	{
+		if (m_bLastCompatabilityMode != mode)
+		{
+			m_bLastCompatabilityMode = mode;
+			spdlog::info("Vanilla compatibility mode set to {}", mode == CompatibilityMode::Vanilla ? "Vanilla" : "Northstar");
+		}
+	}
+
+	bool GetVanillaCompatibility() { return m_bLastCompatabilityMode == CompatibilityMode::Vanilla; }
+
+private:
+	CompatibilityMode m_bLastCompatabilityMode = CompatibilityMode::Vanilla;
 };
 
 extern VanillaCompatibility* g_pVanillaCompatibility;

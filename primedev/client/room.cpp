@@ -1,4 +1,5 @@
 #include "room.h"
+#include "core/vanilla.h"
 
 typedef void* (*JoinPlayerGameRoom_t)(const char* roomId);
 JoinPlayerGameRoom_t JoinPlayerGameRoom;
@@ -6,6 +7,17 @@ JoinPlayerGameRoom_t JoinPlayerGameRoom;
 char* room1;
 char* room2;
 char* room3;
+
+AUTOHOOK_INIT()
+
+// clang-format off
+AUTOHOOK(JoinPlayerRoomHook, engine.dll + 0x187C70, __int64, __fastcall, (__int64 a1))
+// clang-format on
+{
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Vanilla);
+
+	return JoinPlayerRoomHook(a1);
+}
 
 void ConCommand_ns_join_room(const CCommand& args)
 {
@@ -32,6 +44,8 @@ void ConCommand_ns_dump_room(const CCommand& args)
 	if (match_partySub)
 		spdlog::info("match_partySub: {}", match_partySub);
 }
+
+
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", PartyRoom, ConCommand, (CModule module))
 {

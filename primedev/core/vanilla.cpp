@@ -2,19 +2,30 @@
 #include "engine/r2engine.h"
 #include "tracy/Tracy.hpp"
 
+AUTOHOOK_INIT()
+
 VanillaCompatibility* g_pVanillaCompatibility;
 
-ConVar* Cvar_ns_skip_vanilla_integrity_check;
-
-bool VanillaCompatibility::GetVanillaCompatibility()
+// clang-format off
+AUTOHOOK(matchmake, engine.dll + 0xF220, int*, __fastcall, ())
+// clang-format on
 {
-	ZoneScoped;
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Vanilla);
 
-	return !(g_pCVar->FindVar("ns_is_northstar_server")->GetBool() || g_pCVar->FindVar("serverfilter")->GetBool());
+	return matchmake();
+}
+
+// vanilla only uses connectwithtoken and silentconnect, this is actually pretty good for us to differentiate
+// clang-format off
+AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (__int64 a1))
+// clang-format on
+{
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
+
+	return concommand_connect(a1);
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", VanillaCompat, ConVar, (CModule module))
 {
-	Cvar_ns_skip_vanilla_integrity_check =
-		new ConVar("ns_skip_vanilla_integrity_check", "0", FCVAR_NONE, "Skip vanilla integrity check for compatibility with older servers");
+	AUTOHOOK_DISPATCH();
 }

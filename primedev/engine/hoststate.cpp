@@ -13,8 +13,6 @@
 
 CHostState* g_pHostState;
 
-ConVar* Cvar_ns_is_northstar_server;
-
 std::string sLastMode;
 
 static ConVar* Cvar_hostport = nullptr;
@@ -23,7 +21,7 @@ static void(__fastcall* _Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bo
 void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
-	Cvar_ns_is_northstar_server->SetValue(true);
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
 	for(std::string& kvFile : g_pModManager->m_LoadedKeyValueFilenames)
 		g_pModManager->TryBuildKeyValues(kvFile.c_str());
@@ -140,7 +138,6 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 	spdlog::info("HostState: GameShutdown");
 
 	g_pServerPresence->DestroyPresence();
-	Cvar_ns_is_northstar_server->SetValue(false);
 
 	o_pCHostState__State_GameShutdown(self);
 
@@ -208,6 +205,5 @@ ON_DLL_LOAD_RELIESON("engine.dll", HostState, ConVar, (CModule module))
 	Cvar_hostport = module.Offset(0x13FA6070).RCast<decltype(Cvar_hostport)>();
 	_Cmd_Exec_f = module.Offset(0x1232C0).RCast<decltype(_Cmd_Exec_f)>();
 
-	Cvar_ns_is_northstar_server = new ConVar("ns_is_northstar_server", "0", FCVAR_REPLICATED, "Whether the server is a northstar server");
 	g_pHostState = module.Offset(0x7CF180).RCast<CHostState*>();
 }
