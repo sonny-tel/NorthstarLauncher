@@ -75,6 +75,8 @@ void SetCommonHttpClientOptions(CURL* curl)
 	}
 }
 
+
+
 void MasterServerManager::ClearServerList()
 {
 	// this doesn't really do anything lol, probably isn't threadsafe
@@ -1038,6 +1040,96 @@ void MasterServerManager::ProcessConnectionlessPacketSigreq1(std::string data)
 	spdlog::error("invalid Atlas connectionless packet request: unknown type {}", type);
 }
 
+void ConCommand_ns_try_join_serverid(const CCommand& args)
+{
+	std::string serverId(args.Arg(1));
+	std::string password = std::string();
+
+	if (args.ArgC() < 2)
+	{
+		spdlog::error("Usage: ns_try_join_serverid <server_id> [password]");
+		return;
+	}
+
+	if (args.ArgC() == 3)
+		password = std::string(args.Arg(2));
+
+	g_pMasterServerManager->RequestServerList();
+
+	std::thread t1(
+		[serverId, password]
+		{
+			while (g_pMasterServerManager->m_bScriptRequestingServerList)
+				Sleep(100);
+
+			int serverIndex = -1;
+
+			for (int i = 0; i < g_pMasterServerManager->m_vRemoteServers.size(); ++i)
+			{
+				if (std::string(g_pMasterServerManager->m_vRemoteServers[i].id) == serverId)
+				{
+					serverIndex = i;
+					break;
+				}
+			}
+
+			if( serverIndex == -1)
+			{
+				spdlog::error("Server with id {} not found in the server list", serverId);
+				return;
+			}
+
+			for (auto& pair : g_pServerAuthentication->m_PlayerAuthenticationData)
+				g_pServerAuthentication->WritePersistentData(pair.first);
+
+			g_pMasterServerManager->AuthenticateWithServer(
+				g_pLocalPlayerUserID,
+				g_pMasterServerManager->m_sOwnClientAuthToken,
+				g_pMasterServerManager->m_vRemoteServers[serverIndex],
+				(char*)password.c_str());
+
+			while( g_pMasterServerManager->m_bScriptAuthenticatingWithGameServer)
+				Sleep(100);
+
+			if (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
+			{
+				spdlog::error(
+					"Failed to authenticate with server {}: {}",
+					serverId,
+					g_pMasterServerManager->m_sAuthFailureReason);
+				return;
+			}
+
+			if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)
+			{
+				spdlog::error(
+					"Failed to authenticate with server {}: no pending connection info available",
+					serverId);
+				return;
+			}
+
+			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
+
+			g_pCVar->FindVar("ns_last_tried_server_id")->SetValue(info.serverId.c_str());
+
+			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format(
+					"connect {}.{}.{}.{}:{}",
+					info.ip.S_un.S_un_b.s_b1,
+					info.ip.S_un.S_un_b.s_b2,
+					info.ip.S_un.S_un_b.s_b3,
+					info.ip.S_un.S_un_b.s_b4,
+					info.port)
+					.c_str(),
+				cmd_source_t::kCommandSrcCode);
+
+			g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
+		});
+	t1.detach();
+}
+
 void ConCommand_ns_fetchservers(const CCommand& args)
 {
 	NOTE_UNUSED(args);
@@ -1060,6 +1152,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 	Cvar_ns_last_tried_server_id = new ConVar("ns_last_tried_server_id", "", FCVAR_NONE, "The last server id that was tried to connect to");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
+	RegisterConCommand("ns_try_join_serverid", ConCommand_ns_try_join_serverid, "Try to join a server by its id", FCVAR_CLIENTDLL);
 
 	MasterServerPresenceReporter* presenceReporter = new MasterServerPresenceReporter;
 	g_pServerPresence->AddPresenceReporter(presenceReporter);
