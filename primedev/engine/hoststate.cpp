@@ -23,10 +23,6 @@ void ServerStartingOrChangingMap()
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
-	for(std::string& kvFile : g_pModManager->m_LoadedKeyValueFilenames)
-		g_pModManager->TryBuildKeyValues(kvFile.c_str());
-
-
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
 	char* commandBuf[1040]; // assumedly this is the size of CCommand since we don't have an actual constructor

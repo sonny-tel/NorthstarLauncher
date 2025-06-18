@@ -6,6 +6,7 @@
 #include "core/filesystem/filesystem.h"
 #include "core/filesystem/rpakfilesystem.h"
 #include "config/profile.h"
+#include "engine/r2engine.h"
 
 #include "rapidjson/error/en.h"
 #include "rapidjson/document.h"
@@ -486,6 +487,7 @@ void ModManager::UnloadMods()
 {
 	// clean up stuff from mods before we unload
 	m_ModFiles.clear();
+	m_CompiledAssetFiles.clear();
 	fs::remove_all(GetCompiledAssetsPath());
 
 	g_CustomAudioManager.ClearAudioOverrides();
@@ -507,8 +509,6 @@ void ModManager::UnloadMods()
 	// save mods configuration to disk
 	ExportModsConfigurationToFile();
 
-	m_LoadedKeyValueFilenames.clear();
-
 	// do we need to dealloc individual entries in m_loadedMods? idk, rework
 	m_LoadedMods.clear();
 }
@@ -517,7 +517,6 @@ void ModManager::SearchFilesystemForMods()
 {
 	std::vector<fs::path> modDirs;
 	m_LoadedMods.clear();
-	m_LoadedKeyValueFilenames.clear();
 
 	// get mod directories
 	std::filesystem::directory_iterator classicModsDir = fs::directory_iterator(GetModFolderPath());
@@ -660,6 +659,16 @@ void ModManager::CompileAssetsForFile(const char* filename)
 {
 	size_t fileHash = STR_HASH(NormaliseModFilePath(fs::path(filename)));
 
+	for( auto& file : m_CompiledAssetFiles )
+	{
+		if (fileHash == STR_HASH(file.second.m_Path.string()))
+		{
+			TryChangeoverKeyValues(filename, file.second);
+
+			return;
+		}
+	}
+
 	if (fileHash == m_hScriptsRsonHash)
 		BuildScriptsRson();
 	else if (fileHash == m_hPdefHash)
@@ -689,22 +698,6 @@ void ConCommand_reload_mods(const CCommand& args)
 	g_pModManager->LoadMods();
 }
 
-void ConCommand_reload_kv(const CCommand& args)
-{
-	NOTE_UNUSED(args);
-
-	for(std::string& path : g_pModManager->m_LoadedKeyValueFilenames)
-	{
-		if (fs::exists(GetCompiledAssetsPath() / path))
-		{
-			fs::remove(GetCompiledAssetsPath() / path);
-			g_pModManager->TryBuildKeyValues(path.c_str());
-		}
-		else
-			spdlog::warn("Keyvalue file {} does not exist, skipping", path);
-	}
-}
-
 fs::path GetModFolderPath()
 {
 	return fs::path(GetNorthstarPrefix() + MOD_FOLDER_SUFFIX);
@@ -727,5 +720,4 @@ ON_DLL_LOAD_RELIESON("engine.dll", ModManager, (ConCommand, MasterServer), (CMod
 	g_pModManager = new ModManager;
 
 	RegisterConCommand("reload_mods", ConCommand_reload_mods, "reloads mods", FCVAR_NONE);
-	RegisterConCommand("reload_kv", ConCommand_reload_kv, "reparses existing keyvalues", FCVAR_NONE);
 }
