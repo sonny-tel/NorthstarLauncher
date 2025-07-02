@@ -15,8 +15,11 @@ enum OriginPresenceEnum
 	IS_IN_GAME_PARTY,
 	IS_INVITE_ONLY
 };
-typedef void (*OriginGetPresenceType)(
+typedef int (*OriginGetPresenceType)(
 	__int64 userId, OriginPresenceEnum* presenceData, char* a3, __int64 a4, char* a5, __int64 a6, char* a7, __int64 a8);
 
 extern OriginGetPresenceType OriginGetPresence;
+
+typedef const char* (*OriginGetErrorDescriptionType)(int errorCode);
+extern OriginGetErrorDescriptionType OriginGetErrorDescription;
 std::string* GetNewOriginToken(int timeoutSeconds);

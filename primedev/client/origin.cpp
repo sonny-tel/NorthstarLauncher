@@ -3,7 +3,8 @@
 
 OriginRequestAuthCodeType OriginRequestAuthCode;
 OriginGetPresenceType OriginGetPresence;
-
+OriginGetPresenceType OriginQueryPresence;
+OriginGetErrorDescriptionType OriginGetErrorDescription;
 std::string* tmpTok = nullptr;
 
 void OriginAuthcodeStrcpyCallback(__int64 a1, __int64* a2)
@@ -112,17 +113,19 @@ ADD_SQFUNC("PresenceData", NSGetOriginPresence, "string uid", "", ScriptContext:
 	__int64 userId = _strtoi64(uid.c_str(), nullptr, 10);
 	OriginPresenceEnum presence;
 	char* sessionId = new char[256];
-	OriginGetPresence(userId, &presence, nullptr, 0, nullptr, 0, sessionId, 256);
-	spdlog::info("Origin presence for {}: {},{}", uid, PresenceToString(presence), sessionId);
+	char* p1 = new char[256]; // unused, but required by the function signature
+	char* p2 = new char[256]; // unused, but required by the function signature
+	int ret = OriginGetPresence(userId, &presence, p1, 256, p2, 256, sessionId, 256);
+	spdlog::info("Origin presence for {}: Presence: {},Session: {}, p1: {}, p2: {}", uid, presence, sessionId,p1,p2);
+	auto result = OriginGetErrorDescription(ret);
+	spdlog::info("Origin presence for {}: {}", uid, result);
 	g_pSquirrel<context>->pushnewstructinstance(sqvm, 2);
-	g_pSquirrel<context>->pushinteger(sqvm, static_cast<int>(presence));
+	g_pSquirrel<context>->pushinteger(sqvm, presence);
 	g_pSquirrel<context>->sealstructslot(sqvm, 0);
 
 	g_pSquirrel<context>->pushstring(sqvm, sessionId,-1);
 	g_pSquirrel<context>->sealstructslot(sqvm, 1);
-
 	return SQRESULT_NOTNULL;
-
 }
 
 void ConCommand_fish_origin(const CCommand& args)
@@ -132,8 +135,8 @@ void ConCommand_fish_origin(const CCommand& args)
 		userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
 	OriginPresenceEnum presence;
 	char* sessionId = new char[256];
-	OriginGetPresence(userId, &presence, nullptr, 0, nullptr,0, sessionId, 256);
-	spdlog::info("Origin presence: {},{}", PresenceToString(presence), sessionId);
+	OriginGetPresence(userId, &presence, nullptr, 0, nullptr, 0, sessionId, 256);
+	spdlog::info("Origin presence: {},{},{}", presence,PresenceToString(presence), sessionId);
 }
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
@@ -146,4 +149,6 @@ ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 	// and 3 ints which idk what they are but are 0, 30000 and 0 by default. probably some token ttl stuff
 	OriginRequestAuthCode = module.GetExportedFunction("OriginRequestAuthCode").RCast<OriginRequestAuthCodeType>();
 	OriginGetPresence = module.GetExportedFunction("OriginGetPresence").RCast<OriginGetPresenceType>();
+	OriginQueryPresence = module.GetExportedFunction("OriginQueryPresence").RCast<OriginGetPresenceType>();
+	OriginGetErrorDescription = module.GetExportedFunction("OriginGetErrorDescription").RCast<OriginGetErrorDescriptionType>();
 }
