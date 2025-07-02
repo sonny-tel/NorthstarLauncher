@@ -5,6 +5,9 @@ OriginRequestAuthCodeType OriginRequestAuthCode;
 OriginGetPresenceType OriginGetPresence;
 OriginGetPresenceType OriginQueryPresence;
 OriginGetErrorDescriptionType OriginGetErrorDescription;
+OriginReadEnumerationSyncType OriginReadEnumerationSync;
+OriginRequestFriendType OriginRequestFriend;
+
 std::string* tmpTok = nullptr;
 
 void OriginAuthcodeStrcpyCallback(__int64 a1, __int64* a2)
@@ -108,7 +111,7 @@ std::string PresenceToString(OriginPresenceEnum presence)
 
 ADD_SQFUNC("PresenceData", NSGetOriginPresence, "string uid", "", ScriptContext::UI)
 {
-
+	auto localUserId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
 	std::string uid = g_pSquirrel<context>->getstring(sqvm, 1);
 	__int64 userId = _strtoi64(uid.c_str(), nullptr, 10);
 	OriginPresenceEnum presence;
@@ -119,6 +122,8 @@ ADD_SQFUNC("PresenceData", NSGetOriginPresence, "string uid", "", ScriptContext:
 	spdlog::info("Origin presence for {}: Presence: {},Session: {}, p1: {}, p2: {}", uid, presence, sessionId,p1,p2);
 	auto result = OriginGetErrorDescription(ret);
 	spdlog::info("Origin presence for {}: {}", uid, result);
+	uintptr_t some;
+	OriginRequestFriend(localUserId, userId, 2, some, 0);
 	g_pSquirrel<context>->pushnewstructinstance(sqvm, 2);
 	g_pSquirrel<context>->pushinteger(sqvm, presence);
 	g_pSquirrel<context>->sealstructslot(sqvm, 0);
@@ -138,9 +143,59 @@ void ConCommand_fish_origin(const CCommand& args)
 	OriginGetPresence(userId, &presence, nullptr, 0, nullptr, 0, sessionId, 256);
 	spdlog::info("Origin presence: {},{},{}", presence,PresenceToString(presence), sessionId);
 }
+
+class FriendPresence
+{
+public:
+	int64_t uid; // 0x0000
+	int32_t state; // 0x0008
+	char pad_000C[4]; // 0x000C
+	char* Title_ID; // 0x0010
+	char* MP_ID; // 0x0018
+	char* Title; // 0x0020
+	char* Presence; // 0x0028
+	char* GamePresence; // 0x0030
+	char* empty; // 0x0038
+	char* empty2; // 0x0040
+}; // Size: 0x0880
+
+//0x185AE0
+
+static __int64 (*__fastcall o_185AE0)(__int64 a1, unsigned int a2, FriendPresence* p) = nullptr;
+static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresence* pFriendPresence)
+{
+	auto match_sub = *(const char**)&pFriendPresence->GamePresence[0x20];
+	spdlog::info("uid {} with partSub: {} ",uid, match_sub);
+	return o_185AE0(uid, a2,pFriendPresence);
+}
+
+
+
+
+static __int64 (*__fastcall o_UpdateFriendsList)(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5) = nullptr;
+
+static __int64 __fastcall UpdateFriendsListHook(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5) {
+	spdlog::info("UpdateFriendsListHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}", a1, a2, a3, a4, a5);
+	return o_UpdateFriendsList(a1, a2, a3, a4, a5);
+}
+
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
 	RegisterConCommand("ns_fish", ConCommand_fish_origin, "does stuff idk", 0);
+	o_UpdateFriendsList = module.Offset(0x184000).RCast<decltype(o_UpdateFriendsList)>();
+	HookAttach(&(PVOID&)o_UpdateFriendsList, (PVOID)UpdateFriendsListHook);
+
+	o_185AE0 = module.Offset(0x185AE0).RCast<decltype(o_185AE0)>();
+	HookAttach(&(PVOID&)o_185AE0, (PVOID)sub_185AE0);
+
+}
+
+static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
+	// print all the parameters in hex format
+	
+
+	spdlog::info("OriginReadEnumerationSyncHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
+	return OriginReadEnumerationSync(a1, a2, a3, a4, a5,a6);
 }
 
 ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
@@ -151,4 +206,7 @@ ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 	OriginGetPresence = module.GetExportedFunction("OriginGetPresence").RCast<OriginGetPresenceType>();
 	OriginQueryPresence = module.GetExportedFunction("OriginQueryPresence").RCast<OriginGetPresenceType>();
 	OriginGetErrorDescription = module.GetExportedFunction("OriginGetErrorDescription").RCast<OriginGetErrorDescriptionType>();
+	OriginReadEnumerationSync = module.GetExportedFunction("OriginReadEnumerationSync").RCast<OriginReadEnumerationSyncType>();
+	OriginRequestFriend = module.GetExportedFunction("OriginRequestFriend").RCast<OriginRequestFriendType>();
+	//HookAttach(&(PVOID&)OriginReadEnumerationSync, (PVOID)OriginReadEnumerationSyncHook);
 }
