@@ -164,8 +164,18 @@ public:
 static __int64 (*__fastcall o_185AE0)(__int64 a1, unsigned int a2, FriendPresence* p) = nullptr;
 static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresence* pFriendPresence)
 {
-	auto match_sub = *(const char**)&pFriendPresence->GamePresence[0x20];
-	spdlog::info("uid {} with partSub: {} ",uid, match_sub);
+	if (pFriendPresence->GamePresence)
+	{
+		auto match_sub = *(const char**)&pFriendPresence->GamePresence[0x20];
+		if (match_sub && match_sub[0] != '\0')
+		{
+			spdlog::info("GamePresence for uid {}: {}", uid, match_sub);
+		}
+		else
+		{
+			spdlog::info("GamePresence for uid {} is empty", uid);
+		}
+	}
 	return o_185AE0(uid, a2,pFriendPresence);
 }
 
