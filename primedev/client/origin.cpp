@@ -1,5 +1,6 @@
 #include "origin.h"
 #include "r2client.h"
+#include "util/utils.h"
 
 OriginRequestAuthCodeType OriginRequestAuthCode;
 OriginGetPresenceType OriginGetPresence;
@@ -9,6 +10,8 @@ OriginReadEnumerationSyncType OriginReadEnumerationSync;
 OriginRequestFriendType OriginRequestFriend;
 
 std::string* tmpTok = nullptr;
+
+std::unordered_map<__int64, std::string> g_IDPartySubMap;
 
 void OriginAuthcodeStrcpyCallback(__int64 a1, __int64* a2)
 {
@@ -86,64 +89,6 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 	return tok;
 }
 
-std::string PresenceToString(OriginPresenceEnum presence)
-{
-	switch (presence)
-	{
-	case OriginPresenceEnum::IS_ONLINE:
-		return "Online";
-	case OriginPresenceEnum::IS_OFFLINE:
-		return "Offline";
-	case OriginPresenceEnum::AWAY:
-		return "Away";
-	case OriginPresenceEnum::IS_IN_PARTY:
-		return "In Party";
-	case OriginPresenceEnum::BUSY:
-		return "Busy";
-	case OriginPresenceEnum::IN_GAME:
-		return "In Game";
-	case OriginPresenceEnum::IS_IN_GAME_PARTY:
-		return "In Game Party";
-	default:
-		return "Unknown";
-	}
-}
-
-ADD_SQFUNC("PresenceData", NSGetOriginPresence, "string uid", "", ScriptContext::UI)
-{
-	auto localUserId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
-	std::string uid = g_pSquirrel<context>->getstring(sqvm, 1);
-	__int64 userId = _strtoi64(uid.c_str(), nullptr, 10);
-	OriginPresenceEnum presence;
-	char* sessionId = new char[256];
-	char* p1 = new char[256]; // unused, but required by the function signature
-	char* p2 = new char[256]; // unused, but required by the function signature
-	int ret = OriginGetPresence(userId, &presence, p1, 256, p2, 256, sessionId, 256);
-	spdlog::info("Origin presence for {}: Presence: {},Session: {}, p1: {}, p2: {}", uid, presence, sessionId,p1,p2);
-	auto result = OriginGetErrorDescription(ret);
-	spdlog::info("Origin presence for {}: {}", uid, result);
-	uintptr_t some;
-	OriginRequestFriend(localUserId, userId, 2, some, 0);
-	g_pSquirrel<context>->pushnewstructinstance(sqvm, 2);
-	g_pSquirrel<context>->pushinteger(sqvm, presence);
-	g_pSquirrel<context>->sealstructslot(sqvm, 0);
-
-	g_pSquirrel<context>->pushstring(sqvm, sessionId,-1);
-	g_pSquirrel<context>->sealstructslot(sqvm, 1);
-	return SQRESULT_NOTNULL;
-}
-
-void ConCommand_fish_origin(const CCommand& args)
-{
-	__int64 userId = 0;
-	if (g_pLocalPlayerUserID)
-		userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
-	OriginPresenceEnum presence;
-	char* sessionId = new char[256];
-	OriginGetPresence(userId, &presence, nullptr, 0, nullptr, 0, sessionId, 256);
-	spdlog::info("Origin presence: {},{},{}", presence,PresenceToString(presence), sessionId);
-}
-
 class FriendPresence
 {
 public:
@@ -167,20 +112,32 @@ static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresenc
 	if (pFriendPresence->GamePresence)
 	{
 		auto match_sub = *(const char**)&pFriendPresence->GamePresence[0x20];
-		if (match_sub && match_sub[0] != '\0')
+
+		if (!IsBadReadPtr2((void*)match_sub))
 		{
-			spdlog::info("GamePresence for uid {}: {}", uid, match_sub);
+			if (match_sub && match_sub[0] != '\0' && !IsBadReadPtr2((void*)match_sub))
+			{
+				g_IDPartySubMap.insert(std::make_pair(pFriendPresence->uid, std::string(match_sub)));
+				spdlog::info("GamePresence for uid {}: {}", uid, match_sub);
+			}
+			else
+			{
+				if (g_IDPartySubMap.contains(pFriendPresence->uid))
+					g_IDPartySubMap.erase(pFriendPresence->uid);
+
+				spdlog::info("GamePresence for uid {} is empty", uid);
+			}
 		}
 		else
 		{
+			if (g_IDPartySubMap.contains(pFriendPresence->uid))
+				g_IDPartySubMap.erase(pFriendPresence->uid);
+
 			spdlog::info("GamePresence for uid {} is empty", uid);
 		}
 	}
 	return o_185AE0(uid, a2,pFriendPresence);
 }
-
-
-
 
 static __int64 (*__fastcall o_UpdateFriendsList)(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5) = nullptr;
 
@@ -191,7 +148,6 @@ static __int64 __fastcall UpdateFriendsListHook(__int64 a1, __int64 a2, unsigned
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
-	RegisterConCommand("ns_fish", ConCommand_fish_origin, "does stuff idk", 0);
 	o_UpdateFriendsList = module.Offset(0x184000).RCast<decltype(o_UpdateFriendsList)>();
 	HookAttach(&(PVOID&)o_UpdateFriendsList, (PVOID)UpdateFriendsListHook);
 

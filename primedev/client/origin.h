@@ -31,3 +31,5 @@ typedef int (*OriginRequestFriendType)(int a1, int a2, int a3, __int64 a4, __int
 extern OriginRequestFriendType OriginRequestFriend;
 
 std::string* GetNewOriginToken(int timeoutSeconds);
+
+extern std::unordered_map<__int64, std::string> g_IDPartySubMap;
