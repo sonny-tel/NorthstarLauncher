@@ -130,8 +130,8 @@ void ModManager::TryBuildKeyValues(const char* filename)
 			constexpr const char* patchPrefix = "mod_patch_";
 			patchNum++;
 
-			std::string vanillaPatchPath = std::string(patchPrefix) + std::to_string(patchNum++) + "_vanilla_" + kvPath.filename().string();
-			std::string northstarPatchPath = std::string(patchPrefix) + std::to_string(patchNum++) + "_northstar_" + kvPath.filename().string();
+			std::string vanillaPatchPath = std::string(patchPrefix) + std::to_string(patchNum++) + "_v_" + kvPath.filename().string();
+			std::string northstarPatchPath = std::string(patchPrefix) + std::to_string(patchNum++) + "_n_" + kvPath.filename().string();
 			std::string& patchFilePath =
 				(g_pVanillaCompatibility->GetVanillaCompatibility() ? vanillaPatchPath : northstarPatchPath);
 
