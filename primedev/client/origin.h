@@ -16,7 +16,15 @@ enum OriginPresenceEnum
 	IS_INVITE_ONLY
 };
 typedef int (*OriginGetPresenceType)(
-	__int64 userId, OriginPresenceEnum* presenceData, char* a3, __int64 a4, char* a5, __int64 a6, char* a7, __int64 a8);
+	__int64 userId, void* presenceData, int a3, __int64 a4, void* a5, __int64 a6, int a7, __int64* a8);
+
+typedef int (*OriginQueryPresenceType)(__int64 userId, void* userIds, int numIds, __int64 a4, void* a5, __int64 a6, void* a7);
+
+typedef int (*OriginQueryPresenceSyncType)(__int64 userId, void* userIds, int numIds, void* a4, int a5, __int64* a6);
+
+
+typedef int (*OriginSubscribePresenceType)(__int64 userId, void* a2, int64_t a3);
+extern OriginSubscribePresenceType OriginSubscribePresence;
 
 extern OriginGetPresenceType OriginGetPresence;
 
@@ -24,7 +32,7 @@ typedef const char* (*OriginGetErrorDescriptionType)(int errorCode);
 extern OriginGetErrorDescriptionType OriginGetErrorDescription;
 
 //__int64 OriginReadEnumerationSync(int a1, int a2, int a3, __int64 a4, __int64 a5, __int64 a6)
-typedef int (*OriginReadEnumerationSyncType)(int a1, int a2, int a3, __int64 a4, __int64 a5, __int64 a6);
+typedef int (*OriginReadEnumerationSyncType)(int64_t a1, void* a2, int64_t a3, __int64 lower, __int64 upper, __int64 a6);
 extern OriginReadEnumerationSyncType OriginReadEnumerationSync;
 
 typedef int (*OriginRequestFriendType)(int a1, int a2, int a3, __int64 a4, __int64 a5);
