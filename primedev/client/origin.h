@@ -26,13 +26,15 @@ typedef int (*OriginQueryPresenceSyncType)(__int64 userId, void* userIds, int nu
 typedef int (*OriginSubscribePresenceType)(__int64 userId, void* a2, int64_t a3);
 extern OriginSubscribePresenceType OriginSubscribePresence;
 
+typedef int (*OriginQueryOffersType)(__int64 userId, const char** offerId, int numOffers, __int64 a4, int64_t a5, __int64 a6, __int64 a7, int a8, __int64 a9);
+
 extern OriginGetPresenceType OriginGetPresence;
 
 typedef const char* (*OriginGetErrorDescriptionType)(int errorCode);
 extern OriginGetErrorDescriptionType OriginGetErrorDescription;
 
 //__int64 OriginReadEnumerationSync(int a1, int a2, int a3, __int64 a4, __int64 a5, __int64 a6)
-typedef int (*OriginReadEnumerationSyncType)(int64_t a1, void* a2, int64_t a3, __int64 lower, __int64 upper, __int64 a6);
+typedef int (*OriginReadEnumerationSyncType)(int64_t a1, void* a2, int64_t a3, __int64 lower, __int64 upper, __int64* a6);
 extern OriginReadEnumerationSyncType OriginReadEnumerationSync;
 
 typedef int (*OriginRequestFriendType)(int a1, int a2, int a3, __int64 a4, __int64 a5);
