@@ -36,6 +36,7 @@ std::set<std::string> g_VanillaRemoteFunctions = {
 	"ServerCallback_StopWargamesPodAmbienceSound",
 	"ServerCallback_SpawnIMCFactionLeaderForIntro",
 	"ServerCallback_SpawnMilitiaFactionLeaderForIntro",
+	"ServerCallback_ClearFactionLeaderIntro",
 	"ServerCallback_PlayPodTransitionScreenFX",
 	"ServerCallback_DpadCommSay",
 	"ServerCallback_CaptialShips",
