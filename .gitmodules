@@ -9,3 +9,6 @@
 [submodule "thirdparty/minizip"]
 	path = primedev/thirdparty/minizip
 	url = https://github.com/zlib-ng/minizip-ng.git
+[submodule "primedev/thirdparty/tracy"]
+	path = primedev/thirdparty/tracy
+	url = https://github.com/wolfpld/tracy.git
