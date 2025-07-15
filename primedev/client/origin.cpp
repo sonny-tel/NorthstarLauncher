@@ -4,11 +4,13 @@
 
 OriginRequestAuthCodeType OriginRequestAuthCode;
 OriginGetPresenceType OriginGetPresence;
-OriginGetPresenceType OriginQueryPresence;
+OriginQueryPresenceType OriginQueryPresence;
+OriginQueryPresenceSyncType OriginQueryPresenceSync;
 OriginGetErrorDescriptionType OriginGetErrorDescription;
 OriginReadEnumerationSyncType OriginReadEnumerationSync;
 OriginRequestFriendType OriginRequestFriend;
-
+OriginSubscribePresenceType OriginSubscribePresence;
+OriginQueryOffersType OriginQueryOffers;
 std::string* tmpTok = nullptr;
 
 std::unordered_map<__int64, std::string> g_IDPartySubMap;
@@ -42,7 +44,7 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 
 	if (userId > 0)
 		res = OriginRequestAuthCode(userId, "TITANFALL2-PC-SERVER", OriginAuthcodeStrcpyCallback, 0, 30000, 0);
-	
+
 	auto start = std::chrono::steady_clock::now();
 
 	for(;;)
@@ -115,7 +117,7 @@ static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresenc
 
 		if (!IsBadReadPtr2((void*)match_sub))
 		{
-			if (match_sub && match_sub[0] != '\0' && !IsBadReadPtr2((void*)match_sub))
+			if (match_sub && match_sub[0] != '\0' && strncmp(match_sub, "p_PC_", 5) == 0)
 			{
 				g_IDPartySubMap.insert(std::make_pair(pFriendPresence->uid, std::string(match_sub)));
 				spdlog::info("GamePresence for uid {}: {}", uid, match_sub);
@@ -145,6 +147,63 @@ static __int64 __fastcall UpdateFriendsListHook(__int64 a1, __int64 a2, unsigned
 	spdlog::info("UpdateFriendsListHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}", a1, a2, a3, a4, a5);
 	return o_UpdateFriendsList(a1, a2, a3, a4, a5);
 }
+void PresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+{
+	spdlog::log(spdlog::level::info, "PresenceCallback called with a1: {}, a2: {}, a3: {}, a4: {}", a1, a2, a3, a4);
+}
+
+
+void SyncPresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned __int64 a5, __int64 a6) {
+
+	//  v11 = sub_17E420(saturated_mul(amount, 0x60uLL));
+	//if (!(unsigned int)OriginReadEnumerationSync(a2, v11, 96 * (int)amount, 0LL, 0xFFFFFFFFLL, (__int64)&a6))
+	spdlog::info("SyncPresenceCallback called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
+
+	void* buffer1 = new char[96 * a3]; // Buffer for the presence data
+	__int64 outvalue = 0;
+	auto ret = OriginReadEnumerationSync(a2, buffer1, 96 * a3, 0LL, 0xFFFFFFFFLL, &outvalue);
+	if (ret != 0)
+	{
+		auto reason = OriginGetErrorDescription(ret);
+		spdlog::error("Failed to read enum for presence. Error code: {}. Reason: {}", ret, reason);
+		delete[] buffer1;
+		return;
+	}
+	spdlog::info("Read enum for presence successfully. Buffer1: {}", buffer1);
+}
+
+
+void ConCommand_ns_fetch_presence(const CCommand& args)
+{
+	auto localUserId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
+	const char* userIdStr = args.Arg(1);
+	if (!userIdStr || userIdStr[0] == '\0')
+	{
+		spdlog::error("No user ID provided for presence fetch.");
+		return;
+	}
+
+	__int64 userId = _strtoi64(userIdStr, nullptr, 10);
+	std::array<const char*, 10> userIds; // Assuming we want to subscribe to presence for 5 user IDs
+	for (int i = 0; i < 1; ++i) // Assuming we want to subscribe to presence for 5 user IDs
+		userIds[i] = userIdStr; // to subscribe to presence
+
+	void* buffer1 = new char[0x1000]; // Allocate a buffer for the presence data
+	int64_t outHandle = 0; // Initialize outHandle to 0
+	void* buffer3 = new char[0x1000]; // Allocate a third buffer for the presence data
+	void* buffer4 = new char[0x1000]; // Allocate a third buffer for the presence data
+
+	int64_t enum2 = 0; // Initialize enum2 to 0
+	auto ret = OriginQueryPresence(localUserId, userIds.data(), 1, (int64_t)SyncPresenceCallback,buffer1,1,buffer3);
+	if (ret != 0)
+	{
+		auto reason = OriginGetErrorDescription(ret);
+		spdlog::error("Failed to subscribe to presence for user ID: {}. Error code: {}. Reason: {}", userId, ret, reason);
+		return;
+	}
+}
+
+
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
@@ -154,15 +213,17 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 	o_185AE0 = module.Offset(0x185AE0).RCast<decltype(o_185AE0)>();
 	HookAttach(&(PVOID&)o_185AE0, (PVOID)sub_185AE0);
 
+	RegisterConCommand("ns_fetchpres", ConCommand_ns_fetch_presence, "Fetch presence for uid", FCVAR_CLIENTDLL);
+
 }
 
-static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
-	// print all the parameters in hex format
-	
+// static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
+// 	// print all the parameters in hex format
 
-	spdlog::info("OriginReadEnumerationSyncHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
-	return OriginReadEnumerationSync(a1, a2, a3, a4, a5,a6);
-}
+
+// 	spdlog::info("OriginReadEnumerationSyncHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
+// 	return OriginReadEnumerationSync(a1, a2, a3, a4, a5,a6);
+// }
 
 ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 {
@@ -170,9 +231,12 @@ ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 	// and 3 ints which idk what they are but are 0, 30000 and 0 by default. probably some token ttl stuff
 	OriginRequestAuthCode = module.GetExportedFunction("OriginRequestAuthCode").RCast<OriginRequestAuthCodeType>();
 	OriginGetPresence = module.GetExportedFunction("OriginGetPresence").RCast<OriginGetPresenceType>();
-	OriginQueryPresence = module.GetExportedFunction("OriginQueryPresence").RCast<OriginGetPresenceType>();
+	OriginQueryPresence = module.GetExportedFunction("OriginQueryPresence").RCast<OriginQueryPresenceType>();
 	OriginGetErrorDescription = module.GetExportedFunction("OriginGetErrorDescription").RCast<OriginGetErrorDescriptionType>();
 	OriginReadEnumerationSync = module.GetExportedFunction("OriginReadEnumerationSync").RCast<OriginReadEnumerationSyncType>();
 	OriginRequestFriend = module.GetExportedFunction("OriginRequestFriend").RCast<OriginRequestFriendType>();
+	OriginSubscribePresence = module.GetExportedFunction("OriginSubscribePresence").RCast<OriginSubscribePresenceType>();
+	OriginQueryPresenceSync = module.GetExportedFunction("OriginQueryPresenceSync").RCast<OriginQueryPresenceSyncType>();
+	OriginQueryOffers = module.GetExportedFunction("OriginQueryOffers").RCast<OriginQueryOffersType>();
 	//HookAttach(&(PVOID&)OriginReadEnumerationSync, (PVOID)OriginReadEnumerationSyncHook);
 }
