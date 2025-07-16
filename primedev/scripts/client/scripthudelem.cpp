@@ -6,16 +6,19 @@ using CUtlString = const char*;
 class CDialogListButton
 {
 public:
-	struct DialogListItem_t
-	{
-	    CUtlString m_String;
-	    CUtlString m_StringParm1;
-	    CUtlString m_CommandString; // unused pretty sure but the size looks the same maybe
-	    bool m_bEnabled;
-	};
+    struct DialogListItem_t
+    {
+        // CUtlString m_String;      
+        // CUtlString m_StringParm1;   
+        // CUtlString m_CommandString; 
+        // bool m_bEnabled; 
+        char pad[72];           
+    };
 };
 
-ADD_SQFUNC("void", Hud_DialogList_RemoveListItem, "var elem, string name, string enum", "", ScriptContext::UI)
+// static_assert(sizeof(CDialogListButton::DialogListItem_t) == 72, "Wrong size");
+
+ADD_SQFUNC("void", Hud_DialogList_RemoveListItems, "var elem", "", ScriptContext::UI)
 {
     CClientScriptHudElement* hudElement = g_pSquirrel<context>->gethudelement<CClientScriptHudElement>(sqvm, 1);
 
@@ -25,21 +28,27 @@ ADD_SQFUNC("void", Hud_DialogList_RemoveListItem, "var elem, string name, string
 		return SQRESULT_ERROR;
 	}
 
-    uintptr_t v7 = *(uintptr_t*)((uintptr_t)hudElement + 40);
+    uintptr_t dialogListButton = *(uintptr_t*)((uintptr_t)hudElement + 40);
 
     using VFuncType = uintptr_t(__fastcall*)(uintptr_t);
-    VFuncType vfunc = *(VFuncType*)(*(uintptr_t*)v7 + 1520);
-    uintptr_t dialogListButton = vfunc(v7);
+    VFuncType vfunc = *(VFuncType*)(*(uintptr_t*)dialogListButton + 1520);
+    uintptr_t isDialogListButton = vfunc(dialogListButton);
 
     using NameFuncType = const char*(__fastcall*)(uintptr_t);
-    NameFuncType nameFunc = *(NameFuncType*)(*(uintptr_t*)v7 + 168);
-    const char* name = nameFunc(v7);
+    NameFuncType nameFunc = *(NameFuncType*)(*(uintptr_t*)dialogListButton + 168);
+    const char* name = nameFunc(dialogListButton);
 
-    if (!dialogListButton)
+    if (!isDialogListButton)
     {
         g_pSquirrel<context>->raiseerror(sqvm, fmt::format("No DialogListButton element with name '{}'.", name).c_str());
         return SQRESULT_ERROR;
     }
+
+    int count = *(int*)(dialogListButton + 1328);
+    CDialogListButton::DialogListItem_t* vectorBase = (CDialogListButton::DialogListItem_t*)(*(uintptr_t*)(dialogListButton + 1304));
+
+    // epic memory leak probably
+    *(int*)(dialogListButton + 1328) = 0;
 
 	return SQRESULT_NULL;
 }
