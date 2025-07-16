@@ -116,7 +116,6 @@ add_library(
     "scripts/client/cursorposition.cpp"
     "scripts/client/scriptbrowserhooks.cpp"
     "scripts/client/scriptdemo.cpp"
-    "scripts/client/scripthudelem.cpp"
     "scripts/client/scriptmainmenupromos.cpp"
     "scripts/client/scriptmodmenu.cpp"
     "scripts/client/scriptoriginauth.cpp"
