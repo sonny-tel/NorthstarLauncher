@@ -728,6 +728,7 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 	g_pSquirrel<ScriptContext::UI>->__sq_GetEntityConstant_CBaseEntity =
 	g_pSquirrel<ScriptContext::CLIENT>->__sq_GetEntityConstant_CBaseEntity;
 	g_pSquirrel<ScriptContext::UI>->__sq_getentityfrominstance = g_pSquirrel<ScriptContext::CLIENT>->__sq_getentityfrominstance;
+	g_pSquirrel<ScriptContext::UI>->__sq_GetEntityConstant_CClientHudElement = module.Offset(0x52FD70).RCast<sq_GetEntityConstantType>();
 
 	// Message buffer stuff
 	g_pSquirrel<ScriptContext::UI>->messageBuffer = g_pSquirrel<ScriptContext::CLIENT>->messageBuffer;

@@ -123,6 +123,7 @@ public:
 	sq_getentityfrominstanceType __sq_getentityfrominstance;
 	sq_createscriptinstanceType __sq_createscriptinstance;
 	sq_GetEntityConstantType __sq_GetEntityConstant_CBaseEntity;
+	sq_GetEntityConstantType __sq_GetEntityConstant_CClientHudElement;
 
 	sq_pushnewstructinstanceType __sq_pushnewstructinstance;
 	sq_sealstructslotType __sq_sealstructslot;
@@ -234,13 +235,21 @@ public:
 
 	template <typename T> inline SQBool getthisentity(HSQUIRRELVM sqvm, T* ppEntity) { return __sq_getthisentity(sqvm, (void**)ppEntity); }
 
-	template <typename T> inline T* getentity(HSQUIRRELVM sqvm, SQInteger iStackPos)
+	template <typename T> T* getentity(HSQUIRRELVM sqvm, SQInteger iStackPos)
 	{
 		SQObject obj;
 		__sq_getobject(sqvm, iStackPos, &obj);
 
 		// there are entity constants for other types, but seemingly CBaseEntity's is the only one needed
 		return (T*)__sq_getentityfrominstance(m_pSQVM, &obj, __sq_GetEntityConstant_CBaseEntity());
+	}
+
+	template <typename T> T* gethudelement(HSQUIRRELVM sqvm, SQInteger iStackPos)
+	{
+		SQObject obj;
+		__sq_getobject(sqvm, iStackPos, &obj);
+
+		return (T*)__sq_getentityfrominstance(m_pSQVM, &obj, __sq_GetEntityConstant_CClientHudElement());
 	}
 
 	inline SQRESULT pushnewstructinstance(HSQUIRRELVM sqvm, const int fieldCount) { return __sq_pushnewstructinstance(sqvm, fieldCount); }
