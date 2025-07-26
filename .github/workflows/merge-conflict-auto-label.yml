@@ -3,7 +3,7 @@ on:
   workflow_dispatch: # Manual run
   push:
     branches:
-      - main
+      - ion
   schedule:
     - cron: "10 21 * * *" # Runs at 21:10; time was chosen based on contributor activity and low GitHub Actions cron load.
 
