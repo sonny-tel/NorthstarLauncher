@@ -1,6 +1,5 @@
 #include "core/vanilla.h"
 #include "engine/r2engine.h"
-#include "tracy/Tracy.hpp"
 
 AUTOHOOK_INIT()
 
