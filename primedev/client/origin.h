@@ -28,6 +28,8 @@ extern OriginSubscribePresenceType OriginSubscribePresence;
 
 typedef int (*OriginQueryOffersType)(__int64 userId, const char** offerId, int numOffers, __int64 a4, int64_t a5, __int64 a6, __int64 a7, int a8, __int64 a9);
 
+typedef int (*OriginRequestFriendSyncType)(__int64 userId, __int64 friendId, __int64 timeout);
+
 extern OriginGetPresenceType OriginGetPresence;
 
 typedef const char* (*OriginGetErrorDescriptionType)(int errorCode);

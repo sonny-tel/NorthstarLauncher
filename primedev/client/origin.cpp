@@ -11,6 +11,7 @@ OriginReadEnumerationSyncType OriginReadEnumerationSync;
 OriginRequestFriendType OriginRequestFriend;
 OriginSubscribePresenceType OriginSubscribePresence;
 OriginQueryOffersType OriginQueryOffers;
+OriginRequestFriendSyncType OriginRequestFriendSync;
 std::string* tmpTok = nullptr;
 
 std::unordered_map<__int64, std::string> g_IDPartySubMap;
@@ -204,6 +205,32 @@ void ConCommand_ns_fetch_presence(const CCommand& args)
 }
 
 
+void ConCommand_ns_send_friend_request(const CCommand& args)
+{
+	auto localUserId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
+	const char* userIdStr = args.Arg(1);
+	if (!userIdStr || userIdStr[0] == '\0')
+	{
+		spdlog::error("No user ID provided for friend request.");
+		return;
+	}
+
+	__int64 userId = _strtoi64(userIdStr, nullptr, 10);
+
+	auto ret = OriginRequestFriendSync(localUserId, userId, 300); // Request friend sync for the user ID
+	auto reason = OriginGetErrorDescription(ret);
+	if (ret != 0)
+	{
+		spdlog::error("Failed to send friend request for user ID: {}. Error code: {}. Reason: {}", userId, ret, reason);
+		return;
+	}
+	else
+	{
+		spdlog::info(" Sent friend request for user ID: {}. Error code: {}. Reason: {}", userId, ret, reason);
+	}
+}
+
+
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
@@ -214,7 +241,7 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 	HookAttach(&(PVOID&)o_185AE0, (PVOID)sub_185AE0);
 
 	RegisterConCommand("ns_fetchpres", ConCommand_ns_fetch_presence, "Fetch presence for uid", FCVAR_CLIENTDLL);
-
+	RegisterConCommand("ns_send_friend_request", ConCommand_ns_send_friend_request, "Send friend request to uid", FCVAR_CLIENTDLL);
 }
 
 // static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
@@ -238,5 +265,6 @@ ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 	OriginSubscribePresence = module.GetExportedFunction("OriginSubscribePresence").RCast<OriginSubscribePresenceType>();
 	OriginQueryPresenceSync = module.GetExportedFunction("OriginQueryPresenceSync").RCast<OriginQueryPresenceSyncType>();
 	OriginQueryOffers = module.GetExportedFunction("OriginQueryOffers").RCast<OriginQueryOffersType>();
+	OriginRequestFriendSync = module.GetExportedFunction("OriginRequestFriendSync").RCast<OriginRequestFriendSyncType>();
 	//HookAttach(&(PVOID&)OriginReadEnumerationSync, (PVOID)OriginReadEnumerationSyncHook);
 }
