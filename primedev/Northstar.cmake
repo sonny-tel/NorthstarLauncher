@@ -1,6 +1,6 @@
 # NorthstarDLL
 
-#set(TRACY_ENABLE OFF)
+# set(TRACY_ENABLE OFF)
 
 find_package(minhook REQUIRED)
 find_package(libcurl REQUIRED)
@@ -25,13 +25,13 @@ add_library(
     "client/localchatwriter.cpp"
     "client/localchatwriter.h"
     "client/modlocalisation.cpp"
-	"client/origin.h"
-	"client/origin.cpp"
+    "client/origin.h"
+    "client/origin.cpp"
     "client/r2client.cpp"
     "client/r2client.h"
     "client/rejectconnectionfixes.cpp"
-	"client/room.h"
-	"client/room.cpp"
+    "client/room.h"
+    "client/room.cpp"
     "config/profile.cpp"
     "config/profile.h"
     "core/convar/concommand.cpp"
@@ -121,7 +121,7 @@ add_library(
     "scripts/client/scriptoriginauth.cpp"
     "scripts/client/scriptserverbrowser.cpp"
     "scripts/client/scriptservertoclientstringcommand.cpp"
-	"scripts/client/scriptpresence.cpp"
+    "scripts/client/scriptpresence.cpp"
     "scripts/server/miscserverfixes.cpp"
     "scripts/server/miscserverscript.cpp"
     "scripts/server/scriptuserinfo.cpp"
@@ -130,7 +130,7 @@ add_library(
     "scripts/scripthttprequesthandler.h"
     "scripts/scriptjson.cpp"
     "scripts/scriptjson.h"
-	"scripts/scriptremotes.cpp"
+    "scripts/scriptremotes.cpp"
     "scripts/scriptutility.cpp"
     "server/auth/bansystem.cpp"
     "server/auth/bansystem.h"
@@ -232,7 +232,7 @@ target_compile_definitions(
     PRIVATE UNICODE
             _UNICODE
             CURL_STATICLIB
-			$<$<NOT:$<CONFIG:Release>>:TRACY_ENABLE>
+            $<$<NOT:$<CONFIG:Release>>:TRACY_ENABLE>
     )
 
 set_target_properties(
