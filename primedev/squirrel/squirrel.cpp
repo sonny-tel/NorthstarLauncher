@@ -320,7 +320,8 @@ template <ScriptContext context> void sq_pushasset_hook(HSQUIRRELVM sqvm, const 
 		g_pSquirrel<context>->logger->warn("BAD ASSET: {} {}", (uintptr_t)str, iLength);
 		sq_pushasset_o<context>(sqvm, "", iLength);
 		return;
-	} else
+	}
+	else
 	{
 		sq_pushasset_o<context>(sqvm, str, iLength);
 	}
@@ -726,7 +727,7 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 	g_pSquirrel<ScriptContext::CLIENT>->__sq_getentityfrominstance = module.Offset(0x114F0).RCast<sq_getentityfrominstanceType>();
 	g_pSquirrel<ScriptContext::CLIENT>->__sq_createscriptinstance = module.Offset(0xC20E0).RCast<sq_createscriptinstanceType>();
 	g_pSquirrel<ScriptContext::UI>->__sq_GetEntityConstant_CBaseEntity =
-	g_pSquirrel<ScriptContext::CLIENT>->__sq_GetEntityConstant_CBaseEntity;
+		g_pSquirrel<ScriptContext::CLIENT>->__sq_GetEntityConstant_CBaseEntity;
 	g_pSquirrel<ScriptContext::UI>->__sq_getentityfrominstance = g_pSquirrel<ScriptContext::CLIENT>->__sq_getentityfrominstance;
 	g_pSquirrel<ScriptContext::UI>->__sq_GetEntityConstant_CClientHudElement = module.Offset(0x52FD70).RCast<sq_GetEntityConstantType>();
 
@@ -747,10 +748,7 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 		module.Offset(0x108E0),
 		&RegisterSquirrelFunctionHook<ScriptContext::CLIENT>,
 		&g_pSquirrel<ScriptContext::CLIENT>->RegisterSquirrelFunc);
-	MAKEHOOK(
-		module.Offset(0x3560),
-		&sq_pushasset_hook<ScriptContext::CLIENT>,
-		&sq_pushasset_o<ScriptContext::CLIENT>);
+	MAKEHOOK(module.Offset(0x3560), &sq_pushasset_hook<ScriptContext::CLIENT>, &sq_pushasset_o<ScriptContext::CLIENT>);
 	g_pSquirrel<ScriptContext::UI>->RegisterSquirrelFunc = g_pSquirrel<ScriptContext::CLIENT>->RegisterSquirrelFunc;
 
 	g_pSquirrel<ScriptContext::CLIENT>->logger = NS::log::SCRIPT_CL;

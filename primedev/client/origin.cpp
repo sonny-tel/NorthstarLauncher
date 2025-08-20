@@ -24,7 +24,7 @@ void OriginAuthcodeStrcpyCallback(__int64 a1, __int64* a2)
 		{
 			// spdlog::info("Token: {}", (char*)*a2);
 
-			if( tmpTok )
+			if (tmpTok)
 				delete tmpTok;
 
 			tmpTok = new std::string((char*)*a2);
@@ -41,24 +41,24 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 	__int64 res = 0;
 
 	if (g_pLocalPlayerUserID)
-    	userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
+		userId = _strtoi64(g_pLocalPlayerUserID, nullptr, 10);
 
 	if (userId > 0)
 		res = OriginRequestAuthCode(userId, "TITANFALL2-PC-SERVER", OriginAuthcodeStrcpyCallback, 0, 30000, 0);
 
 	auto start = std::chrono::steady_clock::now();
 
-	for(;;)
+	for (;;)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 		auto now = std::chrono::steady_clock::now();
 
-        if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeoutSeconds)
-        {
+		if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeoutSeconds)
+		{
 			if (tmpTok)
 			{
-				if( tmpTok->length() >= 0 )
+				if (tmpTok->length() >= 0)
 					delete tmpTok;
 			}
 
@@ -70,7 +70,7 @@ std::string* GetNewOriginToken(int timeoutSeconds)
 		}
 
 		if (!tmpTok)
-		    continue;
+			continue;
 
 		if (tmpTok->empty())
 			continue;
@@ -107,7 +107,7 @@ public:
 	char* empty2; // 0x0040
 }; // Size: 0x0880
 
-//0x185AE0
+// 0x185AE0
 
 static __int64 (*__fastcall o_185AE0)(__int64 a1, unsigned int a2, FriendPresence* p) = nullptr;
 static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresence* pFriendPresence)
@@ -139,12 +139,13 @@ static __int64 __fastcall sub_185AE0(__int64 uid, unsigned int a2, FriendPresenc
 			spdlog::info("GamePresence for uid {} is empty", uid);
 		}
 	}
-	return o_185AE0(uid, a2,pFriendPresence);
+	return o_185AE0(uid, a2, pFriendPresence);
 }
 
 static __int64 (*__fastcall o_UpdateFriendsList)(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5) = nullptr;
 
-static __int64 __fastcall UpdateFriendsListHook(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5) {
+static __int64 __fastcall UpdateFriendsListHook(__int64 a1, __int64 a2, unsigned __int64 a3, __int64 a4, int a5)
+{
 	spdlog::info("UpdateFriendsListHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}", a1, a2, a3, a4, a5);
 	return o_UpdateFriendsList(a1, a2, a3, a4, a5);
 }
@@ -153,12 +154,12 @@ void PresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 	spdlog::log(spdlog::level::info, "PresenceCallback called with a1: {}, a2: {}, a3: {}, a4: {}", a1, a2, a3, a4);
 }
 
-
-void SyncPresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned __int64 a5, __int64 a6) {
+void SyncPresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned __int64 a5, __int64 a6)
+{
 
 	//  v11 = sub_17E420(saturated_mul(amount, 0x60uLL));
-	//if (!(unsigned int)OriginReadEnumerationSync(a2, v11, 96 * (int)amount, 0LL, 0xFFFFFFFFLL, (__int64)&a6))
-	spdlog::info("SyncPresenceCallback called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
+	// if (!(unsigned int)OriginReadEnumerationSync(a2, v11, 96 * (int)amount, 0LL, 0xFFFFFFFFLL, (__int64)&a6))
+	spdlog::info("SyncPresenceCallback called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5, a6);
 
 	void* buffer1 = new char[96 * a3]; // Buffer for the presence data
 	__int64 outvalue = 0;
@@ -172,7 +173,6 @@ void SyncPresenceCallback(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsign
 	}
 	spdlog::info("Read enum for presence successfully. Buffer1: {}", buffer1);
 }
-
 
 void ConCommand_ns_fetch_presence(const CCommand& args)
 {
@@ -195,7 +195,7 @@ void ConCommand_ns_fetch_presence(const CCommand& args)
 	void* buffer4 = new char[0x1000]; // Allocate a third buffer for the presence data
 
 	int64_t enum2 = 0; // Initialize enum2 to 0
-	auto ret = OriginQueryPresence(localUserId, userIds.data(), 1, (int64_t)SyncPresenceCallback,buffer1,1,buffer3);
+	auto ret = OriginQueryPresence(localUserId, userIds.data(), 1, (int64_t)SyncPresenceCallback, buffer1, 1, buffer3);
 	if (ret != 0)
 	{
 		auto reason = OriginGetErrorDescription(ret);
@@ -203,7 +203,6 @@ void ConCommand_ns_fetch_presence(const CCommand& args)
 		return;
 	}
 }
-
 
 void ConCommand_ns_send_friend_request(const CCommand& args)
 {
@@ -230,8 +229,6 @@ void ConCommand_ns_send_friend_request(const CCommand& args)
 	}
 }
 
-
-
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
 	o_UpdateFriendsList = module.Offset(0x184000).RCast<decltype(o_UpdateFriendsList)>();
@@ -247,15 +244,15 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 // static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
 // 	// print all the parameters in hex format
 
-
 // 	spdlog::info("OriginReadEnumerationSyncHook called with a1: {}, a2: {}, a3: {}, a4: {}, a5: {}, a6: {}", a1, a2, a3, a4, a5,a6);
 // 	return OriginReadEnumerationSync(a1, a2, a3, a4, a5,a6);
 // }
 
-ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
+ON_DLL_LOAD("OriginSDK.dll", OriginSDK, (CModule module))
 {
-	// takes 5 params: user_id (g_pLocalPlayerUserID), the game ("TITANFALL2-PC-SERVER"), callback func to strcpy the token to which looks like void(*)(__int64 a1, char* a2),
-	// and 3 ints which idk what they are but are 0, 30000 and 0 by default. probably some token ttl stuff
+	// takes 5 params: user_id (g_pLocalPlayerUserID), the game ("TITANFALL2-PC-SERVER"), callback func to strcpy the token to which looks
+	// like void(*)(__int64 a1, char* a2), and 3 ints which idk what they are but are 0, 30000 and 0 by default. probably some token ttl
+	// stuff
 	OriginRequestAuthCode = module.GetExportedFunction("OriginRequestAuthCode").RCast<OriginRequestAuthCodeType>();
 	OriginGetPresence = module.GetExportedFunction("OriginGetPresence").RCast<OriginGetPresenceType>();
 	OriginQueryPresence = module.GetExportedFunction("OriginQueryPresence").RCast<OriginQueryPresenceType>();
@@ -266,5 +263,5 @@ ON_DLL_LOAD("OriginSDK.dll", OriginSDK,(CModule module))
 	OriginQueryPresenceSync = module.GetExportedFunction("OriginQueryPresenceSync").RCast<OriginQueryPresenceSyncType>();
 	OriginQueryOffers = module.GetExportedFunction("OriginQueryOffers").RCast<OriginQueryOffersType>();
 	OriginRequestFriendSync = module.GetExportedFunction("OriginRequestFriendSync").RCast<OriginRequestFriendSyncType>();
-	//HookAttach(&(PVOID&)OriginReadEnumerationSync, (PVOID)OriginReadEnumerationSyncHook);
+	// HookAttach(&(PVOID&)OriginReadEnumerationSync, (PVOID)OriginReadEnumerationSyncHook);
 }

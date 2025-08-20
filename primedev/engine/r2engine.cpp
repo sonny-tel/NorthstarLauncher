@@ -5,7 +5,7 @@ Cbuf_AddTextType Cbuf_AddText;
 Cbuf_ExecuteType Cbuf_Execute;
 
 bool (*CCommand__Tokenize)(CCommand& self, const char* pCommandString, cmd_source_t commandSource);
-//void (*_Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bool bUseWhiteLists);
+// void (*_Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bool bUseWhiteLists);
 
 CEngine* g_pEngine;
 

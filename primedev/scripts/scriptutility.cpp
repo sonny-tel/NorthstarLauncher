@@ -28,7 +28,11 @@ ADD_SQFUNC(
 }
 
 ADD_SQFUNC(
-	"string", GetConVarDefaultString, "string convarName", "Returns convar's default value as a string", ScriptContext::UI | ScriptContext::CLIENT | ScriptContext::SERVER)
+	"string",
+	GetConVarDefaultString,
+	"string convarName",
+	"Returns convar's default value as a string",
+	ScriptContext::UI | ScriptContext::CLIENT | ScriptContext::SERVER)
 {
 	const char* convarName = g_pSquirrel<context>->getstring(sqvm, 1);
 	if (!convarName)

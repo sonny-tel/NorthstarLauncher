@@ -659,7 +659,7 @@ void ModManager::CompileAssetsForFile(const char* filename)
 {
 	size_t fileHash = STR_HASH(NormaliseModFilePath(fs::path(filename)));
 
-	for( auto& file : m_CompiledAssetFiles )
+	for (auto& file : m_CompiledAssetFiles)
 	{
 		if (fileHash == STR_HASH(file.second.m_Path.string()))
 		{

@@ -75,8 +75,6 @@ void SetCommonHttpClientOptions(CURL* curl)
 	}
 }
 
-
-
 void MasterServerManager::ClearServerList()
 {
 	// this doesn't really do anything lol, probably isn't threadsafe
@@ -95,27 +93,27 @@ size_t CurlWriteToStringBufferCallback(char* contents, size_t size, size_t nmemb
 
 void MasterServerManager::AuthenticateOriginWithMasterServer()
 {
-    if (m_bOriginAuthWithMasterServerInProgress)
-        return;
+	if (m_bOriginAuthWithMasterServerInProgress)
+		return;
 
-    m_bOriginAuthWithMasterServerInProgress = true;
-    m_bOriginAuthWithMasterServerSuccessful = false;
-    m_sOriginAuthWithMasterServerErrorCode = "";
-    m_sOriginAuthWithMasterServerErrorMessage = "";
+	m_bOriginAuthWithMasterServerInProgress = true;
+	m_bOriginAuthWithMasterServerSuccessful = false;
+	m_sOriginAuthWithMasterServerErrorCode = "";
+	m_sOriginAuthWithMasterServerErrorMessage = "";
 
-    std::thread requestThread(
-        [this]()
-        {
-            constexpr int maxAttempts = 5;
-            int attempt = 0;
+	std::thread requestThread(
+		[this]()
+		{
+			constexpr int maxAttempts = 5;
+			int attempt = 0;
 
 			std::string uidStr(g_pLocalPlayerUserID);
-    		std::string tokenStr(g_pLocalPlayerOriginToken);
+			std::string tokenStr(g_pLocalPlayerOriginToken);
 
 			// spdlog::info("Authenticating with northstar masterserver for user {} with token {}", uidStr, tokenStr);
 
-            while (attempt < maxAttempts)
-            {
+			while (attempt < maxAttempts)
+			{
 				std::string* newToken(GetNewOriginToken(5));
 				// spdlog::info("New origin token: {}", *newToken);
 
@@ -125,119 +123,120 @@ void MasterServerManager::AuthenticateOriginWithMasterServer()
 					delete newToken;
 				}
 
+				spdlog::info(
+					"Trying to authenticate with northstar masterserver for user {} (attempt {}/{})", uidStr, attempt + 1, maxAttempts);
 
-                spdlog::info("Trying to authenticate with northstar masterserver for user {} (attempt {}/{})", uidStr, attempt + 1, maxAttempts);
+				CURL* curl = curl_easy_init();
+				SetCommonHttpClientOptions(curl);
+				std::string readBuffer;
+				curl_easy_setopt(
+					curl,
+					CURLOPT_URL,
+					fmt::format("{}/client/origin_auth?id={}&token={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr)
+						.c_str());
+				curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-                CURL* curl = curl_easy_init();
-                SetCommonHttpClientOptions(curl);
-                std::string readBuffer;
-                curl_easy_setopt(
-                    curl,
-                    CURLOPT_URL,
-                    fmt::format("{}/client/origin_auth?id={}&token={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr).c_str());
-                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				CURLcode result = curl_easy_perform(curl);
+				ScopeGuard cleanup([&] { curl_easy_cleanup(curl); });
 
-                CURLcode result = curl_easy_perform(curl);
-                ScopeGuard cleanup(
-                    [&]
-                    {
-                        curl_easy_cleanup(curl);
-                    });
+				if (result == CURLcode::CURLE_OK)
+				{
+					m_bSuccessfullyConnected = true;
 
-                if (result == CURLcode::CURLE_OK)
-                {
-                    m_bSuccessfullyConnected = true;
+					rapidjson_document originAuthInfo;
+					originAuthInfo.Parse(readBuffer.c_str());
 
-                    rapidjson_document originAuthInfo;
-                    originAuthInfo.Parse(readBuffer.c_str());
-
-                    if (originAuthInfo.HasParseError())
-                    {
+					if (originAuthInfo.HasParseError())
+					{
 						// spdlog::error("Raw response: {}", readBuffer);
 						long http_code = 0;
 						curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 						// spdlog::info("HTTP status code: {}", http_code);
-                        spdlog::error(
-                            "Failed reading origin auth info response: encountered parse error \"{}\"",
-                            rapidjson::GetParseError_En(originAuthInfo.GetParseError()));
+						spdlog::error(
+							"Failed reading origin auth info response: encountered parse error \"{}\"",
+							rapidjson::GetParseError_En(originAuthInfo.GetParseError()));
 
 						if (http_code == 429)
-						   break;
+							break;
 
-    					++attempt;
-    					if (attempt < maxAttempts)
-    					    std::this_thread::sleep_for(std::chrono::seconds(2));
-    					else
-    					    break;
-    					continue;
+						++attempt;
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
 					}
 
-                    if (!originAuthInfo.IsObject() || !originAuthInfo.HasMember("success"))
-                    {
-                        spdlog::error("Failed reading origin auth info response: malformed response object {}", readBuffer);
-    					++attempt;
-    					if (attempt < maxAttempts)
-    					    std::this_thread::sleep_for(std::chrono::seconds(2));
-    					else
-    					    break;
-    					continue;
+					if (!originAuthInfo.IsObject() || !originAuthInfo.HasMember("success"))
+					{
+						spdlog::error("Failed reading origin auth info response: malformed response object {}", readBuffer);
+						++attempt;
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
 					}
 
-                    if (originAuthInfo["success"].IsTrue() && originAuthInfo.HasMember("token") && originAuthInfo["token"].IsString())
-                    {
-                        strncpy_s(
-                            m_sOwnClientAuthToken,
-                            sizeof(m_sOwnClientAuthToken),
-                            originAuthInfo["token"].GetString(),
-                            sizeof(m_sOwnClientAuthToken) - 1);
-                        spdlog::info("Northstar origin authentication completed successfully!");
-                        m_bOriginAuthWithMasterServerSuccessful = true;
-                        break;
-                    }
-                    else
-                    {
-                        spdlog::error("Northstar origin authentication failed");
+					if (originAuthInfo["success"].IsTrue() && originAuthInfo.HasMember("token") && originAuthInfo["token"].IsString())
+					{
+						strncpy_s(
+							m_sOwnClientAuthToken,
+							sizeof(m_sOwnClientAuthToken),
+							originAuthInfo["token"].GetString(),
+							sizeof(m_sOwnClientAuthToken) - 1);
+						spdlog::info("Northstar origin authentication completed successfully!");
+						m_bOriginAuthWithMasterServerSuccessful = true;
+						break;
+					}
+					else
+					{
+						spdlog::error("Northstar origin authentication failed");
 
 						if (attempt == maxAttempts)
 						{
-                        	if (originAuthInfo.HasMember("error") && originAuthInfo["error"].IsObject())
-                        	{
-                        	    if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
-                        	    {
-                        	        m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
-                        	    }
-                        	    if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
-                        	    {
-                        	        m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
-                        	    }
-                        	}
+							if (originAuthInfo.HasMember("error") && originAuthInfo["error"].IsObject())
+							{
+								if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
+								{
+									m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
+								}
+								if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
+								{
+									m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
+								}
+							}
 						}
 
 						++attempt;
-    					if (attempt < maxAttempts)
-    					    std::this_thread::sleep_for(std::chrono::seconds(2));
-    					else
-    					    break;
-    					continue;
-                    }
-                }
-                else
-                {
-                    spdlog::error("Failed performing northstar origin auth: error {} (attempt {}/{})", curl_easy_strerror(result), attempt + 1, maxAttempts);
-                    m_bSuccessfullyConnected = false;
-                    ++attempt;
-                    if (attempt < maxAttempts)
-                        std::this_thread::sleep_for(std::chrono::seconds(2));
-                }
-            }
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
+					}
+				}
+				else
+				{
+					spdlog::error(
+						"Failed performing northstar origin auth: error {} (attempt {}/{})",
+						curl_easy_strerror(result),
+						attempt + 1,
+						maxAttempts);
+					m_bSuccessfullyConnected = false;
+					++attempt;
+					if (attempt < maxAttempts)
+						std::this_thread::sleep_for(std::chrono::seconds(2));
+				}
+			}
 
-            m_bOriginAuthWithMasterServerInProgress = false;
-            m_bOriginAuthWithMasterServerDone = true;
-        });
+			m_bOriginAuthWithMasterServerInProgress = false;
+			m_bOriginAuthWithMasterServerDone = true;
+		});
 
-    requestThread.detach();
+	requestThread.detach();
 }
 
 void MasterServerManager::RequestServerList()
@@ -1073,7 +1072,7 @@ void ConCommand_ns_try_join_serverid(const CCommand& args)
 				}
 			}
 
-			if( serverIndex == -1)
+			if (serverIndex == -1)
 			{
 				spdlog::error("Server with id {} not found in the server list", serverId);
 				return;
@@ -1088,23 +1087,18 @@ void ConCommand_ns_try_join_serverid(const CCommand& args)
 				g_pMasterServerManager->m_vRemoteServers[serverIndex],
 				(char*)password.c_str());
 
-			while( g_pMasterServerManager->m_bScriptAuthenticatingWithGameServer)
+			while (g_pMasterServerManager->m_bScriptAuthenticatingWithGameServer)
 				Sleep(100);
 
 			if (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
 			{
-				spdlog::error(
-					"Failed to authenticate with server {}: {}",
-					serverId,
-					g_pMasterServerManager->m_sAuthFailureReason);
+				spdlog::error("Failed to authenticate with server {}: {}", serverId, g_pMasterServerManager->m_sAuthFailureReason);
 				return;
 			}
 
 			if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)
 			{
-				spdlog::error(
-					"Failed to authenticate with server {}: no pending connection info available",
-					serverId);
+				spdlog::error("Failed to authenticate with server {}: no pending connection info available", serverId);
 				return;
 			}
 

@@ -1,7 +1,8 @@
 #include "squirrel/squirrel.h"
 #include "client/origin.h"
 
-//void DecodeJsonTable(HSQUIRRELVM sqvm, rapidjson::GenericValue<rapidjson::UTF8<char>, rapidjson::MemoryPoolAllocator<SourceAllocator>>* obj)
+// void DecodeJsonTable(HSQUIRRELVM sqvm, rapidjson::GenericValue<rapidjson::UTF8<char>, rapidjson::MemoryPoolAllocator<SourceAllocator>>*
+// obj)
 //{
 //	g_pSquirrel<context>->newtable(sqvm);
 //

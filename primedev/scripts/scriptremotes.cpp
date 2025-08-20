@@ -27,10 +27,11 @@
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⢙⢮⣷⣿⣿⣿⠿⠋⠉⣹⡽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⢶⣒⣋⣼⣋⡻⠾⠘⠋⠀⠀⠀⠀⠀⠐⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-  		sonny missed breakfast on schedule because of this
+		sonny missed breakfast on schedule because of this
 */
 
-// i hate this but checking for _remote_functions_mp.gnut in the stackinfos is unreliable for whatever reason so we have to just match the function names
+// i hate this but checking for _remote_functions_mp.gnut in the stackinfos is unreliable for whatever reason so we have to just match the
+// function names
 std::set<std::string> g_VanillaRemoteFunctions = {
 	"ServerCallback_CreateSpectrePaletteLighting",
 	"ServerCallback_StopWargamesPodAmbienceSound",
@@ -307,13 +308,13 @@ std::set<std::string> g_VanillaRemoteFunctions = {
 
 REPLACE_SQFUNC(Remote_RegisterFunction, ScriptContext::CLIENT)
 {
-	if( g_pVanillaCompatibility->GetVanillaCompatibility() )
+	if (g_pVanillaCompatibility->GetVanillaCompatibility())
 	{
 		std::string functionName = g_pSquirrel<context>->getstring(sqvm, 1);
 
 		// spdlog::info("Remote_RegisterFunction called with function name: {}", functionName);
 
-		if( g_VanillaRemoteFunctions.contains(functionName))
+		if (g_VanillaRemoteFunctions.contains(functionName))
 			return g_pSquirrel<context>->m_funcOriginals["Remote_RegisterFunction"](sqvm);
 		else
 		{

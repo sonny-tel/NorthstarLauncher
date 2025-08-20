@@ -21,9 +21,9 @@ AUTOHOOK(JoinPlayerRoomHook, engine.dll + 0x187C70, __int64, __fastcall, (__int6
 
 void ConCommand_ns_join_room(const CCommand& args)
 {
-    // 187C70
-    auto roomId = args.Arg(1);
-    JoinPlayerGameRoom(roomId);
+	// 187C70
+	auto roomId = args.Arg(1);
+	JoinPlayerGameRoom(roomId);
 }
 
 void ConCommand_ns_dump_room(const CCommand& args)
@@ -45,11 +45,9 @@ void ConCommand_ns_dump_room(const CCommand& args)
 		spdlog::info("match_partySub: {}", match_partySub);
 }
 
-
-
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", PartyRoom, ConCommand, (CModule module))
 {
-    JoinPlayerGameRoom = module.Offset(0x187C70).RCast<JoinPlayerGameRoom_t>();
+	JoinPlayerGameRoom = module.Offset(0x187C70).RCast<JoinPlayerGameRoom_t>();
 	RegisterConCommand("ns_join_room", ConCommand_ns_join_room, "Join a server by its room ID (value of match_partySub)", FCVAR_CLIENTDLL);
 
 	room1 = module.Offset(0x1314E538).RCast<char*>();
