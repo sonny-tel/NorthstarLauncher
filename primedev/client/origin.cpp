@@ -229,6 +229,16 @@ void ConCommand_ns_send_friend_request(const CCommand& args)
 	}
 }
 
+
+
+void ConCommand_ns_print_lobby_uids(const CCommand& args) {
+
+
+	
+}
+
+	
+
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
 	o_UpdateFriendsList = module.Offset(0x184000).RCast<decltype(o_UpdateFriendsList)>();
@@ -239,6 +249,31 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 
 	RegisterConCommand("ns_fetchpres", ConCommand_ns_fetch_presence, "Fetch presence for uid", FCVAR_CLIENTDLL);
 	RegisterConCommand("ns_send_friend_request", ConCommand_ns_send_friend_request, "Send friend request to uid", FCVAR_CLIENTDLL);
+	RegisterConCommand("ns_print_lobby_uids", ConCommand_ns_print_lobby_uids, "Send friend request to uid", FCVAR_CLIENTDLL);
+	g_pSquirrel<ScriptContext::CLIENT>->AddFuncRegistration(
+		"string",
+		"GetUID",
+		"entity player",
+		"Get uid of a player",
+		[](HSQUIRRELVM sqvm) -> SQRESULT
+		{
+			auto pPlayer = g_pSquirrel<ScriptContext::CLIENT>->getentity<CBaseEntity>(sqvm, 1);
+
+			if (!pPlayer)
+			{
+				spdlog::error("print_lobby_uids: Invalid player entity.");
+				return SQRESULT_ERROR;
+			}
+
+			auto uid = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(pPlayer) + 0x2020);
+			char uidBuffer[64];
+			sprintf_s(uidBuffer, "%llu", uid);
+
+			g_pSquirrel<ScriptContext::CLIENT>->pushstring(sqvm, uidBuffer, -1);
+
+			return SQRESULT_NOTNULL;
+		});
+
 }
 
 // static int OriginReadEnumerationSyncHook(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6) {
