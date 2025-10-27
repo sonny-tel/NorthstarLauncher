@@ -271,10 +271,8 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error("AsyncCall {} was called on context {} while VM was not initialized.", funcname, GetContextName(context));
-
 			return SquirrelMessage();
 		}
-
 		FunctionVector functionVector;
 		SqRecurseArgs<context>(functionVector, args...);
 		SquirrelMessage message = {funcname, functionVector};
@@ -289,10 +287,8 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error("AsyncCall {} was called on context {} while VM was not initialized.", funcname, GetContextName(context));
-
 			return SquirrelMessage();
 		}
-
 		FunctionVector functionVector = {};
 		SquirrelMessage message = {funcname, functionVector};
 		messageBuffer->push(message);
@@ -309,7 +305,6 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error("{} was called on context {} while VM was not initialized.", __FUNCTION__, GetContextName(context));
-
 			return SQRESULT_ERROR;
 		}
 
@@ -334,7 +329,6 @@ public:
 		if (!m_pSQVM || !m_pSQVM->sqvm)
 		{
 			spdlog::error("{} was called on context {} while VM was not initialized.", __FUNCTION__, GetContextName(context));
-
 			return SQRESULT_ERROR;
 		}
 		SQObject functionobj {};
