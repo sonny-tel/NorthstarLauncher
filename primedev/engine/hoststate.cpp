@@ -1,13 +1,15 @@
 #include "engine/hoststate.h"
+#include "core/tier0.h"
+#include "dedicated/dedicated.h"
+#include "engine/r2engine.h"
 #include "masterserver/masterserver.h"
+#include "plugins/pluginmanager.h"
 #include "server/auth/serverauthentication.h"
 #include "server/serverpresence.h"
-#include "shared/playlist.h"
-#include "core/tier0.h"
-#include "engine/r2engine.h"
 #include "shared/exploit_fixes/ns_limits.h"
+#include "shared/playlist.h"
 #include "squirrel/squirrel.h"
-#include "plugins/pluginmanager.h"
+#include "core/vanilla.h"
 
 CHostState* g_pHostState;
 
@@ -19,6 +21,7 @@ static void(__fastcall* _Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bo
 void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
@@ -56,7 +59,11 @@ static void __fastcall h_CHostState__State_NewGame(CHostState* self)
 {
 	spdlog::info("HostState: NewGame");
 
-	Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_server", cmd_source_t::kCommandSrcCode);
+	if (IsDedicatedServer())
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_dedicatedserver", cmd_source_t::kCommandSrcCode);
+	else
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
+
 	Cbuf_Execute();
 
 	// need to do this to ensure we don't go to private match
@@ -86,7 +93,11 @@ static void __fastcall h_CHostState__State_LoadGame(CHostState* self)
 
 	spdlog::info("HostState: LoadGame");
 
-	Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_server", cmd_source_t::kCommandSrcCode);
+	if (IsDedicatedServer())
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_dedicatedserver", cmd_source_t::kCommandSrcCode);
+	else
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
+
 	Cbuf_Execute();
 
 	// this is normally done in ServerStartingOrChangingMap(), but seemingly the map name isn't set at this point

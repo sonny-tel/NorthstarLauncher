@@ -73,14 +73,15 @@ class DedicatedConsoleServerPresence : public ServerPresenceReporter
 {
 	void ReportPresence(const ServerPresence* pServerPresence) override
 	{
-		SetConsoleTitleA(fmt::format(
-							 "{} - {} {}/{} players ({})",
-							 pServerPresence->m_sServerName,
-							 pServerPresence->m_MapName,
-							 pServerPresence->m_iPlayerCount,
-							 pServerPresence->m_iMaxPlayers,
-							 pServerPresence->m_PlaylistName)
-							 .c_str());
+		SetConsoleTitleA(
+			fmt::format(
+				"{} - {} {}/{} players ({})",
+				pServerPresence->m_sServerName,
+				pServerPresence->m_MapName,
+				pServerPresence->m_iPlayerCount,
+				pServerPresence->m_iMaxPlayers,
+				pServerPresence->m_PlaylistName)
+				.c_str());
 	}
 };
 

@@ -221,8 +221,9 @@ template <ScriptContext context> int HttpRequestHandler::MakeHttpRequest(const H
 
 	if (IsHttpDisabled())
 	{
-		spdlog::warn("NS_InternalMakeHttpRequest called while the game is running with -disablehttprequests."
-					 " Please check if requests are allowed using NSIsHttpEnabled() first.");
+		spdlog::warn(
+			"NS_InternalMakeHttpRequest called while the game is running with -disablehttprequests."
+			" Please check if requests are allowed using NSIsHttpEnabled() first.");
 		return -1;
 	}
 
@@ -432,8 +433,9 @@ template <ScriptContext context> int HttpRequestHandler::MakeHttpRequest(const H
 					if (result == CURLE_PEER_FAILED_VERIFICATION || result == CURLE_SSL_CERTPROBLEM ||
 						result == CURLE_SSL_INVALIDCERTSTATUS)
 					{
-						spdlog::error("You can try disabling SSL verifications for this issue using the -disablehttpssl launch argument. "
-									  "Keep in mind this is potentially dangerous!");
+						spdlog::error(
+							"You can try disabling SSL verifications for this issue using the -disablehttpssl launch argument. "
+							"Keep in mind this is potentially dangerous!");
 					}
 
 					g_pSquirrel<context>->AsyncCall(
@@ -463,8 +465,9 @@ template <ScriptContext context> SQRESULT SQ_InternalMakeHttpRequest(HSQUIRRELVM
 
 	if (IsHttpDisabled())
 	{
-		spdlog::warn("NS_InternalMakeHttpRequest called while the game is running with -disablehttprequests."
-					 " Please check if requests are allowed using NSIsHttpEnabled() first.");
+		spdlog::warn(
+			"NS_InternalMakeHttpRequest called while the game is running with -disablehttprequests."
+			" Please check if requests are allowed using NSIsHttpEnabled() first.");
 		g_pSquirrel<context>->pushinteger(sqvm, -1);
 		return SQRESULT_NOTNULL;
 	}

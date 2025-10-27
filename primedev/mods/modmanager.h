@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <regex>
 #include "mod.h"
+#include "core/vanilla.h"
 
 namespace fs = std::filesystem;
 
@@ -26,6 +27,9 @@ struct ModOverrideFile
 public:
 	Mod* m_pOwningMod;
 	fs::path m_Path;
+	VanillaCompatibility::CompatibilityMode m_lastCompatibilityMode;
+	std::vector<std::string> m_VanillaKeyvaluePaths;
+	std::vector<std::string> m_NorthstarKeyvaluePaths;
 };
 
 class ModManager
@@ -45,6 +49,7 @@ private:
 public:
 	std::vector<Mod> m_LoadedMods;
 	std::unordered_map<std::string, ModOverrideFile> m_ModFiles;
+	std::unordered_map<std::string, ModOverrideFile> m_CompiledAssetFiles;
 	std::unordered_map<std::string, std::string> m_DependencyConstants;
 	std::unordered_set<std::string> m_PluginDependencyConstants;
 
@@ -81,6 +86,7 @@ private:
 	 * @returns nothing
 	 **/
 	void SearchFilesystemForMods();
+	void ProcessConditionalBlocks(const fs::path& filePath, bool keepNorthstar);
 
 	/**
 	 * Prevents crashes caused by mods being installed several times.
@@ -113,6 +119,7 @@ public:
 	// compile asset type stuff, these are done in files under runtime/compiled/
 	void BuildScriptsRson();
 	void TryBuildKeyValues(const char* filename);
+	void TryChangeoverKeyValues(const char* filename, ModOverrideFile& modFile);
 	void BuildPdef();
 	void BuildKBActionsList();
 };

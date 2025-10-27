@@ -1,21 +1,23 @@
 #include "masterserver/masterserver.h"
 #include "core/convar/concommand.h"
-#include "shared/playlist.h"
-#include "server/auth/serverauthentication.h"
 #include "core/tier0.h"
 #include "core/vanilla.h"
+#include "dedicated/dedicated.h"
 #include "engine/r2engine.h"
 #include "mods/modmanager.h"
+#include "server/auth/bansystem.h"
+#include "server/auth/serverauthentication.h"
 #include "shared/misccommands.h"
+#include "shared/playlist.h"
 #include "util/utils.h"
 #include "util/version.h"
-#include "server/auth/bansystem.h"
-#include "dedicated/dedicated.h"
 
 #include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "rapidjson/error/en.h"
+#include "client/r2client.h"
+#include "client/origin.h"
 
 #include <cstring>
 #include <regex>
@@ -26,6 +28,7 @@ MasterServerManager* g_pMasterServerManager;
 
 ConVar* Cvar_ns_masterserver_hostname;
 ConVar* Cvar_ns_curl_log_enable;
+ConVar* Cvar_ns_last_tried_server_id;
 
 RemoteServerInfo::RemoteServerInfo(
 	const char* newId,
@@ -88,100 +91,149 @@ size_t CurlWriteToStringBufferCallback(char* contents, size_t size, size_t nmemb
 	return size * nmemb;
 }
 
-void MasterServerManager::AuthenticateOriginWithMasterServer(const char* uid, const char* originToken)
+void MasterServerManager::AuthenticateOriginWithMasterServer()
 {
-	if (m_bOriginAuthWithMasterServerInProgress || g_pVanillaCompatibility->GetVanillaCompatibility())
+	if (m_bOriginAuthWithMasterServerInProgress)
 		return;
 
-	// do this here so it's instantly set
 	m_bOriginAuthWithMasterServerInProgress = true;
-	std::string uidStr(uid);
-	std::string tokenStr(originToken);
-
 	m_bOriginAuthWithMasterServerSuccessful = false;
 	m_sOriginAuthWithMasterServerErrorCode = "";
 	m_sOriginAuthWithMasterServerErrorMessage = "";
 
 	std::thread requestThread(
-		[this, uidStr, tokenStr]()
+		[this]()
 		{
-			spdlog::info("Trying to authenticate with northstar masterserver for user {}", uidStr);
+			constexpr int maxAttempts = 5;
+			int attempt = 0;
 
-			CURL* curl = curl_easy_init();
-			SetCommonHttpClientOptions(curl);
-			std::string readBuffer;
-			curl_easy_setopt(
-				curl,
-				CURLOPT_URL,
-				fmt::format("{}/client/origin_auth?id={}&token={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr).c_str());
-			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			std::string uidStr(g_pLocalPlayerUserID);
+			std::string tokenStr(g_pLocalPlayerOriginToken);
 
-			CURLcode result = curl_easy_perform(curl);
-			ScopeGuard cleanup(
-				[&]
-				{
-					m_bOriginAuthWithMasterServerInProgress = false;
-					m_bOriginAuthWithMasterServerDone = true;
-					curl_easy_cleanup(curl);
-				});
+			// spdlog::info("Authenticating with northstar masterserver for user {} with token {}", uidStr, tokenStr);
 
-			if (result == CURLcode::CURLE_OK)
+			while (attempt < maxAttempts)
 			{
-				m_bSuccessfullyConnected = true;
+				std::string* newToken(GetNewOriginToken(5));
+				// spdlog::info("New origin token: {}", *newToken);
 
-				rapidjson_document originAuthInfo;
-				originAuthInfo.Parse(readBuffer.c_str());
-
-				if (originAuthInfo.HasParseError())
+				if (newToken)
 				{
-					spdlog::error(
-						"Failed reading origin auth info response: encountered parse error \"{}\"",
-						rapidjson::GetParseError_En(originAuthInfo.GetParseError()));
-					return;
+					tokenStr = std::string(*newToken);
+					delete newToken;
 				}
 
-				if (!originAuthInfo.IsObject() || !originAuthInfo.HasMember("success"))
-				{
-					spdlog::error("Failed reading origin auth info response: malformed response object {}", readBuffer);
-					return;
-				}
+				spdlog::info(
+					"Trying to authenticate with northstar masterserver for user {} (attempt {}/{})", uidStr, attempt + 1, maxAttempts);
 
-				if (originAuthInfo["success"].IsTrue() && originAuthInfo.HasMember("token") && originAuthInfo["token"].IsString())
+				CURL* curl = curl_easy_init();
+				SetCommonHttpClientOptions(curl);
+				std::string readBuffer;
+				curl_easy_setopt(
+					curl,
+					CURLOPT_URL,
+					fmt::format("{}/client/origin_auth?id={}&token={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr)
+						.c_str());
+				curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+				CURLcode result = curl_easy_perform(curl);
+				ScopeGuard cleanup([&] { curl_easy_cleanup(curl); });
+
+				if (result == CURLcode::CURLE_OK)
 				{
-					strncpy_s(
-						m_sOwnClientAuthToken,
-						sizeof(m_sOwnClientAuthToken),
-						originAuthInfo["token"].GetString(),
-						sizeof(m_sOwnClientAuthToken) - 1);
-					spdlog::info("Northstar origin authentication completed successfully!");
-					m_bOriginAuthWithMasterServerSuccessful = true;
+					m_bSuccessfullyConnected = true;
+
+					rapidjson_document originAuthInfo;
+					originAuthInfo.Parse(readBuffer.c_str());
+
+					if (originAuthInfo.HasParseError())
+					{
+						// spdlog::error("Raw response: {}", readBuffer);
+						long http_code = 0;
+						curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+						// spdlog::info("HTTP status code: {}", http_code);
+						spdlog::error(
+							"Failed reading origin auth info response: encountered parse error \"{}\"",
+							rapidjson::GetParseError_En(originAuthInfo.GetParseError()));
+
+						if (http_code == 429)
+							break;
+
+						++attempt;
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
+					}
+
+					if (!originAuthInfo.IsObject() || !originAuthInfo.HasMember("success"))
+					{
+						spdlog::error("Failed reading origin auth info response: malformed response object {}", readBuffer);
+						++attempt;
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
+					}
+
+					if (originAuthInfo["success"].IsTrue() && originAuthInfo.HasMember("token") && originAuthInfo["token"].IsString())
+					{
+						strncpy_s(
+							m_sOwnClientAuthToken,
+							sizeof(m_sOwnClientAuthToken),
+							originAuthInfo["token"].GetString(),
+							sizeof(m_sOwnClientAuthToken) - 1);
+						spdlog::info("Northstar origin authentication completed successfully!");
+						m_bOriginAuthWithMasterServerSuccessful = true;
+						break;
+					}
+					else
+					{
+						spdlog::error("Northstar origin authentication failed");
+
+						if (attempt == maxAttempts)
+						{
+							if (originAuthInfo.HasMember("error") && originAuthInfo["error"].IsObject())
+							{
+								if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
+								{
+									m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
+								}
+								if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
+								{
+									m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
+								}
+							}
+						}
+
+						++attempt;
+						if (attempt < maxAttempts)
+							std::this_thread::sleep_for(std::chrono::seconds(2));
+						else
+							break;
+						continue;
+					}
 				}
 				else
 				{
-					spdlog::error("Northstar origin authentication failed");
-
-					if (originAuthInfo.HasMember("error") && originAuthInfo["error"].IsObject())
-					{
-
-						if (originAuthInfo["error"].HasMember("enum") && originAuthInfo["error"]["enum"].IsString())
-						{
-							m_sOriginAuthWithMasterServerErrorCode = originAuthInfo["error"]["enum"].GetString();
-						}
-
-						if (originAuthInfo["error"].HasMember("msg") && originAuthInfo["error"]["msg"].IsString())
-						{
-							m_sOriginAuthWithMasterServerErrorMessage = originAuthInfo["error"]["msg"].GetString();
-						}
-					}
+					spdlog::error(
+						"Failed performing northstar origin auth: error {} (attempt {}/{})",
+						curl_easy_strerror(result),
+						attempt + 1,
+						maxAttempts);
+					m_bSuccessfullyConnected = false;
+					++attempt;
+					if (attempt < maxAttempts)
+						std::this_thread::sleep_for(std::chrono::seconds(2));
 				}
 			}
-			else
-			{
-				spdlog::error("Failed performing northstar origin auth: error {}", curl_easy_strerror(result));
-				m_bSuccessfullyConnected = false;
-			}
+
+			m_bOriginAuthWithMasterServerInProgress = false;
+			m_bOriginAuthWithMasterServerDone = true;
 		});
 
 	requestThread.detach();
@@ -467,7 +519,7 @@ void MasterServerManager::RequestMainMenuPromos()
 void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char* playerToken)
 {
 	// dont wait, just stop if we're trying to do 2 auth requests at once
-	if (m_bAuthenticatingWithGameServer || g_pVanillaCompatibility->GetVanillaCompatibility())
+	if (m_bAuthenticatingWithGameServer)
 		return;
 
 	m_bAuthenticatingWithGameServer = true;
@@ -604,7 +656,7 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 void MasterServerManager::AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password)
 {
 	// dont wait, just stop if we're trying to do 2 auth requests at once
-	if (m_bAuthenticatingWithGameServer || g_pVanillaCompatibility->GetVanillaCompatibility())
+	if (m_bAuthenticatingWithGameServer)
 		return;
 
 	m_bAuthenticatingWithGameServer = true;
@@ -714,6 +766,7 @@ void MasterServerManager::AuthenticateWithServer(const char* uid, const char* pl
 
 				m_pendingConnectionInfo.ip.S_un.S_addr = inet_addr(connectionInfoJson["ip"].GetString());
 				m_pendingConnectionInfo.port = (unsigned short)connectionInfoJson["port"].GetUint();
+				m_pendingConnectionInfo.serverId = serverIdStr;
 
 				strncpy_s(
 					m_pendingConnectionInfo.authToken,
@@ -986,6 +1039,91 @@ void MasterServerManager::ProcessConnectionlessPacketSigreq1(std::string data)
 	spdlog::error("invalid Atlas connectionless packet request: unknown type {}", type);
 }
 
+void ConCommand_ns_try_join_serverid(const CCommand& args)
+{
+	std::string serverId(args.Arg(1));
+	std::string password = std::string();
+
+	if (args.ArgC() < 2)
+	{
+		spdlog::error("Usage: ns_try_join_serverid <server_id> [password]");
+		return;
+	}
+
+	if (args.ArgC() == 3)
+		password = std::string(args.Arg(2));
+
+	g_pMasterServerManager->RequestServerList();
+
+	std::thread t1(
+		[serverId, password]
+		{
+			while (g_pMasterServerManager->m_bScriptRequestingServerList)
+				Sleep(100);
+
+			int serverIndex = -1;
+
+			for (int i = 0; i < g_pMasterServerManager->m_vRemoteServers.size(); ++i)
+			{
+				if (std::string(g_pMasterServerManager->m_vRemoteServers[i].id) == serverId)
+				{
+					serverIndex = i;
+					break;
+				}
+			}
+
+			if (serverIndex == -1)
+			{
+				spdlog::error("Server with id {} not found in the server list", serverId);
+				return;
+			}
+
+			for (auto& pair : g_pServerAuthentication->m_PlayerAuthenticationData)
+				g_pServerAuthentication->WritePersistentData(pair.first);
+
+			g_pMasterServerManager->AuthenticateWithServer(
+				g_pLocalPlayerUserID,
+				g_pMasterServerManager->m_sOwnClientAuthToken,
+				g_pMasterServerManager->m_vRemoteServers[serverIndex],
+				(char*)password.c_str());
+
+			while (g_pMasterServerManager->m_bScriptAuthenticatingWithGameServer)
+				Sleep(100);
+
+			if (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
+			{
+				spdlog::error("Failed to authenticate with server {}: {}", serverId, g_pMasterServerManager->m_sAuthFailureReason);
+				return;
+			}
+
+			if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)
+			{
+				spdlog::error("Failed to authenticate with server {}: no pending connection info available", serverId);
+				return;
+			}
+
+			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
+
+			g_pCVar->FindVar("ns_last_tried_server_id")->SetValue(info.serverId.c_str());
+
+			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format(
+					"connect {}.{}.{}.{}:{}",
+					info.ip.S_un.S_un_b.s_b1,
+					info.ip.S_un.S_un_b.s_b2,
+					info.ip.S_un.S_un_b.s_b3,
+					info.ip.S_un.S_un_b.s_b4,
+					info.port)
+					.c_str(),
+				cmd_source_t::kCommandSrcCode);
+
+			g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
+		});
+	t1.detach();
+}
+
 void ConCommand_ns_fetchservers(const CCommand& args)
 {
 	NOTE_UNUSED(args);
@@ -1005,8 +1143,10 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 
 	Cvar_ns_masterserver_hostname = new ConVar("ns_masterserver_hostname", "127.0.0.1", FCVAR_NONE, "");
 	Cvar_ns_curl_log_enable = new ConVar("ns_curl_log_enable", "0", FCVAR_NONE, "Whether curl should log to the console");
+	Cvar_ns_last_tried_server_id = new ConVar("ns_last_tried_server_id", "", FCVAR_NONE, "The last server id that was tried to connect to");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
+	RegisterConCommand("ns_try_join_serverid", ConCommand_ns_try_join_serverid, "Try to join a server by its id", FCVAR_CLIENTDLL);
 
 	MasterServerPresenceReporter* presenceReporter = new MasterServerPresenceReporter;
 	g_pServerPresence->AddPresenceReporter(presenceReporter);

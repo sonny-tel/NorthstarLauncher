@@ -1,26 +1,28 @@
 #pragma once
 
 /// Determines if we are in vanilla-compatibility mode.
-/// In this mode we shouldn't auth with Atlas, which prevents users from joining a
-/// non-trusted server. This means that we can unrestrict client/server commands
-/// as well as various other small changes for compatibility
 class VanillaCompatibility
 {
 public:
-	void SetVanillaCompatibility(bool isVanilla)
+	enum class CompatibilityMode
 	{
-		static bool bInitialised = false;
-		if (bInitialised)
-			return;
+		Vanilla,
+		Northstar,
+	};
 
-		bInitialised = true;
-		m_bIsVanillaCompatible = isVanilla;
+	void SetCompatabilityMode(CompatibilityMode mode)
+	{
+		if (m_bLastCompatabilityMode != mode)
+		{
+			m_bLastCompatabilityMode = mode;
+			spdlog::info("Vanilla compatibility mode set to {}", mode == CompatibilityMode::Vanilla ? "Vanilla" : "Northstar");
+		}
 	}
 
-	bool GetVanillaCompatibility() { return m_bIsVanillaCompatible; }
+	bool GetVanillaCompatibility() { return m_bLastCompatabilityMode == CompatibilityMode::Vanilla; }
 
 private:
-	bool m_bIsVanillaCompatible = false;
+	CompatibilityMode m_bLastCompatabilityMode = CompatibilityMode::Vanilla;
 };
 
-inline VanillaCompatibility* g_pVanillaCompatibility;
+extern VanillaCompatibility* g_pVanillaCompatibility;

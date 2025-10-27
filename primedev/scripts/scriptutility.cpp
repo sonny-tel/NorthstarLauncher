@@ -26,3 +26,31 @@ ADD_SQFUNC(
 
 	return SQRESULT_NULL;
 }
+
+ADD_SQFUNC(
+	"string",
+	GetConVarDefaultString,
+	"string convarName",
+	"Returns convar's default value as a string",
+	ScriptContext::UI | ScriptContext::CLIENT | ScriptContext::SERVER)
+{
+	const char* convarName = g_pSquirrel<context>->getstring(sqvm, 1);
+	if (!convarName)
+	{
+		g_pSquirrel<context>->raiseerror(sqvm, "ConVar name is null");
+		return SQRESULT_ERROR;
+	}
+
+	auto convar = g_pCVar->FindVar(convarName);
+	if (!convar)
+	{
+		g_pSquirrel<context>->raiseerror(sqvm, fmt::format("ConVar '{}' not found", convarName).c_str());
+		return SQRESULT_ERROR;
+	}
+
+	const char* defaultValue = convar->m_pszDefaultValue;
+
+	g_pSquirrel<context>->pushstring(sqvm, defaultValue);
+
+	return SQRESULT_NOTNULL;
+}

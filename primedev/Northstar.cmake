@@ -1,5 +1,7 @@
 # NorthstarDLL
 
+# set(TRACY_ENABLE OFF)
+
 find_package(minhook REQUIRED)
 find_package(libcurl REQUIRED)
 find_package(minizip REQUIRED)
@@ -23,9 +25,13 @@ add_library(
     "client/localchatwriter.cpp"
     "client/localchatwriter.h"
     "client/modlocalisation.cpp"
+    "client/origin.h"
+    "client/origin.cpp"
     "client/r2client.cpp"
     "client/r2client.h"
     "client/rejectconnectionfixes.cpp"
+    "client/room.h"
+    "client/room.cpp"
     "config/profile.cpp"
     "config/profile.h"
     "core/convar/concommand.cpp"
@@ -56,12 +62,16 @@ add_library(
     "core/tier0.h"
     "core/tier1.cpp"
     "core/tier1.h"
+    "core/vanilla.h"
+    "core/vanilla.cpp"
     "dedicated/dedicated.cpp"
     "dedicated/dedicated.h"
     "dedicated/dedicatedlogtoclient.cpp"
     "dedicated/dedicatedlogtoclient.h"
     "dedicated/dedicatedmaterialsystem.cpp"
     "engine/gl_matsysiface.cpp"
+    "engine/demo.h"
+    "engine/demo.cpp"
     "engine/host.cpp"
     "engine/hoststate.cpp"
     "engine/hoststate.h"
@@ -104,11 +114,14 @@ add_library(
     "scripts/client/clientchathooks.cpp"
     "scripts/client/cursorposition.cpp"
     "scripts/client/scriptbrowserhooks.cpp"
+    "scripts/client/scriptdemo.cpp"
+    "scripts/client/scripthudelem.cpp"
     "scripts/client/scriptmainmenupromos.cpp"
     "scripts/client/scriptmodmenu.cpp"
     "scripts/client/scriptoriginauth.cpp"
     "scripts/client/scriptserverbrowser.cpp"
     "scripts/client/scriptservertoclientstringcommand.cpp"
+    "scripts/client/scriptpresence.cpp"
     "scripts/server/miscserverfixes.cpp"
     "scripts/server/miscserverscript.cpp"
     "scripts/server/scriptuserinfo.cpp"
@@ -117,6 +130,7 @@ add_library(
     "scripts/scripthttprequesthandler.h"
     "scripts/scriptjson.cpp"
     "scripts/scriptjson.h"
+    "scripts/scriptremotes.cpp"
     "scripts/scriptutility.cpp"
     "server/auth/bansystem.cpp"
     "server/auth/bansystem.h"
@@ -182,6 +196,10 @@ add_library(
     "vscript/vscript.h"
     "windows/libsys.cpp"
     "windows/libsys.h"
+    "vgui/basemodui.cpp"
+    "vgui/basemodui.h"
+    "vgui/vgui.h"
+    "vgui/vgui.cpp"
     "dllmain.cpp"
     "ns_version.h"
     "Northstar.def"
@@ -214,6 +232,7 @@ target_compile_definitions(
     PRIVATE UNICODE
             _UNICODE
             CURL_STATICLIB
+            $<$<NOT:$<CONFIG:Release>>:TRACY_ENABLE>
     )
 
 set_target_properties(

@@ -123,6 +123,6 @@ ON_DLL_LOAD_RELIESON("engine.dll", PlaylistHooks, (ConCommand, ConVar), (CModule
 
 	// patch to allow setplaylistvaroverride to be called before map init on dedicated and private match launched through the game
 	// only run on non-vanilla as this patch makes users unable to change private match settings on vanilla
-	if (!g_pVanillaCompatibility->GetVanillaCompatibility())
-		module.Offset(0x18ED17).NOP(6);
+//	if (!g_pVanillaCompatibility->GetVanillaCompatibility())
+//		module.Offset(0x18ED17).NOP(6);
 }

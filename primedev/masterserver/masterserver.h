@@ -2,11 +2,11 @@
 
 #include "core/convar/convar.h"
 #include "server/serverpresence.h"
-#include <winsock2.h>
-#include <string>
 #include <cstring>
 #include <future>
+#include <string>
 #include <unordered_set>
+#include <winsock2.h>
 
 extern ConVar* Cvar_ns_masterserver_hostname;
 extern ConVar* Cvar_ns_curl_log_enable;
@@ -54,7 +54,7 @@ struct RemoteServerConnectionInfo
 {
 public:
 	char authToken[32];
-
+	std::string serverId;
 	in_addr ip;
 	unsigned short port;
 };
@@ -129,7 +129,7 @@ public:
 	void ClearServerList();
 	void RequestServerList();
 	void RequestMainMenuPromos();
-	void AuthenticateOriginWithMasterServer(const char* uid, const char* originToken);
+	void AuthenticateOriginWithMasterServer();
 	void AuthenticateWithOwnServer(const char* uid, const char* playerToken);
 	void AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password);
 	void WritePlayerPersistentData(const char* playerId, const char* pdata, size_t pdataSize);

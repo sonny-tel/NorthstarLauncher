@@ -6,6 +6,7 @@
 #include "core/filesystem/filesystem.h"
 #include "core/filesystem/rpakfilesystem.h"
 #include "config/profile.h"
+#include "engine/r2engine.h"
 
 #include "rapidjson/error/en.h"
 #include "rapidjson/document.h"
@@ -413,6 +414,7 @@ void ModManager::UnloadMods()
 	m_DependencyConstants.clear();
 
 	m_ModFiles.clear();
+	m_CompiledAssetFiles.clear();
 	fs::remove_all(GetCompiledAssetsPath());
 
 	g_CustomAudioManager.ClearAudioOverrides();
@@ -815,6 +817,16 @@ std::string ModManager::NormaliseModFilePath(const fs::path path)
 void ModManager::CompileAssetsForFile(const char* filename)
 {
 	size_t fileHash = STR_HASH(NormaliseModFilePath(fs::path(filename)));
+
+	for (auto& file : m_CompiledAssetFiles)
+	{
+		if (fileHash == STR_HASH(file.second.m_Path.string()))
+		{
+			TryChangeoverKeyValues(filename, file.second);
+
+			return;
+		}
+	}
 
 	if (fileHash == m_hScriptsRsonHash)
 		BuildScriptsRson();

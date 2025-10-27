@@ -96,8 +96,9 @@ static char* __fastcall h_GetGameLanguage()
 	spdlog::info("Detected system language: {}", lang);
 	if (!CheckLangAudioExists(lang))
 	{
-		spdlog::warn("Caution, audio for this language does NOT exist. You might want to override your game language with -language "
-					 "command line option.");
+		spdlog::warn(
+			"Caution, audio for this language does NOT exist. You might want to override your game language with -language "
+			"command line option.");
 		auto lang = GetAnyInstalledAudioLanguage();
 		spdlog::warn("Falling back to the first installed audio language: {}", lang.c_str());
 		strncpy(ingameLang1, lang.c_str(), 256);

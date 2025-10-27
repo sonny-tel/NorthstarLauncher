@@ -55,6 +55,7 @@ jobs:
         exclude: 'primedev/include primedev/thirdparty primedev/wsockproxy'
         extensions: 'h,cpp'
         clangFormatVersion: 16
+        inplace: true
         style: file
 
   format-check-cmake-files:

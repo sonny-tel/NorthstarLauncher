@@ -229,6 +229,9 @@ void FixupCvarFlags()
 		{"sound_volume_dialogue_sp", FCVAR_ARCHIVE_PLAYERPROFILE},
 		{"sound_volume_music_game_sp", FCVAR_ARCHIVE_PLAYERPROFILE},
 		{"sound_volume_sfx_sp", FCVAR_ARCHIVE_PLAYERPROFILE},
+		{"mat_disable_bloom", FCVAR_ARCHIVE_PLAYERPROFILE},
+		{"openInvites_filterByLanguage", FCVAR_ARCHIVE_PLAYERPROFILE},
+		{"openInvites_filterByRegion", FCVAR_ARCHIVE_PLAYERPROFILE},
 	};
 
 	// array of cvars and the flags we want to remove from them
@@ -346,9 +349,9 @@ void FixupCvarFlags()
 		{"sv_single_core_dedi", FCVAR_DEVELOPMENTONLY},
 		{"sv_stressbots", FCVAR_DEVELOPMENTONLY},
 
-		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY},
-		{"fatal_script_errors_client", FCVAR_DEVELOPMENTONLY},
-		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY},
+		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
+		{"fatal_script_errors_client", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
+		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
 		{"script_error_on_midgame_load", FCVAR_DEVELOPMENTONLY}, // idk what this is
 
 		{"ai_ainRebuildOnMapStart", FCVAR_DEVELOPMENTONLY},
@@ -367,7 +370,7 @@ void FixupCvarFlags()
 		{"damagedefs_reparse_client", FCVAR_DEVELOPMENTONLY},
 		{"playerSettings_reparse", FCVAR_DEVELOPMENTONLY},
 		{"_playerSettings_reparse_Server", FCVAR_DEVELOPMENTONLY},
-
+		{"weapon_reparse", FCVAR_CHEAT},
 	};
 
 	const std::vector<std::tuple<const char*, const char*>> CVAR_FIXUP_DEFAULT_VALUES = {
