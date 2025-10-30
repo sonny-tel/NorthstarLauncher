@@ -5,6 +5,8 @@
 
 AUTOHOOK_INIT()
 
+#define CInputSystem__PostEvent_SQFunc "CInputSystem__PostEvent"
+
 ConVar* Cvar_cl_dump_input_events;
 
 // clang-format off
@@ -15,12 +17,27 @@ AUTOHOOK(CInputSystem__PostEvent, inputsystem.dll + 0x7EC0, void, __fastcall, (v
 		spdlog::info("CInputSystem::PostEvent - Type: {}, Tick: {}, Data: {}, Data2: {}, Data3: {}",
 			nType, nTick, nData, nData2, nData3);
 
+	HSQUIRRELVM cl_sqvm = g_pSquirrel<ScriptContext::CLIENT>->m_pSQVM ? g_pSquirrel<ScriptContext::CLIENT>->m_pSQVM->sqvm : nullptr;
+
 	if( g_pSquirrel<ScriptContext::CLIENT>->m_pSQVM && g_pSquirrel<ScriptContext::CLIENT>->m_pSQVM->sqvm )
-		g_pSquirrel<ScriptContext::CLIENT>->Call(
-			"CInputSystem_ProcessPostEvent", nType, nTick, nData, nData2, nData3);
+	{
+		HSQUIRRELVM sqvm = g_pSquirrel<ScriptContext::CLIENT>->m_pSQVM->sqvm;
+		SQObject functionobj {};
+
+		if( g_pSquirrel<ScriptContext::CLIENT>->sq_getfunction(sqvm, CInputSystem__PostEvent_SQFunc, &functionobj, 0) == 0)
+			g_pSquirrel<ScriptContext::CLIENT>->Call(
+				CInputSystem__PostEvent_SQFunc, nType, nTick, nData, nData2, nData3);
+	}
+
 	if( g_pSquirrel<ScriptContext::UI>->m_pSQVM && g_pSquirrel<ScriptContext::UI>->m_pSQVM->sqvm )
-		g_pSquirrel<ScriptContext::UI>->Call(
-			"CInputSystem_ProcessPostEvent", nType, nTick, nData, nData2, nData3);
+	{
+		HSQUIRRELVM sqvm = g_pSquirrel<ScriptContext::UI>->m_pSQVM->sqvm;
+		SQObject functionobj {};
+
+		if( g_pSquirrel<ScriptContext::UI>->sq_getfunction(sqvm, CInputSystem__PostEvent_SQFunc, &functionobj, 0) == 0)
+			g_pSquirrel<ScriptContext::UI>->Call(
+				CInputSystem__PostEvent_SQFunc, nType, nTick, nData, nData2, nData3);
+	}
 
 	CInputSystem__PostEvent(self, nType, nTick, nData, nData2, nData3);
 	return;
