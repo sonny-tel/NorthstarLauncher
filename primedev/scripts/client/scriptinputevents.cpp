@@ -3,7 +3,7 @@
 
 AUTOHOOK_INIT()
 
-#define CInputSystem__PostEvent_SQFunc "CInputSystem__PostEvent"
+#define CInputSystem__PostEvent_SQFunc "CInputSystem__ProcessPostEvent"
 
 ConVar* Cvar_cl_dump_input_events;
 
