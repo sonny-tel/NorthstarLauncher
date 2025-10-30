@@ -221,6 +221,8 @@ void FixupCvarFlags()
 		{"cl_footstep_event_max_dist", FCVAR_CHEAT},
 		{"cl_footstep_event_max_dist_titan", FCVAR_CHEAT},
 
+		{"sv_alltalk", FCVAR_REPLICATED},
+
 		// fcvars that should be saved
 		{"cl_ragdoll_force_fade_time", FCVAR_ARCHIVE_PLAYERPROFILE},
 		{"cl_ragdoll_force_fade_time_local_view_player", FCVAR_ARCHIVE_PLAYERPROFILE},
