@@ -1,5 +1,3 @@
-#include "inputenums.h"
-#include "buttoncode.h"
 #include "core/convar/convar.h"
 #include "squirrel/squirrel.h"
 
