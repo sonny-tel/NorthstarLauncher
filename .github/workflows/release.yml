@@ -49,7 +49,7 @@ jobs:
       - name: Upload launcher build as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: northstar-launcher
+          name: ion-launcher
           path: |
             build/game/*.exe
             build/game/*.dll
@@ -70,8 +70,8 @@ jobs:
       - name: Download compiled launcher
         uses: actions/download-artifact@v4
         with:
-          name: northstar-launcher
-          path: northstar-launcher
+          name: ion-launcher
+          path: ion-launcher
       - name: Download compiled launcher
         uses: actions/download-artifact@v4
         with:
@@ -79,8 +79,8 @@ jobs:
           path: launcher-debug-files
       - name: Create zip with binaries
         run: |
-          cd northstar-launcher
-          zip --recurse-paths --quiet ../northstar-launcher.zip *
+          cd ion-launcher
+          zip --recurse-paths --quiet ../ion-launcher.zip *
       - name: Create zip with debug symbols
         run: |
           cd launcher-debug-files
@@ -88,8 +88,8 @@ jobs:
       - name: Upload files to release
         uses: softprops/action-gh-release@v1
         with:
-          body: ":warning: These are development files! If you want to download Northstar, [go here instead](https://github.com/R2Northstar/Northstar/releases) :warning:"
+          body: ":warning: These are development files! If you want to download Ion, [go here instead](https://github.com/sonny-tel/Ion/releases) :warning:"
           draft: false
           files: |
-            northstar-launcher.zip
+            ion-launcher.zip
             launcher-debug-files.zip
