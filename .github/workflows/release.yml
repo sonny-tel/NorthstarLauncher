@@ -27,8 +27,23 @@ jobs:
         run: |
           sed -i 's/DEV/${{ env.NORTHSTAR_VERSION }}/g' primedev/primelauncher/resources.rc
           sed -i 's/DEV/${{ env.NORTHSTAR_VERSION }}/g' primedev/resources.rc
-          FILEVERSION=$(echo ${{ env.NORTHSTAR_VERSION }} | tr '.' ',' | sed -E 's/-rc[0-9]+//' | tr -d '[:alpha:]')
+
+          # Extract version and patch from tag (e.g., v1.31.3_2)
+          VERSION_FULL=$(echo ${{ env.NORTHSTAR_VERSION }} | sed 's/^v//')
+          VERSION_BASE=$(echo ${VERSION_FULL} | cut -d'_' -f1)
+          PATCH_VERSION=$(echo ${VERSION_FULL} | cut -d'_' -f2)
+
+          # If no underscore, patch version is 0
+          if [[ "${VERSION_FULL}" == "${PATCH_VERSION}" ]]; then
+            PATCH_VERSION=0
+          fi
+
+          # Convert version to comma-separated format for FILEVERSION
+          FILEVERSION=$(echo ${VERSION_BASE} | tr '.' ',')
+
+          # Update ns_version.h with both version and patch
           sed -i "s/0,0,0,1/${FILEVERSION}/g" primedev/ns_version.h
+          sed -i "s/#define ION_PATCH 0/#define ION_PATCH ${PATCH_VERSION}/g" primedev/ns_version.h
       - name: Build
         run: cmake --build build/
       - name: Upload launcher build as artifact
