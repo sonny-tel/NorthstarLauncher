@@ -205,8 +205,9 @@ template <ScriptContext context> void SquirrelManager<context>::VMCreated(CSquir
 	defconst(m_pSQVM, "NS_VERSION_PATCH", version[2]);
 	defconst(m_pSQVM, "NS_VERSION_DEV", version[3]);
 
+	defconst(m_pSQVM, "ION_PATCH", ION_PATCH);
+
 	defconst(m_pSQVM, "VANILLA", g_pVanillaCompatibility->GetVanillaCompatibility());
-	defconst(m_pSQVM, "ION_VER", true);
 
 	g_pSquirrel<context>->messageBuffer = new SquirrelMessageBuffer();
 	g_pPluginManager->InformSqvmCreated(newSqvm);
