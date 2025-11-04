@@ -5,6 +5,8 @@ AUTOHOOK_INIT()
 
 std::vector<std::pair<std::string, int>> g_DebugInfoRegisteredNetMessages;
 
+CNetChan__RegisterMessage_t CNetChan__RegisterMessage = nullptr;
+
 // clang-format off
 AUTOHOOK(CNetChan_RegisterMessage, engine.dll + 0x2129D0, bool, __fastcall, (CNetChan* thisptr, INetMessage* msg))
 // clang-format on
@@ -57,4 +59,6 @@ ON_DLL_LOAD_RELIESON("engine.dll", NetChan, ConVar, (CModule module))
 	AUTOHOOK_DISPATCH();
 
 	RegisterConCommand("ns_dump_registered_netmessages", ConCommand_ns_dump_registered_netmessages, "Dumps registered netmessages", FCVAR_NONE);
+
+	CNetChan__RegisterMessage = module.Offset(0x2129D0).RCast<CNetChan__RegisterMessage_t>();
 }

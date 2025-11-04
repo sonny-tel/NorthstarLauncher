@@ -3,7 +3,11 @@
 #include "inetmessage.h"
 #include "inetchannel.h"
 
-enum NetMessageType
+class ExternalNetMessageHandler;
+
+extern ExternalNetMessageHandler* g_pExternalNetMessageHandler;
+
+enum class NetMessageType
 {
     net_StringCmd = 3,
     net_SetConVar = 4,
@@ -61,6 +65,11 @@ enum NetMessageType
     __NEXT_INDEX__ = 63,
 };
 
+enum class NSCustomNetMessages
+{
+	svc_SetModSchema = NetMessageType::__NEXT_INDEX__,
+};
+
 class CNetMessage : public INetMessage
 {
 public:
@@ -77,15 +86,14 @@ public:
 	INetChannelHandler* m_pMessageHandler;
 };
 
-class CExternalNetMessageHandler
+class ExternalNetMessageHandler
 {
-  private:
-	std::vector<INetMessage*> m_Messages;
-	CNetChan* m_pNetChan;
-	int currentMessageIndex;
-
   public:
-	void RegisterMessage(INetMessage* msg);
+	std::vector<INetMessage*> m_SVCMessages;
+	std::vector<INetMessage*> m_CLCMessages;
+
+	void RegisterSVCMessage(INetMessage* msg);
+	void RegisterCLCMessage(INetMessage* msg);
 };
 
 class SVC_SetModSchema : public CNetMessage

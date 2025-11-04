@@ -1,6 +1,7 @@
 #include "config/profile.h"
 #include "core/memalloc.h"
 #include "core/vanilla.h"
+#include "engine/netmessages.h"
 #include "logging/crashhandler.h"
 #include "logging/logging.h"
 #include "plugins/pluginmanager.h"
@@ -70,6 +71,8 @@ bool InitialiseNorthstar()
 	// Init loadlibrary callbacks
 	LibSys_Init();
 
+
+	g_pExternalNetMessageHandler = new ExternalNetMessageHandler();
 	g_pServerPresence = new ServerPresenceManager();
 
 	g_pPluginManager = new PluginManager();

@@ -79,6 +79,7 @@ add_library(
 	"engine/inetchannel.h"
 	"engine/netchannel.cpp"
 	"engine/netchannel.h"
+	"engine/netmessages.cpp"
 	"engine/netmessages.h"
     "engine/r2engine.cpp"
     "engine/r2engine.h"
