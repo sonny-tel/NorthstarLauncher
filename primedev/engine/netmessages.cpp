@@ -31,7 +31,7 @@ AUTOHOOK(CBaseClientState__ConnectionStart, engine.dll + 0x8CB40, bool, __fastca
 	return CBaseClientState__ConnectionStart(thisptr, chan);
 }
 
-ON_DLL_LOAD_RELIESON("engine.dll", NetMessages, CNetChan, (CModule module))
+ON_DLL_LOAD_RELIESON("engine.dll", NetMessages, NetChan, (CModule module))
 {
 	AUTOHOOK_DISPATCH();
 }
