@@ -3,8 +3,6 @@
 #include "inetmessage.h"
 #include "inetchannel.h"
 
-
-
 enum NetMessageType
 {
     net_StringCmd = 3,
@@ -60,6 +58,7 @@ enum NetMessageType
     svc_PlaylistPlayerCounts = 32,
     svc_NetProfileFrame = 42,
     svc_NetProfileTotals = 43,
+    __NEXT_INDEX__ = 63,
 };
 
 class CNetMessage : public INetMessage
@@ -70,6 +69,7 @@ public:
 	virtual bool	IsReliable(void) const { return m_bReliable; }
 	virtual int		GetGroup(void) const { return m_nGroup; }
 	virtual CNetChan* GetNetChannel(void) const { return m_NetChannel; }
+	virtual int     MysteryReturn0() const { return 0; }
 
 	int m_nGroup;
 	bool m_bReliable;
@@ -82,12 +82,10 @@ class CExternalNetMessageHandler
   private:
 	std::vector<INetMessage*> m_Messages;
 	CNetChan* m_pNetChan;
-
-	void RegisterSVCMessage(INetMessage* msg);
-	void RegisterNETMessage(INetMessage* msg);
-	void RegisterCLCMessage(INetMessage* msg);
+	int currentMessageIndex;
 
   public:
+	void RegisterMessage(INetMessage* msg);
 };
 
 class SVC_SetModSchema : public CNetMessage

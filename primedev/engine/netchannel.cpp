@@ -38,8 +38,16 @@ void ConCommand_ns_dump_registered_netmessages(const CCommand& args)
 	spdlog::info("enum NetMessageType");
 	spdlog::info("{");
 
+	int largestIndex = -1;
+
 	for (const auto& [name, type] : g_DebugInfoRegisteredNetMessages)
+	{
 		spdlog::info("    {} = {},", name, type);
+		if (type > largestIndex)
+			largestIndex = type;
+	}
+
+	spdlog::info("    __NEXT_INDEX__ = {},", largestIndex + 1);
 
 	spdlog::info("};");
 }
