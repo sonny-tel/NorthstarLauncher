@@ -4,11 +4,28 @@
 #include "inetchannel.h"
 
 
+
 enum NetMessageType
 {
     net_StringCmd = 3,
     net_SetConVar = 4,
     net_SignonState = 5,
+    clc_ClientTick = 59,
+    clc_ClientInfo = 44,
+    clc_Move = 45,
+    clc_VoiceData = 46,
+    clc_DurangoVoiceData = 47,
+    clc_FileCRCCheck = 49,
+    clc_LoadingProgress = 51,
+    clc_PersistenceRequestSave = 52,
+    clc_PersistenceClientToken = 53,
+    clc_SetClientEntitlements = 54,
+    clc_SetPlaylistVarOverride = 55,
+    clc_ClaimClientSidePickup = 56,
+    clc_ClientSayText = 60,
+    clc_Screenshot = 61,
+    clc_CmdKeyValues = 58,
+    clc_PINTelemetryData = 62,
     svc_Print = 15,
     svc_ServerInfo = 6,
     svc_SendTable = 7,
@@ -58,6 +75,19 @@ public:
 	bool m_bReliable;
 	CNetChan* m_NetChannel;
 	INetChannelHandler* m_pMessageHandler;
+};
+
+class CExternalNetMessageHandler
+{
+  private:
+	std::vector<INetMessage*> m_Messages;
+	CNetChan* m_pNetChan;
+
+	void RegisterSVCMessage(INetMessage* msg);
+	void RegisterNETMessage(INetMessage* msg);
+	void RegisterCLCMessage(INetMessage* msg);
+
+  public:
 };
 
 class SVC_SetModSchema : public CNetMessage
