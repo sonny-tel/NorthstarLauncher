@@ -35,7 +35,8 @@ void ConCommand_ns_dump_registered_netmessages(const CCommand& args)
 {
 	spdlog::info("Dumping {} registered netmessages:", g_DebugInfoRegisteredNetMessages.size());
 
-	spdlog::info("enum NetMessageType\n{");
+	spdlog::info("enum NetMessageType");
+	spdlog::info("{");
 
 	for (const auto& [name, type] : g_DebugInfoRegisteredNetMessages)
 		spdlog::info("    {} = {},", name, type);
