@@ -104,4 +104,11 @@ class SVC_SetModSchema : public CNetMessage
 	virtual bool ReadFromBuffer(BFRead* buffer);
 	virtual bool WriteToBuffer(BFWrite* buffer);
 	virtual bool Process(void);
+
+	virtual int GetType(void) const { return static_cast<int>(NSCustomNetMessages::svc_SetModSchema); }
+	virtual const char* GetName(void) const { return "svc_SetModSchema"; }
+
+	virtual const char* ToString(void) const { return "svc_SetModSchema: unimplemented"; }
+
+	virtual size_t GetSize(void) const { return sizeof(SVC_SetModSchema); }
 };
