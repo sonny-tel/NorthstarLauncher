@@ -97,6 +97,8 @@ add_library(
     "masterserver/masterserver.h"
     "mods/autodownload/moddownloader.h"
     "mods/autodownload/moddownloader.cpp"
+	"mods/autodownload/svcdownloader.h"
+	"mods/autodownload/svcdownloader.cpp"
     "mods/compiled/kb_act.cpp"
     "mods/compiled/modkeyvalues.cpp"
     "mods/compiled/modpdef.cpp"

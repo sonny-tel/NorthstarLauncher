@@ -71,8 +71,6 @@ bool InitialiseNorthstar()
 	// Init loadlibrary callbacks
 	LibSys_Init();
 
-
-	g_pExternalNetMessageHandler = new ExternalNetMessageHandler();
 	g_pServerPresence = new ServerPresenceManager();
 
 	g_pPluginManager = new PluginManager();

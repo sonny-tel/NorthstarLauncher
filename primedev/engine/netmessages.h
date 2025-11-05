@@ -3,10 +3,6 @@
 #include "inetmessage.h"
 #include "inetchannel.h"
 
-class ExternalNetMessageHandler;
-
-extern ExternalNetMessageHandler* g_pExternalNetMessageHandler;
-
 enum class NetMessageType
 {
     net_StringCmd = 3,
@@ -84,14 +80,4 @@ public:
 	bool m_bReliable;
 	CNetChan* m_NetChannel;
 	INetChannelHandler* m_pMessageHandler;
-};
-
-class ExternalNetMessageHandler
-{
-  public:
-	std::vector<INetMessage*> m_SVCMessages;
-	std::vector<INetMessage*> m_CLCMessages;
-
-	void RegisterSVCMessage(INetMessage* msg);
-	void RegisterCLCMessage(INetMessage* msg);
 };

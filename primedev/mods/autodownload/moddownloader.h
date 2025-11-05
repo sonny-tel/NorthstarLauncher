@@ -2,6 +2,12 @@
 
 namespace fs = std::filesystem;
 
+class CClient;
+
+class ModDownloader;
+
+extern ModDownloader* g_pModDownloader;
+
 class ModDownloader
 {
 private:
@@ -9,6 +15,7 @@ private:
 	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
 	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
 	char* modsListUrl;
+	rapidjson::Document m_Document;
 
 	enum class VerifiedModPlatform
 	{
@@ -162,23 +169,7 @@ public:
 	 * @returns nothing
 	 */
 	void CancelDownload();
-};
 
-class SVC_SetModSchema : public CNetMessage
-{
-  public:
-	SVC_SetModSchema() = default;
-
-	virtual bool ReadFromBuffer(BFRead* buffer);
-	virtual bool WriteToBuffer(BFWrite* buffer);
-	virtual bool Process(void);
-
-	virtual int GetType(void) const { return static_cast<int>(NSCustomNetMessages::svc_SetModSchema); }
-	virtual const char* GetName(void) const { return "svc_SetModSchema"; }
-
-	virtual const char* ToString(void) const { return "svc_SetModSchema: unimplemented"; }
-
-	virtual size_t GetSize(void) const { return sizeof(SVC_SetModSchema); }
-
-	rapidjson::Document m_Document;
+	void LoadServerModSchema();
+	rapidjson::Document& GetServerModSchemaDocument() { return m_Document; }
 };

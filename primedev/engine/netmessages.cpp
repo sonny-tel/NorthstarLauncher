@@ -1,7 +1,6 @@
 #include "netmessages.h"
 #include "netchannel.h"
-
-ExternalNetMessageHandler* g_pExternalNetMessageHandler = nullptr;
+#include "mods/autodownload/svcdownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -9,11 +8,6 @@ AUTOHOOK_INIT()
 AUTOHOOK(CBaseClient__ConnectionStart, engine.dll + 0x1019C0, bool, __fastcall, (__int64 thisptr, CNetChan* chan))
 // clang-format on
 {
-	if (g_pExternalNetMessageHandler)
-	{
-		for (auto& msg : g_pExternalNetMessageHandler->m_CLCMessages)
-			CNetChan__RegisterMessage(chan, msg);
-	}
 
 	return CBaseClient__ConnectionStart(thisptr, chan);
 }
@@ -22,11 +16,8 @@ AUTOHOOK(CBaseClient__ConnectionStart, engine.dll + 0x1019C0, bool, __fastcall, 
 AUTOHOOK(CBaseClientState__ConnectionStart, engine.dll + 0x8CB40, bool, __fastcall, (__int64 thisptr, CNetChan* chan))
 // clang-format on
 {
-	if (g_pExternalNetMessageHandler)
-	{
-		for (auto& msg : g_pExternalNetMessageHandler->m_SVCMessages)
-			CNetChan__RegisterMessage(chan, msg);
-	}
+	CNetChan__RegisterMessage(
+		chan, new SVC_SetModSchema());
 
 	return CBaseClientState__ConnectionStart(thisptr, chan);
 }
