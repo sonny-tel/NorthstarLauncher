@@ -1,6 +1,7 @@
 #include "moddownloader.h"
 #include "util/utils.h"
 #include <rapidjson/fwd.h>
+#include <rapidjson/writer.h>
 #include <mz_strm_mem.h>
 #include <mz.h>
 #include <mz_strm.h>
@@ -673,6 +674,40 @@ void ModDownloader::DownloadMod(std::string modName, std::string modVersion)
 void ModDownloader::CancelDownload()
 {
 	modState.state = ABORTED;
+}
+
+bool SVC_SetModSchema::ReadFromBuffer(BFRead* buffer)
+{
+	return true;
+}
+
+bool SVC_SetModSchema::WriteToBuffer(BFWrite* buffer)
+{
+	buffer->WriteUBitLong(this->GetType(), 6);
+
+    rapidjson::StringBuffer stringBuffer;
+    rapidjson::Writer<rapidjson::StringBuffer> tempWriter(stringBuffer);
+    m_Document.Accept(tempWriter);
+
+    size_t jsonLength = stringBuffer.GetSize();
+
+	constexpr size_t maxJsonLength = 16 * 1024 * 1024; // 16 MB
+	if (jsonLength > maxJsonLength)
+	{
+		spdlog::error("Mod schema JSON is too large to be sent (size: {} bytes, max size: {} bytes).", jsonLength, maxJsonLength);
+		return false;
+	}
+	buffer->WriteUBitLong(static_cast<uint32_t>(jsonLength), 24);
+
+	rapidjson::Writer<BFRapidJSONWriter> writer;
+	m_Document.Accept(writer);
+
+	return true;
+}
+
+bool SVC_SetModSchema::Process(void)
+{
+	return true;
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))

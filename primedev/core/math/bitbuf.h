@@ -1076,4 +1076,31 @@ private:
 	bool m_Flushed = false; // :flushed:
 };
 
+class BFRapidJSONWriter
+{
+public:
+	typedef char Ch;
+
+	INLINE BFRapidJSONWriter(BFWrite* buffer) :
+		m_Buffer(buffer),
+		m_Count(0)
+	{}
+
+	void Put(Ch c)
+	{
+		m_Buffer->WriteUBitLong(c, 8, false);
+		m_Count++;
+	}
+
+	void Flush() { m_Buffer->Flush(); }
+
+	size_t GetCount() const { return m_Count; }
+
+    bool IsOverflowed() const { return m_Buffer->IsOverflowed(); }
+
+private:
+	BFWrite* m_Buffer;
+	size_t m_Count;
+};
+
 #undef INLINE
