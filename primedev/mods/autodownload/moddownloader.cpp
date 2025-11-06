@@ -1,6 +1,9 @@
 #include "moddownloader.h"
 #include "util/utils.h"
+#include "config/profile.h"
 #include <rapidjson/fwd.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/error/en.h>
 #include <mz_strm_mem.h>
 #include <mz.h>
 #include <mz_strm.h>
@@ -673,6 +676,38 @@ void ModDownloader::DownloadMod(std::string modName, std::string modVersion)
 void ModDownloader::CancelDownload()
 {
 	modState.state = ABORTED;
+}
+
+void ModDownloader::LoadServerModSchema()
+{
+	fs::path path = fs::path(GetNorthstarPrefix() + "/servermodschema.json");
+	if (!fs::exists(path))
+	{
+		spdlog::warn("Server mod schema file not found at {}, skipping loading", path.generic_string());
+		return;
+	}
+
+	std::ifstream fileStream(path);
+	if (!fileStream.is_open())
+	{
+		spdlog::error("Failed opening server mod schema file at {}, skipping loading", path.generic_string());
+		return;
+	}
+
+	std::string fileContent((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+	m_Document.Parse(fileContent);
+
+	if (m_Document.HasParseError())
+	{
+		spdlog::error(
+			"Error parsing server mod schema file at {}: {} (offset {})",
+			path.generic_string(),
+			rapidjson::GetParseError_En(m_Document.GetParseError()),
+			m_Document.GetErrorOffset());
+		return;
+	}
+
+	spdlog::info("Successfully loaded server mod schema from {}", path.generic_string());
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))

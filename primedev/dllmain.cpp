@@ -1,6 +1,7 @@
 #include "config/profile.h"
 #include "core/memalloc.h"
 #include "core/vanilla.h"
+#include "engine/netmessages.h"
 #include "logging/crashhandler.h"
 #include "logging/logging.h"
 #include "plugins/pluginmanager.h"

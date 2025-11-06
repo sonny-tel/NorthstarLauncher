@@ -1,4 +1,12 @@
+#include "engine/netmessages.h"
+
 namespace fs = std::filesystem;
+
+class CClient;
+
+class ModDownloader;
+
+extern ModDownloader* g_pModDownloader;
 
 class ModDownloader
 {
@@ -7,6 +15,7 @@ private:
 	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
 	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
 	char* modsListUrl;
+	rapidjson::Document m_Document;
 
 	enum class VerifiedModPlatform
 	{
@@ -160,4 +169,7 @@ public:
 	 * @returns nothing
 	 */
 	void CancelDownload();
+
+	void LoadServerModSchema();
+	rapidjson::Document& GetServerModSchemaDocument() { return m_Document; }
 };

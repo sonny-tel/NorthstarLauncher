@@ -10,6 +10,7 @@
 #include "shared/playlist.h"
 #include "squirrel/squirrel.h"
 #include "core/vanilla.h"
+#include "mods/autodownload/moddownloader.h"
 
 CHostState* g_pHostState;
 
@@ -22,6 +23,8 @@ void ServerStartingOrChangingMap()
 {
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
+
+	g_pModDownloader->LoadServerModSchema();
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
 	// if we ran exec {mp_gamemode} and mp_gamemode contained semicolons, this could be used to execute more commands
