@@ -19,13 +19,19 @@ global struct MasterServerAuthResult
 }
 */
 
+// mirrored in script
+const int NOT_DECIDED_TO_SEND_TOKEN = 0;
+const int AGREED_TO_SEND_TOKEN = 1;
+const int DISAGREED_TO_SEND_TOKEN = 2;
+
+
 ADD_SQFUNC("void", NSRequestMasterServerAuth, "", "", ScriptContext::UI)
 {
 	if (g_pMasterServerManager->m_bOriginAuthWithMasterServerDone ||
 		g_pMasterServerManager->m_bOriginAuthWithMasterServerInProgress)
 		return SQRESULT_NULL;
 
-	if (Cvar_ns_has_agreed_to_send_token->GetInt() == AGREED_TO_SEND_TOKEN)
+	if (g_pCVar->FindVar("ns_has_agreed_to_send_token")->GetInt() == AGREED_TO_SEND_TOKEN)
 		g_pMasterServerManager->AuthenticateOriginWithMasterServer();
 
 	return SQRESULT_NULL;

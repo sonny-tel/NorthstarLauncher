@@ -6,11 +6,6 @@
 ConVar* Cvar_ns_has_agreed_to_send_token;
 char* pDummy3P = const_cast<char*>("Protocol 3: Protect the Pilot");
 
-// mirrored in script
-const int NOT_DECIDED_TO_SEND_TOKEN = 0;
-const int AGREED_TO_SEND_TOKEN = 1;
-const int DISAGREED_TO_SEND_TOKEN = 2;
-
 static char* (*__fastcall o_pAuth3PToken)() = nullptr;
 static char* __fastcall h_Auth3PToken()
 {

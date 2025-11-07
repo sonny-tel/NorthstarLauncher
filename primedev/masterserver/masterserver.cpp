@@ -415,8 +415,8 @@ void MasterServerManager::RequestMainMenuPromos()
 	std::thread requestThread(
 		[this]()
 		{
-			while (m_bOriginAuthWithMasterServerInProgress || !m_bOriginAuthWithMasterServerDone)
-				Sleep(500);
+			// while (m_bOriginAuthWithMasterServerInProgress || !m_bOriginAuthWithMasterServerDone)
+			// 	Sleep(500);
 
 			CURL* curl = curl_easy_init();
 			SetCommonHttpClientOptions(curl);

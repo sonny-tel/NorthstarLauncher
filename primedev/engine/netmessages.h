@@ -3,7 +3,7 @@
 #include "inetmessage.h"
 #include "inetchannel.h"
 
-enum class NetMessageType
+enum class NetMessageType : int
 {
     net_StringCmd = 3,
     net_SetConVar = 4,
@@ -61,9 +61,9 @@ enum class NetMessageType
     __NEXT_INDEX__ = 63,
 };
 
-enum class NSCustomNetMessages
+enum class NSCustomNetMessages : int
 {
-	svc_SetModSchema = NetMessageType::__NEXT_INDEX__,
+	svc_SetModSchema = static_cast<int>(NetMessageType::__NEXT_INDEX__),
 };
 
 class CNetMessage : public INetMessage
