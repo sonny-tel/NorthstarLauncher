@@ -230,15 +230,6 @@ void ConCommand_ns_send_friend_request(const CCommand& args)
 }
 
 
-
-void ConCommand_ns_print_lobby_uids(const CCommand& args) {
-
-
-	
-}
-
-	
-
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule module))
 {
 	o_UpdateFriendsList = module.Offset(0x184000).RCast<decltype(o_UpdateFriendsList)>();
@@ -249,7 +240,6 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 
 	RegisterConCommand("ns_fetchpres", ConCommand_ns_fetch_presence, "Fetch presence for uid", FCVAR_CLIENTDLL);
 	RegisterConCommand("ns_send_friend_request", ConCommand_ns_send_friend_request, "Send friend request to uid", FCVAR_CLIENTDLL);
-	RegisterConCommand("ns_print_lobby_uids", ConCommand_ns_print_lobby_uids, "Send friend request to uid", FCVAR_CLIENTDLL);
 	g_pSquirrel<ScriptContext::CLIENT>->AddFuncRegistration(
 		"string",
 		"GetUID",
