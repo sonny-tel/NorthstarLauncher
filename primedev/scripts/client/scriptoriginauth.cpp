@@ -19,6 +19,18 @@ global struct MasterServerAuthResult
 }
 */
 
+ADD_SQFUNC("void", NSRequestMasterServerAuth, "", "", ScriptContext::UI)
+{
+	if (g_pMasterServerManager->m_bOriginAuthWithMasterServerDone ||
+		g_pMasterServerManager->m_bOriginAuthWithMasterServerInProgress)
+		return SQRESULT_NULL;
+
+	if (Cvar_ns_has_agreed_to_send_token->GetInt() == AGREED_TO_SEND_TOKEN)
+		g_pMasterServerManager->AuthenticateOriginWithMasterServer();
+
+	return SQRESULT_NULL;
+}
+
 ADD_SQFUNC("bool", NSIsVanilla, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)
 {
 	g_pSquirrel<context>->pushbool(sqvm, g_pVanillaCompatibility->GetVanillaCompatibility());
