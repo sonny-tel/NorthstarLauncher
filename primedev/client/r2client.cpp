@@ -21,7 +21,7 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", R2EngineClient, ConCommand, (CModule m
 {
 	g_pLocalPlayerUserID = module.Offset(0x13F8E688).RCast<char*>();
 	g_pLocalPlayerOriginToken = module.Offset(0x13979C80).RCast<char*>();
-	RegisterConCommand("reload_models", ConCommand_reload_models, "Send friend request to uid", FCVAR_CLIENTDLL);
+	RegisterConCommand("reload_models", ConCommand_reload_models, "reload mdl cache", FCVAR_CLIENTDLL);
 	model_loader = module.Offset(0x7c4c20);
 	module.Offset(0xCF024).Patch({0xEB, 0x0E});
 	ReloadModels = module.Offset(0xCEEF0).RCast<decltype(ReloadModels)>();
