@@ -2,7 +2,7 @@
 #include "loghooks.h"
 #include "core/convar/convar.h"
 #include "core/convar/concommand.h"
-#include "core/math/bitbuf.h"
+#include "engine/bitbuf.h"
 #include "config/profile.h"
 #include "core/tier0.h"
 #include "squirrel/squirrel.h"
@@ -68,8 +68,8 @@ const std::unordered_map<SpewType_t, const char> PrintSpewTypes_Short = {
 
 ICenterPrint* pInternalCenterPrint = NULL;
 
-static void (*o_pTextMsg)(BFRead* msg) = nullptr;
-static void h_TextMsg(BFRead* msg)
+static void (*o_pTextMsg)(bf_read* msg) = nullptr;
+static void h_TextMsg(bf_read* msg)
 {
 	TextMsgPrintType_t msg_dest = (TextMsgPrintType_t)msg->ReadByte();
 

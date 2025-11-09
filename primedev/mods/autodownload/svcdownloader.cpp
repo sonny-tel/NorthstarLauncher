@@ -3,7 +3,7 @@
 
 AUTOHOOK_INIT()
 
-bool SVC_SetModSchema::ReadFromBuffer(BFRead* buffer)
+bool SVC_SetModSchema::ReadFromBuffer(bf_read* buffer)
 {
 	if(buffer->IsOverflowed())
 	{
@@ -12,7 +12,7 @@ bool SVC_SetModSchema::ReadFromBuffer(BFRead* buffer)
 	}
 
 	unsigned int numEntries = buffer->ReadUBitLong(16); // Read number of mod entries
-	spdlog::info("Reading {} mod entries from SVC_SetModSchema message buffer.", numEntries);
+	spdlog::debug("Reading {} mod entries from SVC_SetModSchema message buffer.", numEntries);
 	m_ModEntries.clear();
 	for (unsigned int i = 0; i < numEntries; ++i)
 	{
@@ -55,15 +55,16 @@ bool SVC_SetModSchema::ReadFromBuffer(BFRead* buffer)
     return true;
 }
 
-bool SVC_SetModSchema::WriteToBuffer(BFWrite* buffer)
+bool SVC_SetModSchema::WriteToBuffer(bf_write* buffer)
 {
-	spdlog::info("Writing {} mod entries to SVC_SetModSchema message buffer.", m_ModEntries.size());
+	spdlog::debug("Writing {} mod entries to SVC_SetModSchema message buffer.", m_ModEntries.size());
 
+  	buffer->WriteUBitLong(this->GetType(), 6, 1);
 	buffer->WriteUBitLong(static_cast<unsigned int>(m_ModEntries.size()), 16); // Write number of mod entries
 
 	for (const auto& entry : m_ModEntries)
 	{
-		spdlog::info("Writing mod entry: Name='{}', URL='{}', Checksum='{}', Version='{}'",
+		spdlog::debug("Writing mod entry: Name='{}', URL='{}', Checksum='{}', Version='{}'",
 			entry.name, entry.url, entry.checksum, entry.version);
 		// Write mod name
 		if(entry.name.length() < 128 )
@@ -119,22 +120,19 @@ AUTOHOOK(CClient__GetServerData, engine.dll + 0x105760, bool, __fastcall, (void*
 // clang-format on
 {
 	g_bIsGettingServerData = true;
-	spdlog::info("CClient::GetServerData called, preparing to inject SVC_SetModSchema message.");
 	bool res = CClient__GetServerData(thisptr);
 	g_bIsGettingServerData = false;
 	return res;
 }
 
 // clang-format off
-AUTOHOOK(CClient__SendDataBlock, engine.dll + 0x104870, bool, __fastcall, (void* thisptr, BFWrite* buffer))
+AUTOHOOK(CClient__SendDataBlock, engine.dll + 0x104870, bool, __fastcall, (void* thisptr, bf_write* buffer))
 // clang-format on
 {
 	if (g_bIsGettingServerData)
 	{
 		SVC_SetModSchema modSchemaMessage = SVC_SetModSchema(g_pModDownloader->GetServerModSchemaDocument());
-		spdlog::info("Num bytes written to buf a {}", buffer->GetNumBytesWritten());
 		modSchemaMessage.WriteToBuffer(buffer);
-		spdlog::info("Num bytes written to buf b {}", buffer->GetNumBytesWritten());
 	}
 
 	return CClient__SendDataBlock(thisptr, buffer);

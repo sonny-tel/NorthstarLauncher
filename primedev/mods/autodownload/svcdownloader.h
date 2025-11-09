@@ -77,8 +77,8 @@ class SVC_SetModSchema : public CNetMessage
     	spdlog::info("SVC_SetModSchema: Loaded {} mod entries", m_ModEntries.size());
 	}
 
-	virtual bool ReadFromBuffer(BFRead* buffer);
-	virtual bool WriteToBuffer(BFWrite* buffer);
+	virtual bool ReadFromBuffer(bf_read* buffer);
+	virtual bool WriteToBuffer(bf_write* buffer);
 	virtual bool Process(void);
 
 	virtual int GetType(void) const { return static_cast<int>(NSCustomNetMessages::svc_SetModSchema); }

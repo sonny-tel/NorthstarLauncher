@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/math/bitbuf.h"
+#include "engine/bitbuf.h"
 
 class INetMsgHandler;
 class INetMessage;
@@ -19,8 +19,8 @@ public:
 
 	virtual bool	Process( void ) = 0; // calls the recently set handler to process this message
 
-	virtual	bool	ReadFromBuffer( BFRead *buffer ) = 0; // returns true if parsing was OK
-	virtual	bool	WriteToBuffer( BFWrite *buffer ) = 0;	// returns true if writing was OK
+	virtual	bool	ReadFromBuffer( bf_read *buffer ) = 0; // returns true if parsing was OK
+	virtual	bool	WriteToBuffer( bf_write *buffer ) = 0;	// returns true if writing was OK
 
 	virtual bool	IsReliable( void ) const = 0;  // true, if message needs reliable handling
 
