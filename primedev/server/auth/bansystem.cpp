@@ -1,6 +1,7 @@
 #include "bansystem.h"
 #include "serverauthentication.h"
 #include "core/convar/concommand.h"
+#include "dedicated/dedicated.h"
 #include "server/r2server.h"
 #include "engine/r2engine.h"
 #include "client/r2client.h"
@@ -176,9 +177,13 @@ void ServerBanSystem::UnbanUID(uint64_t uid)
 
 bool ServerBanSystem::IsUIDAllowed(uint64_t uid)
 {
-	uint64_t localPlayerUserID = strtoull(g_pLocalPlayerUserID, nullptr, 10);
-	if (localPlayerUserID == uid)
-		return true;
+	if(!IsDedicatedServer())
+	{
+		uint64_t localPlayerUserID = strtoull(g_pLocalPlayerUserID, nullptr, 10);
+		if (localPlayerUserID == uid)
+			return true;
+	}
+
 
 	ReloadBanlist(); // Reload to have up to date list on join
 	return std::find(m_vBannedUids.begin(), m_vBannedUids.end(), uid) == m_vBannedUids.end();
