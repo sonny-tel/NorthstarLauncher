@@ -2,9 +2,18 @@
 
 #include "engine/bitbuf.h"
 
-class INetMsgHandler;
+class INetMessageHandler;
 class INetMessage;
 class CNetChan;
+
+class INetMessageHandler
+{
+public:
+	virtual ~INetMessageHandler(void) = 0;
+	virtual void ProcessStringCmd(void* msg) = 0;
+	virtual void ProcessSetConVar(void* msg) = 0;
+	virtual void ProcessSignonState(void* msg) = 0;
+};
 
 class INetMessage
 {

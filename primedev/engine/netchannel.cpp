@@ -1,5 +1,8 @@
 #include "netchannel.h"
 #include "inetmessage.h"
+#include "dedicated/dedicated.h"
+#include "r2engine.h"
+#include "mods/autodownload/moddownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -31,6 +34,33 @@ AUTOHOOK(CNetChan_RegisterMessage, engine.dll + 0x2129D0, bool, __fastcall, (CNe
 	}
 
 	return false;
+}
+
+// clang-format off
+AUTOHOOK(CNetChan__SendNetMsg, engine.dll + 0x213270, bool, __fastcall, (CNetChan* thisptr, INetMessage* msg, bool bForceReliable, bool bVoice))
+// clang-format on
+{
+	if( IsDedicatedServer() || *g_pServerState )
+		return CNetChan__SendNetMsg(thisptr, msg, bForceReliable, bVoice);
+
+	if(msg->GetType() == static_cast<int>(NetMessageType::net_SignonState))
+	{
+		if(g_pModDownloader->GetUserAcceptedServerModsState() >= AcceptedServerModState::PENDING)
+		{
+			if(!g_pModDownloader->m_bHasUserBeenPrompted)
+			{
+				g_pModDownloader->m_bHasUserBeenPrompted = true;
+				std::thread([=]()
+				{
+					g_pModDownloader->PromptUserConfirmation();
+				}).detach();
+			}
+
+			return true;
+		}
+	}
+
+	return CNetChan__SendNetMsg(thisptr, msg, bForceReliable, bVoice);
 }
 
 void ConCommand_ns_dump_registered_netmessages(const CCommand& args)

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "engine/netmessages.h"
 
 namespace fs = std::filesystem;
@@ -8,6 +10,22 @@ class ModDownloader;
 
 extern ModDownloader* g_pModDownloader;
 
+struct modentry_s
+{
+	std::string name;
+	std::string url;
+	std::string checksum;
+	std::string version;
+};
+
+enum class AcceptedServerModState
+{
+	INVALID,
+	PENDING,
+	DENIED,
+	ACCEPTED
+};
+
 class ModDownloader
 {
 private:
@@ -16,6 +34,9 @@ private:
 	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
 	char* modsListUrl;
 	rapidjson::Document m_Document;
+	AcceptedServerModState m_HasUserAcceptedServerMods = AcceptedServerModState::INVALID;
+	bool m_bServerModDownloadInProgress = false;
+	std::vector<modentry_s> m_ServerModsToInstall;
 
 	enum class VerifiedModPlatform
 	{
@@ -86,7 +107,6 @@ private:
 	 * @returns nothing
 	 */
 	void ExtractMod(fs::path modPath, fs::path destinationPath, VerifiedModPlatform platform);
-
 public:
 	ModDownloader();
 
@@ -159,6 +179,8 @@ public:
 		float ratio;
 	} modState = {};
 
+	bool m_bHasUserBeenPrompted = false;
+
 	/**
 	 * Cancels installation of the mod.
 	 *
@@ -171,5 +193,17 @@ public:
 	void CancelDownload();
 
 	void LoadServerModSchema();
+	void PromptUserConfirmation();
 	rapidjson::Document& GetServerModSchemaDocument() { return m_Document; }
+	bool ParseServerDownloadLinks();
+	void DownloadServerMods();
+	static int ServerModFetchingProgressCallback(
+		void* ptr, curl_off_t totalDownloadSize, curl_off_t finishedDownloadSize, curl_off_t totalToUpload, curl_off_t nowUploaded);
+	void SetUserAcceptedServerModsState(AcceptedServerModState state) { m_HasUserAcceptedServerMods = state; }
+	AcceptedServerModState GetUserAcceptedServerModsState() const { return m_HasUserAcceptedServerMods; }
+	bool HasUserAcceptedServerMods() const { return m_HasUserAcceptedServerMods == AcceptedServerModState::ACCEPTED; }
+	void SetDeniedServerMods() { m_HasUserAcceptedServerMods = AcceptedServerModState::DENIED; }
+	void SetServerMods(std::vector<modentry_s>& modsToInstall) { m_ServerModsToInstall = modsToInstall; }
+	void ClearServerModsState() { m_ServerModsToInstall.clear(); m_bServerModDownloadInProgress = false; SetUserAcceptedServerModsState(AcceptedServerModState::INVALID); m_bHasUserBeenPrompted = false; }
+	std::vector<modentry_s>& GetServerModsToInstall() { return m_ServerModsToInstall; }
 };

@@ -1,20 +1,12 @@
 #pragma once
 
 #include "engine/netmessages.h"
+#include "moddownloader.h"
 
 #include <rapidjson/document.h>
 
 class SVC_SetModSchema : public CNetMessage
 {
-  private:
-	struct modentry_s
-	{
-		std::string name;
-		std::string url;
-		std::string checksum;
-		std::string version;
-	};
-
   public:
 	SVC_SetModSchema() = default;
 	SVC_SetModSchema(const rapidjson::Document& document)
@@ -89,5 +81,4 @@ class SVC_SetModSchema : public CNetMessage
 	virtual size_t GetSize(void) const { return sizeof(SVC_SetModSchema); }
 
 	std::vector<modentry_s> m_ModEntries;
-
 };

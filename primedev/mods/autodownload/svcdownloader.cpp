@@ -1,5 +1,4 @@
 #include "svcdownloader.h"
-#include "moddownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -109,6 +108,32 @@ bool SVC_SetModSchema::Process(void)
 		spdlog::info("Checksum: {}", entry.checksum);
 		spdlog::info("Version: {}", entry.version);
 	}
+
+	g_pModDownloader->SetServerMods(m_ModEntries);
+
+    std::vector<modentry_s> missingMods;
+
+    for (const auto& requiredMod : m_ModEntries)
+    {
+        bool found = false;
+        for (const Mod& loadedMod : g_pModManager->m_LoadedMods)
+        {
+            if (loadedMod.Name == requiredMod.name && loadedMod.Version == requiredMod.version)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            missingMods.push_back(requiredMod);
+        }
+    }
+
+    if (!missingMods.empty())
+		g_pModDownloader->SetUserAcceptedServerModsState(AcceptedServerModState::PENDING);
+
 
 	return true;
 }

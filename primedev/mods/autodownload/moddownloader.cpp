@@ -1,6 +1,7 @@
 #include "moddownloader.h"
 #include "util/utils.h"
 #include "config/profile.h"
+#include "engine/r2engine.h"
 #include <rapidjson/fwd.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/error/en.h>
@@ -710,9 +711,34 @@ void ModDownloader::LoadServerModSchema()
 	spdlog::info("Successfully loaded server mod schema from {}", path.generic_string());
 }
 
+void ModDownloader::PromptUserConfirmation()
+{
+    if( m_bServerModDownloadInProgress )
+	{
+		m_bServerModDownloadInProgress = false;
+        Cbuf_AddText(Cbuf_GetCurrentPlayer(), "disconnect", cmd_source_t::kCommandSrcCode);
+		Cbuf_Execute();
+		return;
+	}
+
+	g_pSquirrel<ScriptContext::UI>->AsyncCall("NSUICodeCallback_PromptServerModDownloadConfirmation", g_pModDownloader->GetServerModsToInstall().size());
+}
+
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
 {
 	g_pModDownloader = new ModDownloader();
+}
+
+ADD_SQFUNC("void", NSDeclineServerModDownloads, "", "", ScriptContext::UI)
+{
+    g_pModDownloader->SetUserAcceptedServerModsState(AcceptedServerModState::DENIED);
+	return SQRESULT_NULL;
+}
+
+ADD_SQFUNC("void", NSAcceptServerModDownloads, "", "", ScriptContext::UI)
+{
+    g_pModDownloader->SetUserAcceptedServerModsState(AcceptedServerModState::ACCEPTED);
+	return SQRESULT_NULL;
 }
 
 ADD_SQFUNC("void", NSFetchVerifiedModsManifesto, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)
