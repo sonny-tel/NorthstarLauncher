@@ -720,25 +720,11 @@ void ModDownloader::PromptUserConfirmation()
 		Cbuf_Execute();
 		return;
 	}
-
-	g_pSquirrel<ScriptContext::UI>->AsyncCall("NSUICodeCallback_PromptServerModDownloadConfirmation", g_pModDownloader->GetServerModsToInstall().size());
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
 {
 	g_pModDownloader = new ModDownloader();
-}
-
-ADD_SQFUNC("void", NSDeclineServerModDownloads, "", "", ScriptContext::UI)
-{
-    g_pModDownloader->SetUserAcceptedServerModsState(AcceptedServerModState::DENIED);
-	return SQRESULT_NULL;
-}
-
-ADD_SQFUNC("void", NSAcceptServerModDownloads, "", "", ScriptContext::UI)
-{
-    g_pModDownloader->SetUserAcceptedServerModsState(AcceptedServerModState::ACCEPTED);
-	return SQRESULT_NULL;
 }
 
 ADD_SQFUNC("void", NSFetchVerifiedModsManifesto, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)
