@@ -78,7 +78,7 @@ public:
 	virtual __int64 GetFgColor();
 	virtual __int64 HasFocus();
 	virtual __int64 Unk1();
-	virtual __int64 Unk2();
+	virtual __int64 Unk3();
 	virtual __int64 SetTabPosition();
 	virtual __int64 SetBorder();
 	virtual __int64 GetBorder();
