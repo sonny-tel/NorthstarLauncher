@@ -202,7 +202,21 @@ __int64, __fastcall, (__int64 a1, LevelLoadingProgress_e progress))
 	return CEngineVGui__UpdateProgressBar(a1, progress);
 }
 
+typedef BaseModUI::CBaseModPanel* (*BaseModPanel_GetSingletonType)();
+BaseModPanel_GetSingletonType BaseModPanel_GetSingleton;
+
+namespace BaseModUI
+{
+	class CBaseModPanel
+	{
+		static CBaseModPanel* GetSingleton() { return BaseModPanel_GetSingleton(); }
+	};
+}
+
+
 ON_DLL_LOAD_CLIENT_RELIESON("client.dll", BaseModUIHooks, ConVar, (CModule module))
 {
+	BaseModPanel_GetSingleton = module.Offset(0x4B1690).RCast<BaseModPanel_GetSingletonType>();
+
 	AUTOHOOK_DISPATCH()
 }
