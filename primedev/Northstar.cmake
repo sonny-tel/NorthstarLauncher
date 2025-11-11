@@ -208,6 +208,7 @@ add_library(
     "vscript/vscript.h"
     "windows/libsys.cpp"
     "windows/libsys.h"
+	"vgui/elements/panel.h"
     "vgui/basemodui.cpp"
     "vgui/basemodui.h"
     "vgui/vgui.h"

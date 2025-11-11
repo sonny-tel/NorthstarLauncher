@@ -85,8 +85,8 @@ void, __fastcall, (__int64 thisptr))
 	if(!loadingRes)
 		return BaseModUI__LoadingProgress__PaintBackground(thisptr);
 
-	loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(vgui_Panel_FindChildByName(loadingRes, "LoadingProgressBar", false));
-	loadingText = reinterpret_cast<vgui::Label*>(vgui_Panel_FindChildByName(loadingRes, "LoadingLabelInfo", false));
+	loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
+	loadingText = reinterpret_cast<vgui::Label*>(loadingRes->FindChildByName("LoadingLabelInfo", false));
 
 	if (loadingBar)
 	{

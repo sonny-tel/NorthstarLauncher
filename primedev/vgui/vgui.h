@@ -1,5 +1,7 @@
 #pragma once
 
+#include "elements/panel.h"
+
 enum LevelLoadingProgress_e
 {
 	PROGRESS_NONE,
@@ -55,5 +57,4 @@ namespace vgui
 	class Label;
 } // namespace vgui
 
-extern vgui::Panel* (*vgui_Panel_FindChildByName)(vgui::Panel* thisptr, const char* childName, bool recurseDown);
 extern void (*vgui_Label_SetText)(vgui::Label* thisptr, const char* text);
