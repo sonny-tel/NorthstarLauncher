@@ -81,6 +81,10 @@ void, __fastcall, (__int64 thisptr))
 // clang-format on
 {
 	vgui::Panel* loadingRes = reinterpret_cast<vgui::Panel*>(thisptr);
+
+	if(!loadingRes)
+		return BaseModUI__LoadingProgress__PaintBackground(thisptr);
+
 	loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(vgui_Panel_FindChildByName(loadingRes, "LoadingProgressBar", false));
 	loadingText = reinterpret_cast<vgui::Label*>(vgui_Panel_FindChildByName(loadingRes, "LoadingLabelInfo", false));
 
@@ -117,7 +121,8 @@ void WaitForFadeout()
 {
 	int waitTime = g_pCVar->FindVar("ui_loadingscreen_fadeout_time")->GetInt();
 	std::this_thread::sleep_for(std::chrono::seconds(waitTime + 1));
-	*(float*)(loadingBar + 620) = 0.0;
+	if(loadingBar)
+		*(float*)(loadingBar + 620) = 0.0;
 	flPerc = 0;
 	m_eLastProgressPoint = PROGRESS_NONE;
 	m_nLastProgressPointRepeatCount = 0;
