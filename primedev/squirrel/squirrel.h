@@ -124,6 +124,7 @@ public:
 	sq_createscriptinstanceType __sq_createscriptinstance;
 	sq_GetEntityConstantType __sq_GetEntityConstant_CBaseEntity;
 	sq_GetEntityConstantType __sq_GetEntityConstant_CClientHudElement;
+	sq_pushhudelementType __sq_pushhudelement;
 
 	sq_pushnewstructinstanceType __sq_pushnewstructinstance;
 	sq_sealstructslotType __sq_sealstructslot;

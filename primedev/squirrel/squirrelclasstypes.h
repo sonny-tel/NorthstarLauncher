@@ -4,6 +4,11 @@
 
 #include <queue>
 
+namespace vgui
+{
+	class Panel;
+}
+
 const std::map<SQRESULT, const char*> PrintSQRESULT = {
 	{SQRESULT::SQRESULT_ERROR, "SQRESULT_ERROR"},
 	{SQRESULT::SQRESULT_NULL, "SQRESULT_NULL"},
@@ -161,6 +166,7 @@ typedef SQRESULT (*sq_setuserdatatypeidType)(HSQUIRRELVM sqvm, SQInteger iStackp
 typedef void* (*sq_getentityfrominstanceType)(CSquirrelVM* sqvm, SQObject* pInstance, char** ppEntityConstant);
 typedef SQObject* (*sq_createscriptinstanceType)(void* ent);
 typedef char** (*sq_GetEntityConstantType)();
+typedef void (*sq_pushhudelementType)(HSQUIRRELVM sqvm, vgui::Panel* pHudElement);
 
 typedef int (*sq_getfunctionType)(HSQUIRRELVM sqvm, const char* name, SQObject* returnObj, const char* signature);
 
