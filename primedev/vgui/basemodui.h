@@ -4,8 +4,11 @@
 
 namespace BaseModUI
 {
-	class CBaseModPanel
-	{
-		static CBaseModPanel* GetSingleton();
-	};
+
+class CBaseModPanel
+{
+public:
+	static CBaseModPanel* GetSingleton();
+};
+
 }

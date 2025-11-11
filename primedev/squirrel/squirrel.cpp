@@ -746,7 +746,7 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 		g_pSquirrel<ScriptContext::CLIENT>->__sq_GetEntityConstant_CBaseEntity;
 	g_pSquirrel<ScriptContext::UI>->__sq_getentityfrominstance = g_pSquirrel<ScriptContext::CLIENT>->__sq_getentityfrominstance;
 	g_pSquirrel<ScriptContext::UI>->__sq_GetEntityConstant_CClientHudElement = module.Offset(0x52FD70).RCast<sq_GetEntityConstantType>();
-	g_pSquirrel<ScriptContext::UI>->__sq_pushhudelement = module.Offset(0x52D9F0).RCast<sq_pushhudelementType>();
+	g_pSquirrel<ScriptContext::UI>->__sq_createclienthudelementinstance = module.Offset(0x52D9F0).RCast<sq_createclienthudelementinstanceType>();
 
 	// Message buffer stuff
 	g_pSquirrel<ScriptContext::UI>->messageBuffer = g_pSquirrel<ScriptContext::CLIENT>->messageBuffer;
@@ -760,6 +760,8 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 	g_pSquirrel<ScriptContext::CLIENT>->__sq_sealstructslot = module.Offset(0x5530).RCast<sq_sealstructslotType>();
 	g_pSquirrel<ScriptContext::UI>->__sq_pushnewstructinstance = g_pSquirrel<ScriptContext::CLIENT>->__sq_pushnewstructinstance;
 	g_pSquirrel<ScriptContext::UI>->__sq_sealstructslot = g_pSquirrel<ScriptContext::CLIENT>->__sq_sealstructslot;
+
+	g_pSquirrel<ScriptContext::UI>->rootHudScriptElement = module.Offset(0x2A87120).RCast<CHudScriptElement*>();
 
 	MAKEHOOK(
 		module.Offset(0x108E0),

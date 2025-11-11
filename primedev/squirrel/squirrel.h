@@ -78,6 +78,7 @@ public:
 	bool m_bFatalCompilationErrors = false;
 
 	std::shared_ptr<spdlog::logger> logger;
+	CHudScriptElement* rootHudScriptElement = nullptr;
 
 #pragma region SQVM funcs
 	RegisterSquirrelFuncType RegisterSquirrelFunc;
@@ -124,7 +125,7 @@ public:
 	sq_createscriptinstanceType __sq_createscriptinstance;
 	sq_GetEntityConstantType __sq_GetEntityConstant_CBaseEntity;
 	sq_GetEntityConstantType __sq_GetEntityConstant_CClientHudElement;
-	sq_pushhudelementType __sq_pushhudelement;
+	sq_createclienthudelementinstanceType __sq_createclienthudelementinstance;
 
 	sq_pushnewstructinstanceType __sq_pushnewstructinstance;
 	sq_sealstructslotType __sq_sealstructslot;
@@ -172,6 +173,16 @@ public:
 	inline void pushvector(HSQUIRRELVM sqvm, const Vector3 pVal) { __sq_pushvector(sqvm, (float*)&pVal); }
 
 	inline void pushobject(HSQUIRRELVM sqvm, SQObject* obj) { __sq_pushobject(sqvm, obj); }
+
+	inline SQObject* sq_createclienthudelementinstance(vgui::Panel* pHudElement)
+	{
+		return __sq_createclienthudelementinstance(rootHudScriptElement->m_pHudElement, pHudElement);
+	}
+
+	inline SQObject* sq_createclienthudelementinstance(vgui::Panel* pParent, vgui::Panel* pHudElement)
+	{
+		return __sq_createclienthudelementinstance(pParent, pHudElement);
+	}
 
 	inline const SQChar* getstring(HSQUIRRELVM sqvm, const SQInteger stackpos) { return __sq_getstring(sqvm, stackpos); }
 

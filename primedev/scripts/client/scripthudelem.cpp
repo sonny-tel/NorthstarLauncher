@@ -1,4 +1,5 @@
 #include "squirrel/squirrel.h"
+#include "vgui/basemodui.h"
 
 using CClientScriptHudElement = void*;
 using CUtlString = const char*;
@@ -89,6 +90,34 @@ ADD_SQFUNC("void", Hud_ChangeDialogListConVar, "var elem, string convarName", ""
 	*(uintptr_t**)(dialogListButton + 1256) = (uintptr_t*)convarRef;
 
 	return SQRESULT_NULL;
+}
+
+ADD_SQFUNC("var", Hud_GetBaseModPanel, "", "Returns the BaseModUI CBaseModPanel singleton", ScriptContext::UI)
+{
+	auto baseModPanel = (vgui::Panel*)BaseModUI::CBaseModPanel::GetSingleton();
+	auto loadingProgress = vgui_Panel_FindChildByName(baseModPanel, "LoadingProgress", false);
+
+	if(!baseModPanel)
+	{
+		g_pSquirrel<context>->raiseerror(sqvm, "CBaseModPanel::GetSingleton returned null");
+		return SQRESULT_ERROR;
+	}
+
+	if(!loadingProgress)
+	{
+		g_pSquirrel<context>->raiseerror(sqvm, "LoadingProgress child panel not found");
+		return SQRESULT_ERROR;
+	}
+
+	SQObject* obj = g_pSquirrel<context>->sq_createclienthudelementinstance(baseModPanel, loadingProgress);
+	if(!obj)
+	{
+		g_pSquirrel<context>->raiseerror(sqvm, "Failed to create CBaseModPanel Squirrel instance");
+		return SQRESULT_ERROR;
+	}
+
+	g_pSquirrel<context>->pushobject(sqvm, obj);
+	return SQRESULT_NOTNULL;
 }
 
 ON_DLL_LOAD_CLIENT_RELIESON("client.dll", CGameUIConVarRef, ConVar, (CModule module))

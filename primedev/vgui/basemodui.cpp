@@ -207,10 +207,7 @@ BaseModPanel_GetSingletonType BaseModPanel_GetSingleton;
 
 namespace BaseModUI
 {
-	class CBaseModPanel
-	{
-		static CBaseModPanel* GetSingleton() { return BaseModPanel_GetSingleton(); }
-	};
+	CBaseModPanel* CBaseModPanel::GetSingleton() { return BaseModPanel_GetSingleton(); }
 }
 
 
