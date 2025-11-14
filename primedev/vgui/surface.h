@@ -241,8 +241,8 @@ public:
 	virtual void DrawLine(int x0, int y0, int x1, int y1) = 0;
 	virtual void DrawPolyLine(int* px, int* py, int numPoints) = 0;
 
-	virtual void DrawSetApparentDepth(float depth) = 0;
-	virtual void DrawClearApparentDepth() = 0;
+	//virtual void DrawSetApparentDepth(float depth) = 0;
+	//virtual void DrawClearApparentDepth() = 0; // allusive: r2 remove
 
 	virtual void DrawSetTextFont(HFont font) = 0;
 	virtual HFont DrawGetTextFont() = 0; // dg: r1 add
@@ -251,15 +251,17 @@ public:
 	virtual void DrawSetTextPos(int x, int y) = 0;
 	virtual void DrawGetTextPos(int& x, int& y) = 0;
 	virtual void DrawPrintText(const wchar_t* text, int textLen, FontDrawType_t drawType = FONT_DRAW_DEFAULT) = 0;
+	virtual void unk();
 	virtual void DrawUnicodeChar(wchar_t wch, FontDrawType_t drawType = FONT_DRAW_DEFAULT) = 0;
 	virtual void DrawUnicodeCharScaled(wchar_t wch, float scale, FontDrawType_t drawType = FONT_DRAW_DEFAULT) = 0; // dg: r1 add
 
 	virtual void DrawFlushText() = 0;		// flushes any buffered text (for rendering optimizations)
 
 	// dg: these do absolutely nothing in r1
-	virtual IHTML* CreateHTMLWindow(vgui::IHTMLEvents* events, Panel* context) = 0;
-	virtual void PaintHTMLWindow(vgui::IHTML* htmlwin) = 0;
-	virtual void DeleteHTMLWindow(IHTML* htmlwin) = 0;
+	// allusive: gone in r2 :)
+	//virtual IHTML* CreateHTMLWindow(vgui::IHTMLEvents* events, Panel* context) = 0;
+	//virtual void PaintHTMLWindow(vgui::IHTML* htmlwin) = 0;
+	//virtual void DeleteHTMLWindow(IHTML* htmlwin) = 0;
 
 	enum ETextureFormat
 	{
@@ -271,6 +273,7 @@ public:
 	virtual int	 DrawGetTextureId(char const* filename) = 0;
 	virtual bool DrawGetTextureFile(int id, char* filename, int maxlen) = 0;
 	virtual void DrawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload) = 0;
+	virtual void unk_2(int id);
 	virtual void DrawSetTextureRGBA(int id, const unsigned char* rgba, int wide, int tall) = 0;
 	virtual void DrawSetTexture(int id) = 0;
 	// virtual bool DeleteTextureByID(int id) = 0; // dg: r1 removed?
