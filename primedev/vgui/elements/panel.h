@@ -48,8 +48,8 @@ public:
 	virtual __int64 nullsub_16();
 	virtual __int64 sub_75D7D0();
 	virtual __int64 sub_764C10();
-	virtual __int64 GetSomeUtlString();
-	virtual __int64 GetElementNameMaybe();
+	virtual const char* GetName();
+	virtual const char* GetClassName();
 	virtual __int64 sub_75D030();
 	virtual __int64 sub_9E120();
 	virtual __int64 sub_7648B0();
