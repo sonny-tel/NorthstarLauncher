@@ -109,6 +109,27 @@ private:
 	 **/
 	void BuildModInfo();
 
+	/**
+	 * Prevents crashes caused by mods being installed several times.
+	 *
+	 * Whether through manual install or remote mod downloading, several versions of
+	 * a same mod can be located in the current profile: enabling all of them would
+	 * lead to a crash, due to some files loaded several times.
+	 *
+	 * This checks the local `m_LoadedMods` mods list for multiple versions of a
+	 * same mod: if so, this disables all versions of the relevant mod.
+	 *
+	 * @returns nothing
+	 **/
+	void DisableMultipleModVersions();
+
+	/**
+	 * Builds the modinfo object for sending to the masterserver.
+	 *
+	 * @returns nothing
+	 **/
+	void BuildModInfo();
+
 public:
 	ModManager();
 	void LoadMods();
