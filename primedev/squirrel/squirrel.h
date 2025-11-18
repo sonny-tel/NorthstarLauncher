@@ -9,6 +9,9 @@
 
 namespace fs = std::filesystem;
 
+extern float g_LastSQErrorTimes[3];
+
+
 // clang-format on
 
 /*

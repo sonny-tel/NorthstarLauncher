@@ -18,6 +18,8 @@
 
 AUTOHOOK_INIT()
 
+float g_LastSQErrorTimes[3] = {0.0f, 0.0f, 0.0f};
+
 std::shared_ptr<ColoredLogger> getSquirrelLoggerByContext(ScriptContext context)
 {
 	switch (context)
@@ -332,6 +334,19 @@ bool IsUIVM(ScriptContext context, HSQUIRRELVM pSqvm)
 {
 	NOTE_UNUSED(context);
 	return ScriptContext(pSqvm->sharedState->cSquirrelVM->vmContext) == ScriptContext::UI;
+}
+
+
+template <ScriptContext context> SQInteger (*sqstd_aux_printerror)(HSQUIRRELVM sqvm);
+template <ScriptContext context> SQInteger __fastcall sqstd_aux_printerrorHook(HSQUIRRELVM sqvm)
+{
+	ScriptContext realContext = context; // ui and client use the same function so we use this for prints
+	if (IsUIVM(context, sqvm))
+		realContext = ScriptContext::UI;
+
+	g_LastSQErrorTimes[static_cast<int>(realContext)] = Plat_FloatTime();
+
+	return sqstd_aux_printerror<context>(sqvm);
 }
 
 template <ScriptContext context> void* (*sq_compiler_create)(HSQUIRRELVM sqvm, void* a2, void* a3, SQBool bShouldThrowError);
@@ -776,6 +791,7 @@ ON_DLL_LOAD_RELIESON("client.dll", ClientSquirrel, ConCommand, (CModule module))
 	// uiscript_reset concommand: don't loop forever if compilation fails
 	module.Offset(0x3C6E4C).NOP(6);
 
+	MAKEHOOK(module.Offset(0x79540), &sqstd_aux_printerrorHook<ScriptContext::CLIENT>, &sqstd_aux_printerror<ScriptContext::CLIENT>);
 	MAKEHOOK(module.Offset(0x8AD0), &sq_compiler_createHook<ScriptContext::CLIENT>, &sq_compiler_create<ScriptContext::CLIENT>);
 
 	MAKEHOOK(module.Offset(0x12B00), &SQPrintHook<ScriptContext::CLIENT>, &SQPrint<ScriptContext::CLIENT>);
