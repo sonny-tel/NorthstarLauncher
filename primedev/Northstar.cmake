@@ -102,6 +102,7 @@ add_library(
     "logging/loghooks.h"
     "logging/sourceconsole.cpp"
     "logging/sourceconsole.h"
+	"materialsystem/matsyscrashfix.cpp"
     "masterserver/masterserver.cpp"
     "masterserver/masterserver.h"
     "mods/autodownload/moddownloader.h"
