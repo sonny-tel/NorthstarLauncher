@@ -89,7 +89,6 @@ add_library(
     "engine/models.cpp"
     "engine/r2engine.cpp"
     "engine/r2engine.h"
-    "engine/runframe.cpp"
     "game/client/clientmode_shared.cpp"
     "inputsystem/ButtonCode.h"
     "inputsystem/InputEnums.h"
