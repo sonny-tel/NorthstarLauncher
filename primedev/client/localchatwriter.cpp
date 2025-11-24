@@ -1,4 +1,7 @@
 #include "localchatwriter.h"
+#include "core/convar/cvar.h"
+
+ConVar* Cvar_ns_write_raw_chat_to_console;
 
 class vgui_BaseRichText_vtable;
 
@@ -322,7 +325,8 @@ void LocalChatWriter::InsertChar(wchar_t ch)
 
 void LocalChatWriter::InsertText(const char* str)
 {
-	spdlog::info(str);
+	if( Cvar_ns_write_raw_chat_to_console->GetBool() )
+		spdlog::info(str);
 
 	WCHAR messageUnicode[288];
 	ConvertANSIToUnicode(str, -1, messageUnicode, 274);
@@ -452,4 +456,6 @@ ON_DLL_LOAD_CLIENT("client.dll", LocalChatWriter, (CModule module))
 	CHudChat::allHuds = module.Offset(0x11BA9E8).RCast<CHudChat**>();
 
 	ConvertANSIToUnicode = module.Offset(0x7339A0).RCast<ConvertANSIToUnicodeType>();
+
+	Cvar_ns_write_raw_chat_to_console = new ConVar("ns_write_raw_chat_to_console", "0", FCVAR_NONE, "Write raw chat message output to the console. 1 = enabled, 0 = disabled.");
 }
