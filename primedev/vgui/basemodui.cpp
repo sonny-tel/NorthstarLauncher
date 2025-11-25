@@ -51,8 +51,6 @@ LoadingProgressDescription_t g_RemoteConnectLoadingProgressDescriptions[] = {
 
 static LoadingProgressDescription_t* g_pLoadingProgressDescriptions = g_RemoteConnectLoadingProgressDescriptions;
 float g_flLastUpdateTime = 0.0f;
-vgui::ContinuousProgressBar* loadingBar;
-vgui::Label* loadingText;
 int m_nLastProgressPointRepeatCount;
 LevelLoadingProgress_e m_eLastProgressPoint;
 float flPerc = 0.0;
@@ -85,8 +83,7 @@ void, __fastcall, (__int64 thisptr))
 	if(!loadingRes)
 		return BaseModUI__LoadingProgress__PaintBackground(thisptr);
 
-	loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
-	loadingText = reinterpret_cast<vgui::Label*>(loadingRes->FindChildByName("LoadingLabelInfo", false));
+	vgui::ContinuousProgressBar* loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
 
 	if (loadingBar)
 	{
@@ -121,6 +118,15 @@ void WaitForFadeout()
 {
 	int waitTime = g_pCVar->FindVar("ui_loadingscreen_fadeout_time")->GetInt();
 	std::this_thread::sleep_for(std::chrono::seconds(waitTime + 1));
+
+	vgui::Panel* basemodpanel = reinterpret_cast<vgui::Panel*>(BaseModUI::CBaseModPanel::GetSingleton());
+	vgui::Panel* loadingRes = basemodpanel->FindChildByName("LoadingProgress", false);
+
+	if(!loadingRes)
+		return;
+
+	vgui::ContinuousProgressBar* loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
+
 	if(loadingBar)
 		*(float*)(loadingBar + 620) = 0.0;
 	flPerc = 0;
@@ -136,12 +142,28 @@ void, __fastcall, (__int64 thisptr, int a2))
 {
 	FadeOutFunc(thisptr, a2);
 
+	vgui::Panel* basemodpanel = reinterpret_cast<vgui::Panel*>(BaseModUI::CBaseModPanel::GetSingleton());
+	vgui::Panel* loadingRes = basemodpanel->FindChildByName("LoadingProgress", false);
+
+	if(!loadingRes)
+		return;
+
+	vgui::ContinuousProgressBar* loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
+
+	if(!loadingBar)
+
+
 	if (loadingBar && flPerc == 1.0)
 	{
 		FadeOutFunc((__int64)loadingBar, a2);
 		std::thread t1(WaitForFadeout);
 		t1.detach();
 	}
+
+	vgui::Label* loadingText = reinterpret_cast<vgui::Label*>(loadingRes->FindChildByName("LoadingLabelInfo", false));
+
+	if(!loadingText)
+		return;
 
 	if (loadingText && flPerc == 1.0)
 	{
@@ -195,6 +217,17 @@ __int64, __fastcall, (__int64 a1, LevelLoadingProgress_e progress))
 
 	m_eLastProgressPoint = progress;
 	g_flLastUpdateTime = Plat_FloatTime();
+
+	vgui::Panel* basemodpanel = reinterpret_cast<vgui::Panel*>(BaseModUI::CBaseModPanel::GetSingleton());
+	vgui::Panel* loadingRes = basemodpanel->FindChildByName("LoadingProgress", false);
+
+	if(!loadingRes)
+		return CEngineVGui__UpdateProgressBar(a1, progress);
+
+	vgui::Label* loadingText = reinterpret_cast<vgui::Label*>(loadingRes->FindChildByName("LoadingLabelInfo", false));
+
+	if(!loadingText)
+		return CEngineVGui__UpdateProgressBar(a1, progress);
 
 	if (loadingText && desc->pszDesc)
 		vgui_Label_SetText(loadingText, desc->pszDesc);
