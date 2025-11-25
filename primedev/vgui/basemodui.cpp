@@ -151,7 +151,7 @@ void, __fastcall, (__int64 thisptr, int a2))
 	vgui::ContinuousProgressBar* loadingBar = reinterpret_cast<vgui::ContinuousProgressBar*>(loadingRes->FindChildByName("LoadingProgressBar", false));
 
 	if(!loadingBar)
-
+		return;
 
 	if (loadingBar && flPerc == 1.0)
 	{
