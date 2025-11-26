@@ -142,6 +142,7 @@ add_library(
     "scripts/client/scriptpresence.cpp"
     "scripts/server/miscserverfixes.cpp"
     "scripts/server/miscserverscript.cpp"
+	"scripts/server/scriptlistenserver.cpp"
     "scripts/server/scriptuserinfo.cpp"
     "scripts/scriptdatatables.cpp"
     "scripts/scripthttprequesthandler.cpp"
