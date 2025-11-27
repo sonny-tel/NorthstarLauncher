@@ -38,7 +38,7 @@ ModManager::ModManager()
 
 template <ScriptContext context> void ModConCommandCallback_Internal(std::string name, const CCommand& command)
 {
-	if (g_pSquirrel<context>->m_pSQVM && g_pSquirrel<context>->m_pSQVM)
+	if (g_pSquirrel<context>->m_pSQVM)
 	{
 		if (command.ArgC() == 1)
 		{
