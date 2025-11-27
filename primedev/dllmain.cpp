@@ -49,8 +49,8 @@ bool InitialiseNorthstar()
 
 	InitialiseNorthstarPrefix();
 
-	// initialise the console if needed (-northstar needs this)
-	InitialiseConsole();
+	if( strstr( GetCommandLineA(), "-noconsole" ) == NULL )
+		InitialiseConsole();
 	// initialise logging before most other things so that they can use spdlog and it have the proper formatting
 	InitialiseLogging();
 	InitialiseVersion();
