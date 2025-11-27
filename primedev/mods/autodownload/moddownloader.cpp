@@ -529,6 +529,8 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 				{
 					spdlog::error("Failed creating destination file.");
 					modState.state = FAILED_WRITING_TO_DISK;
+					if (fout)
+						fclose(fout);
 					return;
 				}
 
@@ -538,6 +540,8 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 				{
 					spdlog::error("Error while allocating memory.");
 					modState.state = FAILED_WRITING_TO_DISK;
+					if (fout)
+						fclose(fout);
 					return;
 				}
 
@@ -548,6 +552,8 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 					if (err < 0)
 					{
 						spdlog::error("error {} with zipfile in unzReadCurrentFile", err);
+						if (fout)
+							fclose(fout);
 						break;
 					}
 					if (err > 0)
@@ -556,6 +562,9 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 						{
 							spdlog::error("error in writing extracted file\n");
 							err = UNZ_ERRNO;
+
+							if (fout)
+								fclose(fout);
 							break;
 						}
 					}
@@ -569,6 +578,8 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 				{
 					spdlog::error("An error occurred during file extraction (code: {})", err);
 					modState.state = FAILED_WRITING_TO_DISK;
+					if (fout)
+						fclose(fout);
 					return;
 				}
 				err = unzCloseCurrentFile(file);
@@ -587,6 +598,8 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 		if (modState.state == ABORTED)
 		{
 			spdlog::info("User cancelled mod installation, aborting mod extraction.");
+			if (fout)
+				fclose(fout);
 			return;
 		}
 
