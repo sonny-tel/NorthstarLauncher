@@ -126,7 +126,7 @@ template <ScriptContext context> void SaveFileManager::SaveFileAsync(fs::path fi
 				// no idea how to fix this - because we have no way to check if there are other threads waiting to use this file(?)
 				// tried to use m.try_lock(), but it's unreliable, it seems.
 			}
-			catch (std::exception ex)
+			catch (std::exception& ex)
 			{
 				spdlog::error("SAVE FAILED!");
 				mutex.get().unlock();
@@ -171,7 +171,7 @@ template <ScriptContext context> int SaveFileManager::LoadFileAsync(fs::path fil
 				// no idea how to fix this - because we have no way to check if there are other threads waiting to use this file(?)
 				// tried to use m.try_lock(), but it's unreliable, it seems.
 			}
-			catch (std::exception ex)
+			catch (std::exception& ex)
 			{
 				spdlog::error("LOAD FAILED!");
 				g_pSquirrel<context>->AsyncCall("NSHandleLoadResult", handle, false, "");
@@ -204,7 +204,7 @@ template <ScriptContext context> void SaveFileManager::DeleteFileAsync(fs::path 
 				// no idea how to fix this - because we have no way to check if there are other threads waiting to use this file(?)
 				// tried to use m.try_lock(), but it's unreliable, it seems.
 			}
-			catch (std::exception ex)
+			catch (std::exception& ex)
 			{
 				spdlog::error("DELETE FAILED!");
 				m.get().unlock();
