@@ -598,8 +598,6 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 		if (modState.state == ABORTED)
 		{
 			spdlog::info("User cancelled mod installation, aborting mod extraction.");
-			if (fout)
-				fclose(fout);
 			return;
 		}
 

@@ -34,7 +34,7 @@ __dllLoadCallback::__dllLoadCallback(
 				if (reliesOn[i] == ',' || reliesOn[i] == ')')
 				{
 					reliesOnArray.push_back(sCurrentTag);
-					sCurrentTag = "";
+					sCurrentTag.clear();
 				}
 				else
 					sCurrentTag += reliesOn[i];

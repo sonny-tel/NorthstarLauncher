@@ -503,7 +503,7 @@ ADD_SQFUNC("array<string>", NS_InternalGetAllFiles, "string path", "", ScriptCon
 		}
 		return SQRESULT_NOTNULL;
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		spdlog::error("DIR ITERATE FAILED! Is the path valid?");
 		g_pSquirrel<context>->raiseerror(sqvm, ex.what());
@@ -536,7 +536,7 @@ ADD_SQFUNC("bool", NSIsFolder, "string path", "", ScriptContext::CLIENT | Script
 		g_pSquirrel<context>->pushbool(sqvm, fs::is_directory(path));
 		return SQRESULT_NOTNULL;
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		spdlog::error("DIR READ FAILED! Is the path valid?");
 		spdlog::info(path.string());

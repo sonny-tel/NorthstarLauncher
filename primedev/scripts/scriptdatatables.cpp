@@ -76,8 +76,6 @@ REPLACE_SQFUNC(GetDataTable, (ScriptContext::UI | ScriptContext::CLIENT | Script
 	}
 	else // either we prefer disk datatables, or we're loading a datatable that wasn't found in rpak
 	{
-		std::string sAssetPath(fmt::format("scripts/{}", pAssetName));
-
 		// first, check the cache
 		if (CSVCache.find(pAssetName) != CSVCache.end())
 		{
