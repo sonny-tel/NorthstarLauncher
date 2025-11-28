@@ -114,8 +114,10 @@ ON_DLL_LOAD_RELIESON("engine.dll", PlaylistHooks, (ConCommand, ConVar), (CModule
 	// server, this is somewhat restricted on custom servers to prevent it being done outside of private matches, but ideally it should be
 	// disabled altogether, since the custom menus won't use it anyway this should only really be accepted if you want vanilla client
 	// compatibility
+	// sonny: This has been patched in vanilla for yonks and on Northstar I can't see what the issue is since Process is hooked to validate some stuff anyway
+	// private matches are basically a no-mans-land for playlist var validation anyway.
 	Cvar_ns_use_clc_SetPlaylistVarOverride = new ConVar(
-		"ns_use_clc_SetPlaylistVarOverride", "0", FCVAR_GAMEDLL, "Whether the server should accept clc_SetPlaylistVarOverride messages");
+		"ns_use_clc_SetPlaylistVarOverride", "1", FCVAR_GAMEDLL, "Whether the server should accept clc_SetPlaylistVarOverride messages");
 
 	// patch to prevent clc_SetPlaylistVarOverride from being able to crash servers if we reach max overrides due to a call to Error (why is
 	// this possible respawn, wtf) todo: add a warning for this
