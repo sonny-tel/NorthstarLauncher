@@ -212,7 +212,7 @@ public:
 	virtual bool ProcessTempEntities(void* msg);
 	virtual bool sub_1A08A0(); // another func that returns 1
 	virtual bool sub_19F3F0(); // same as above
-	virtual bool ProcessServerInfo(void* msg);
+	virtual bool notsurewhatmessagethisis(void* msg);
 	virtual bool ProcessUseCachedPersistenceDefFile(void* msg);
 	virtual bool ProcessPersistenceDefFile(void* msg);
 	virtual bool ProcessPersistenceBaseline(void* msg);
