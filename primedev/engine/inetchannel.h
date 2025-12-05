@@ -1,5 +1,7 @@
 #pragma once
 
+#include "r2engine.h"
+
 class INetChannelHandler
 {
 public:
@@ -11,4 +13,11 @@ public:
 	virtual void PacketEnd(void) = 0;
 	virtual void FileRequested(const char* fileName, unsigned int transferID) = 0;
 	virtual void ChannelDisconnect(const char* fileName) = 0;
+};
+
+class IConnectionlessPacketHandler
+{
+public:
+	virtual ~IConnectionlessPacketHandler(void) = 0;
+	virtual bool ProcessConnectionlessPacket(netpacket_t* packet) = 0;
 };
