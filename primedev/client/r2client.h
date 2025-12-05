@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/inetchannel.h"
+
 extern char* g_pLocalPlayerUserID;
 extern char* g_pLocalPlayerOriginToken;
 
@@ -8,189 +10,221 @@ class CClientState;
 typedef CClientState* (*GetBaseLocalClientType)();
 extern GetBaseLocalClientType GetBaseLocalClient;
 
-// class CUtlMemoryPool
-// {
-// public:
-// 	int32_t N0000005C; //0x0000
-// 	int32_t N00000152; //0x0004
-// 	int32_t N0000005D; //0x0008
-// 	int32_t N00000155; //0x000C
-// 	int32_t N0000005E; //0x0010
-// 	uint16_t N00000158; //0x0014
-// 	uint16_t N0000015A; //0x0016
-// 	char *N00000063; //0x0018
-// 	void *N00000064; //0x0020
-// 	void *N00000065; //0x0028
-// }; //Size: 0x0030
+class CUtlMemoryPool
+{
+public:
+	int32_t N0000005C; //0x0000
+	int32_t N00000152; //0x0004
+	int32_t N0000005D; //0x0008
+	int32_t N00000155; //0x000C
+	int32_t N0000005E; //0x0010
+	uint16_t N00000158; //0x0014
+	uint16_t N0000015A; //0x0016
+	char *N00000063; //0x0018
+	void *N00000064; //0x0020
+	void *N00000065; //0x0028
+}; //Size: 0x0030
 
-// class CClientSnapshotManager
-// {
-// public:
-// 	void *m_Frames; //0x0000 CClientSnaphopManager::m_Frames
-// 	class CUtlMemoryPool m_ClientFramePool; //0x0008
-// }; //Size: 0x0038
+class CClientSnapshotManager
+{
+public:
+	void *m_Frames; //0x0000 CClientSnaphopManager::m_Frames
+	class CUtlMemoryPool m_ClientFramePool; //0x0008
 
-// class CClockDriftMgr
-// {
-// public:
-// 	float N00000182; //0x0000 r5sdk_field_0_0
-// 	float N0000017E; //0x0004 r5sdk_field_0_1
-// 	float N000001CD; //0x0008 r5sdk_field_0_2
-// 	float N0000017F; //0x000C r5sdk_field_0_3
-// 	int32_t N000001D0; //0x0010 r5sdk_field_1
-// 	float N0000006B; //0x0014 m_ClockOffsets
-// 	float N000001D3; //0x0018
-// 	float N0000006C; //0x001C
-// 	float N000001D6; //0x0020
-// 	float N0000006D; //0x0024
-// 	float N000001D9; //0x0028
-// 	float N0000006E; //0x002C
-// 	float N000001E1; //0x0030
-// 	float N0000006F; //0x0034
-// 	float N000001E3; //0x0038
-// 	float N00000178; //0x003C
-// 	float N000000EE; //0x0040
-// 	float N000001E6; //0x0044
-// 	float N00000173; //0x0048
-// 	float N00000170; //0x004C
-// 	float N00000070; //0x0050
-// 	float N000001EA; //0x0054
-// 	float N00000071; //0x0058
-// 	float N000001EC; //0x005C
-// 	float N00000072; //0x0060
-// 	float N000001EE; //0x0064
-// 	float N00000073; //0x0068
-// 	float N000001F0; //0x006C
-// 	float N00000074; //0x0070
-// 	float N000001F2; //0x0074
-// 	float N00000075; //0x0078
-// 	float N000001F4; //0x007C
-// 	float N00000076; //0x0080
-// 	float N000001F6; //0x0084
-// 	float m_flServerTickTime; //0x0088
-// 	int32_t m_nServerTick; //0x008C
-// 	int32_t m_nClientTick; //0x0090
-// }; //Size: 0x0094
+	virtual ~CClientSnapshotManager();
+}; //Size: 0x0038
 
-// class ClientDataBlockReceiver
-// {
-// public:
-// 	void *m_pClientState; //0x0008
-// 	uint16_t N00012ADE; //0x0010
-// 	bool m_bStartedRecv; //0x0012
-// 	bool m_bCompletedRecv; //0x0013
-// 	uint8_t pad; //0x0014
-// 	int16_t m_TransferId; //0x0015
-// 	int16_t m_nTransferNr; //0x0017
-// 	bool m_bInitialized; //0x0019
-// 	int32_t m_nTransferSize; //0x001A
-// 	int32_t m_nTotalBlocks; //0x001E
-// 	int32_t m_nBlockAckTick; //0x0022
-// 	char pad_0026[4]; //0x0026
-// 	double m_flStartTime; //0x002A
-// 	void *unk_datablock_thing; //0x0032
-// 	void *m_pScratchBuffer; //0x003A
-// };
+class CClockDriftMgr
+{
+public:
+	float N00000182; //0x0000 r5sdk_field_0_0
+	float N0000017E; //0x0004 r5sdk_field_0_1
+	float N000001CD; //0x0008 r5sdk_field_0_2
+	float N0000017F; //0x000C r5sdk_field_0_3
+	int32_t N000001D0; //0x0010 r5sdk_field_1
+	float N0000006B; //0x0014 m_ClockOffsets
+	float N000001D3; //0x0018
+	float N0000006C; //0x001C
+	float N000001D6; //0x0020
+	float N0000006D; //0x0024
+	float N000001D9; //0x0028
+	float N0000006E; //0x002C
+	float N000001E1; //0x0030
+	float N0000006F; //0x0034
+	float N000001E3; //0x0038
+	float N00000178; //0x003C
+	float N000000EE; //0x0040
+	float N000001E6; //0x0044
+	float N00000173; //0x0048
+	float N00000170; //0x004C
+	float N00000070; //0x0050
+	float N000001EA; //0x0054
+	float N00000071; //0x0058
+	float N000001EC; //0x005C
+	float N00000072; //0x0060
+	float N000001EE; //0x0064
+	float N00000073; //0x0068
+	float N000001F0; //0x006C
+	float N00000074; //0x0070
+	float N000001F2; //0x0074
+	float N00000075; //0x0078
+	float N000001F4; //0x007C
+	float N00000076; //0x0080
+	float N000001F6; //0x0084
+	float m_flServerTickTime; //0x0088
+	int32_t m_nServerTick; //0x008C
+	int32_t m_nClientTick; //0x0090
+}; //Size: 0x0094
 
-// class CClientState : public CClientSnapshotManager
-// {
-// public:
-// 	int32_t m_Socket; //0x0058
-// 	int32_t _padding_0; //0x005C
-// 	void *m_NetChannel; //0x0060 m_NetChannel
-// 	int64_t unk_while_connecting; //0x0068 unk_while_connecting
-// 	bool unk_true_on_connecting_and_connected; //0x0070 unk_true_on_connecting_and_connected
-// 	char pad_0071[3]; //0x0071
-// 	uint8_t unk_flag; //0x0074 unk_flag
-// 	char pad_0075[7]; //0x0075
-// 	uint16_t unk_flag_2; //0x007C unk_flag_2
-// 	char pad_007E[12]; //0x007E
-// 	int32_t N00000191; //0x008A
-// 	uint16_t N000001BB; //0x008E
-// 	uint32_t N000001BD; //0x0090
-// 	int32_t N000001B6; //0x0094
-// 	int32_t m_nSignonState; //0x0098 m_nSignonState
-// 	char pad_009C[4]; //0x009C
-// 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
-// 	int32_t m_nServerCount; //0x00A8 m_nServerCount
-// 	int32_t m_nInSequenceNr; //0x00AC m_nInSequenceNr
-// 	float m_flClockDriftFrameTime; //0x00B0 m_flClockDriftFrameTime
-// 	class CClockDriftMgr m_ClockDriftMgr; //0x00B4
-// 	char pad_0148[4]; //0x0148
-// 	int32_t m_nDeltaTick; //0x014C m_nDeltaTick
-// 	int32_t m_nStringTableAckTick; //0x0150 m_nStringTableAckTick
-// 	int32_t m_nProcessedDeltaTick; //0x0154 m_nProcessedDeltaTick
-// 	int32_t m_nProcessedStringTableAckTick; //0x0158 m_nProcessedStringTableAckTick
-// 	bool m_bPendingTicksAvailable; //0x015C m_bPendingTicksAvailable
-// 	uint32_t N00000252; //0x015D
-// 	uint8_t unk_byte; //0x0161 unk_byte
-// 	uint32_t N0000023C; //0x0162
-// 	uint16_t N00000257; //0x0166
-// 	int32_t N00000259; //0x0168
-// 	char pad_016C[8]; //0x016C
-// 	char m_szLevelFileName[64]; //0x0174
-// 	char m_szLevelBaseName[64]; //0x01B4
-// 	char m_szLastLevelBaseName[64]; //0x01F4
-// 	char m_szSkyBoxBaseName_unused[64]; //0x0234
-// 	bool m_bInMpLobbyMenu; //0x0274 m_bInMpLobbyMenu
-// 	char pad_0275[3]; //0x0275
-// 	int32_t m_nTeam; //0x0278 m_nTeam
-// 	int32_t m_nMaxClients; //0x027C m_nMaxClients
-// 	char pad_0280[8]; //0x0280
-// 	float m_flTickTime; //0x0288 m_flTickTime
-// 	float m_flOldTickTime; //0x028C m_flOldTickTime
-// 	char pad_0290[4]; //0x0290
-// 	uint8_t m_bSignonChallengeReceived; //0x0294 m_bSignonChallengeReceived
-// 	uint32_t N00000265; //0x0295
-// 	char pad_0299[23]; //0x0299
-// 	bool m_bUseLocalSendTableFile; //0x02B0 m_bUseLocalSendTableFile
-// 	uint8_t N0000029F; //0x02B1
-// 	uint16_t N000002D6; //0x02B2
-// 	uint32_t N000002DA; //0x02B4
-// 	void *m_pServerClasses; //0x02B8
-// 	int32_t m_nServerClasses; //0x02C0
-// 	int32_t m_nServerClassBits; //0x02C4
-// 	char pad_02C8[2056]; //0x02C8
-// 	void *m_StringTableContainer; //0x0AD0
-// 	int32_t m_PersistenceVersion; //0x0AD8
-// 	int32_t N0000ACC7; //0x0ADC
-// 	char m_PersistenceData[61430]; //0x0AE0
-// 	uint16_t N0000DCD6; //0xFAD6
-// 	bool unk_bool; //0xFAD8
-// 	uint8_t pad; //0xFAD9
-// 	int32_t unk_field; //0xFADA
-// 	char pad_FADE[8]; //0xFADE
-// 	char m_szServerAddress[1024]; //0xFAE6
-// 	class ClientDataBlockReceiver m_DataBlockReceiver; //0xFEE6
-// 	char m_szErrorMessage[512]; //0xFF28
-// 	uint32_t pad; //0x10128
-// 	int32_t m_nTimeSinceLastUserCmd; //0x1012C
-// 	void *m_PrevFrameSnapshot; //0x10130
-// 	void *m_SomeOtherFrameSnapshot; //0x10138
-// 	void *m_CurrFrameSnapshot; //0x10140
-// 	int32_t m_nServerTick; //0x10148
-// 	int32_t m_nDeltaTick; //0x1014C not sure about this one
-// 	char pad_10150[8]; //0x10150
-// 	int32_t m_nClientTick; //0x10158 also not sure about this one
-// 	float m_flFrameTime; //0x1015C
-// 	float m_flPreviousFrameTime_maybe; //0x10160
-// 	int32_t m_nOutgoingCommandNr; //0x10164
-// 	int32_t N00012BBB; //0x10168
-// 	int32_t N0000DD15; //0x1016C
-// 	int32_t N00012BDB; //0x10170
-// 	int32_t N0000DD16; //0x10174 these are all related to whatever m_nOutgoingCommandNr is
-// 	bool N00012BDE; //0x10178
-// 	char pad_10179[3]; //0x10179
-// 	int32_t N0000DD17; //0x1017C
-// 	char pad_10180[4]; //0x10180
-// 	float m_flServerUptime; //0x10184
-// 	char pad_10188[72]; //0x10188
-// 	char pad_0000[12216];; //0x101D0
-// 	char pad_13188[112]; //0x13188
-// 	char pad_0001[4138]; //0x131F8
-// }; //Size: 0x14226
+class ClientDataBlockReceiver
+{
+public:
+	void *m_pClientState; //0x0008
+	uint16_t N00012ADE; //0x0010
+	bool m_bStartedRecv; //0x0012
+	bool m_bCompletedRecv; //0x0013
+	uint8_t pad; //0x0014
+	int16_t m_TransferId; //0x0015
+	int16_t m_nTransferNr; //0x0017
+	bool m_bInitialized; //0x0019
+	int32_t m_nTransferSize; //0x001A
+	int32_t m_nTotalBlocks; //0x001E
+	int32_t m_nBlockAckTick; //0x0022
+	char pad_0026[4]; //0x0026
+	double m_flStartTime; //0x002A
+	void *unk_datablock_thing; //0x0032
+	void *m_pScratchBuffer; //0x003A
 
-// constexpr int fish = sizeof(CClientState);
-// constexpr int guh = 0x14226;
-// static_assert(sizeof(CClientState) == 0x14226);
-// argh so close
+	virtual ~ClientDataBlockReceiver();
+};
+
+class CClientState : public CClientSnapshotManager, public INetChannelHandler, public IConnectionlessPacketHandler
+{
+public:
+	int32_t m_Socket; //0x0058
+	int32_t _padding_0; //0x005C
+	void *m_NetChannel; //0x0060 m_NetChannel
+	int64_t unk_while_connecting; //0x0068 unk_while_connecting
+	bool unk_true_on_connecting_and_connected; //0x0070 unk_true_on_connecting_and_connected
+	char pad_0071[3]; //0x0071
+	uint8_t unk_flag; //0x0074 unk_flag
+	char pad_0075[7]; //0x0075
+	uint16_t unk_flag_2; //0x007C unk_flag_2
+	char pad_007E[12]; //0x007E
+	int32_t N00000191; //0x008A
+	uint16_t N000001BB; //0x008E
+	uint32_t N000001BD; //0x0090
+	bool silentconnect_flag_maybe; //0x0094
+	int32_t m_nSignonState; //0x0098 m_nSignonState
+	char pad_009C[4]; //0x009C
+	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
+	int32_t m_nServerCount; //0x00A8 m_nServerCount
+	int32_t m_nInSequenceNr; //0x00AC m_nInSequenceNr
+	float m_flClockDriftFrameTime; //0x00B0 m_flClockDriftFrameTime
+	class CClockDriftMgr m_ClockDriftMgr; //0x00B4
+	char pad_0148[4]; //0x0148
+	int32_t m_nDeltaTick; //0x014C m_nDeltaTick
+	int32_t m_nStringTableAckTick; //0x0150 m_nStringTableAckTick
+	int32_t m_nProcessedDeltaTick; //0x0154 m_nProcessedDeltaTick
+	int32_t m_nProcessedStringTableAckTick; //0x0158 m_nProcessedStringTableAckTick
+	bool m_bPendingTicksAvailable; //0x015C m_bPendingTicksAvailable
+	uint32_t N00000252; //0x015D
+	uint8_t unk_byte; //0x0161 unk_byte
+	uint32_t N0000023C; //0x0162
+	uint16_t N00000257; //0x0166
+	int32_t N00000259; //0x0168
+	char m_szLevelFileName[64]; //0x0174
+	char m_szLevelBaseName[64]; //0x01B4
+	char m_szLastLevelBaseName[64]; //0x01F4
+	char m_szSkyBoxBaseName_unused[64]; //0x0234
+	bool m_bInMpLobbyMenu; //0x0274 m_bInMpLobbyMenu
+	char pad_0275[3]; //0x0275
+	int32_t m_nTeam; //0x0278 m_nTeam
+	int32_t m_nMaxClients; //0x027C m_nMaxClients
+	char pad_0280[8]; //0x0280
+	float m_flTickTime; //0x0288 m_flTickTime
+	float m_flOldTickTime; //0x028C m_flOldTickTime
+	char pad_0290[4]; //0x0290
+	uint8_t m_bSignonChallengeReceived; //0x0294 m_bSignonChallengeReceived
+	uint32_t N00000265; //0x0295
+	char pad_0299[20]; //0x0299
+	bool m_bUseLocalSendTableFile; //0x02B0 m_bUseLocalSendTableFile
+	uint8_t N0000029F; //0x02B1
+	uint16_t N000002D6; //0x02B2
+	uint32_t N000002DA; //0x02B4
+	void *m_pServerClasses; //0x02B8
+	int32_t m_nServerClasses; //0x02C0
+	int32_t m_nServerClassBits; //0x02C4
+	char pad_02C8[2056]; //0x02C8
+	void *m_StringTableContainer; //0x0AD0
+	int32_t m_PersistenceVersion; //0x0AD8
+	int32_t N0000ACC7; //0x0ADC
+	char m_PersistenceData[61430]; //0x0AE0
+	uint16_t N0000DCD6; //0xFAD6
+	bool unk_bool; //0xFAD8
+	char pad_FADE[13]; //0xFADE
+	char m_szServerAddress[1024]; //0xFAE6
+#pragma pack(push, 1)
+	ClientDataBlockReceiver m_DataBlockReceiver; //0xFEE6
+#pragma pack(pop)
+	char m_szErrorMessage[512]; //0xFF28
+	uint32_t pad_fish; //0x10128
+	int32_t m_nTimeSinceLastUserCmd; //0x1012C
+	void *m_PrevFrameSnapshot; //0x10130
+	void *m_SomeOtherFrameSnapshot; //0x10138
+	void *m_CurrFrameSnapshot; //0x10140
+	int32_t m_nServerTick; //0x10148
+	int32_t m_nSomeTick; //0x1014C not sure about this one
+	char pad_10150[8]; //0x10150
+	int32_t m_nSomeOtherTick; //0x10158 also not sure about this one
+	float m_flFrameTime; //0x1015C
+	float m_flPreviousFrameTime_maybe; //0x10160
+	int32_t m_nOutgoingCommandNr; //0x10164
+	int32_t N00012BBB; //0x10168
+	int32_t N0000DD15; //0x1016C
+	int32_t N00012BDB; //0x10170
+	int32_t N0000DD16; //0x10174 these are all related to whatever m_nOutgoingCommandNr is
+	bool N00012BDE; //0x10178
+	char pad_10179[3]; //0x10179
+	int32_t N0000DD17; //0x1017C
+	char pad_10180[4]; //0x10180
+	float m_flServerUptime; //0x10184
+
+	virtual ~CClientState();
+	virtual bool ProcessStringCmd(void* msg);
+	virtual bool ProcessSetConVar(void* msg);
+	virtual bool ProcessSignonState(void* msg);
+	virtual bool ProcessPrint(void* msg);
+	virtual bool ProcessServerInfo(void* msg);
+	virtual bool ProcessSendTable(void* msg);
+	virtual bool ProcessClassInfo(void* msg);
+	virtual bool ProcessSetPause(void* msg);
+	virtual bool ProcessPlaylists(void* msg);
+	virtual bool ProcessCreateStringTable(void* msg);
+	virtual bool ProcessUpdateStringTable(void* msg);
+	virtual bool ProcessVoiceData(void* msg);
+	virtual bool sub_1A0720(); // dunno what this does
+	virtual bool ProcessFixAngles(void* msg);
+	virtual bool ProcessCrosshairAngle(void* msg);
+	virtual bool sub_1A0840(); // does clientdll stuff, cba to figure out what message this is
+	virtual bool ProcessUserMessage(void* msg);
+	virtual bool FinishSignonState_New(void* msg); // not confident on this one
+	virtual bool ProcessTempEntities(void* msg);
+	virtual bool sub_1A08A0(); // another func that returns 1
+	virtual bool sub_19F3F0(); // same as above
+	virtual bool ProcessServerInfo(void* msg);
+	virtual bool ProcessUseCachedPersistenceDefFile(void* msg);
+	virtual bool ProcessPersistenceDefFile(void* msg);
+	virtual bool ProcessPersistenceBaseline(void* msg);
+	virtual bool ProcessPersistenceUpdateVar(void* msg);
+	virtual bool ProcessPersistenceNotifySaved(void* msg);
+	virtual bool ProcessDLCNotifyOwnership(void* msg);
+	virtual bool ProcessMatchmakingStatus(void* msg);
+	virtual bool ProcessPlaylistChange(void* msg);
+	virtual bool ProcessSetTeam(void* msg);
+	virtual bool ProcessRequestScreenshot(void* msg);
+	virtual bool ProcessPlaylistOverrides(void* msg);
+	virtual bool ProcessPlaylistPlayerCounts(void* msg);
+	virtual bool ProcessNetProfileFrame(void* msg);
+	virtual bool ProcessNetProfileTotals(void* msg);
+};
