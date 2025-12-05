@@ -100,7 +100,7 @@ public:
 
 extern CEngine* g_pEngine;
 
-extern void (*CBaseClient__Disconnect)(void* self, uint32_t unknownButAlways1, const char* reason, ...);
+extern void (*CClient__Disconnect)(void* self, uint32_t unknownButAlways1, const char* reason, ...);
 
 #pragma once
 typedef enum
@@ -170,7 +170,7 @@ enum class eSignonState : int
 	CHANGELEVEL = 9, // server is changing level; please wait
 };
 
-class CBaseClient
+class CClient
 {
 public:
 	char _unk_0x0[22]; // 0x0 ( Size: 22 )
@@ -198,24 +198,24 @@ public:
 	char m_UID[32]; // 0xf500 ( Size: 32 )
 	char _unk_0xf520[123400]; // 0xf520 ( Size: 123400 )
 };
-static_assert(sizeof(CBaseClient) == 0x2D728);
-static_assert(offsetof(CBaseClient, m_Name) == 0x16);
-static_assert(offsetof(CBaseClient, m_ConVars) == 0x258);
-static_assert(offsetof(CBaseClient, m_Signon) == 0x2A0);
-static_assert(offsetof(CBaseClient, m_nDeltaTick) == 0x2A4);
-static_assert(offsetof(CBaseClient, m_nOriginID) == 0x2A8);
-static_assert(offsetof(CBaseClient, m_nStringTableAckTick) == 0x2B0);
-static_assert(offsetof(CBaseClient, m_nSignonTick) == 0x2B4);
-static_assert(offsetof(CBaseClient, m_ClanTag) == 0x358);
-static_assert(offsetof(CBaseClient, m_bFakePlayer) == 0x484);
-static_assert(offsetof(CBaseClient, m_bReceivedPacket) == 0x485);
-static_assert(offsetof(CBaseClient, m_bLowViolence) == 0x486);
-static_assert(offsetof(CBaseClient, m_bFullyAuthenticated) == 0x487);
-static_assert(offsetof(CBaseClient, m_iPersistenceReady) == 0x4A0);
-static_assert(offsetof(CBaseClient, m_PersistenceBuffer) == 0x4FA);
-static_assert(offsetof(CBaseClient, m_UID) == 0xF500);
+static_assert(sizeof(CClient) == 0x2D728);
+static_assert(offsetof(CClient, m_Name) == 0x16);
+static_assert(offsetof(CClient, m_ConVars) == 0x258);
+static_assert(offsetof(CClient, m_Signon) == 0x2A0);
+static_assert(offsetof(CClient, m_nDeltaTick) == 0x2A4);
+static_assert(offsetof(CClient, m_nOriginID) == 0x2A8);
+static_assert(offsetof(CClient, m_nStringTableAckTick) == 0x2B0);
+static_assert(offsetof(CClient, m_nSignonTick) == 0x2B4);
+static_assert(offsetof(CClient, m_ClanTag) == 0x358);
+static_assert(offsetof(CClient, m_bFakePlayer) == 0x484);
+static_assert(offsetof(CClient, m_bReceivedPacket) == 0x485);
+static_assert(offsetof(CClient, m_bLowViolence) == 0x486);
+static_assert(offsetof(CClient, m_bFullyAuthenticated) == 0x487);
+static_assert(offsetof(CClient, m_iPersistenceReady) == 0x4A0);
+static_assert(offsetof(CClient, m_PersistenceBuffer) == 0x4FA);
+static_assert(offsetof(CClient, m_UID) == 0xF500);
 
-extern CBaseClient* g_pClientArray;
+extern CClient* g_pClientArray;
 
 enum server_state_t
 {

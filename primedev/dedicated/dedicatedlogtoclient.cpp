@@ -1,7 +1,7 @@
 #include "dedicatedlogtoclient.h"
 #include "engine/r2engine.h"
 
-void (*CGameClient__ClientPrintf)(CBaseClient* pClient, const char* fmt, ...);
+void (*CGameClient__ClientPrintf)(CClient* pClient, const char* fmt, ...);
 
 void DedicatedServerLogToClientSink::custom_sink_it_(const custom_log_msg& msg)
 {
@@ -23,7 +23,7 @@ void DedicatedServerLogToClientSink::custom_sink_it_(const custom_log_msg& msg)
 	std::string sLogMessage = fmt::format("[DEDICATED SERVER] [{}] {}", level_names[msg.level], msg.payload);
 	for (int i = 0; i < g_pGlobals->m_nMaxClients; i++)
 	{
-		CBaseClient* pClient = &g_pClientArray[i];
+		CClient* pClient = &g_pClientArray[i];
 
 		if (pClient->m_Signon >= eSignonState::CONNECTED)
 		{
@@ -45,5 +45,5 @@ void DedicatedServerLogToClientSink::flush_() {}
 
 ON_DLL_LOAD_DEDI("engine.dll", DedicatedServerLogToClient, (CModule module))
 {
-	CGameClient__ClientPrintf = module.Offset(0x1016A0).RCast<void (*)(CBaseClient*, const char*, ...)>();
+	CGameClient__ClientPrintf = module.Offset(0x1016A0).RCast<void (*)(CClient*, const char*, ...)>();
 }

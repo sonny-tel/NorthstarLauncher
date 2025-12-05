@@ -21,7 +21,7 @@
 
 // global vars
 ServerAuthenticationManager* g_pServerAuthentication;
-CBaseServer__RejectConnectionType CBaseServer__RejectConnection;
+CServer__RejectConnectionType CServer__RejectConnection;
 
 void ServerAuthenticationManager::AddRemotePlayer(std::string token, uint64_t uid, std::string username, std::string pdata)
 {
@@ -38,7 +38,7 @@ void ServerAuthenticationManager::AddRemotePlayer(std::string token, uint64_t ui
 	m_RemoteAuthenticationData[token] = newAuthData;
 }
 
-void ServerAuthenticationManager::AddPlayer(CBaseClient* pPlayer, const char* pToken)
+void ServerAuthenticationManager::AddPlayer(CClient* pPlayer, const char* pToken)
 {
 	PlayerAuthenticationData additionalData;
 
@@ -53,7 +53,7 @@ void ServerAuthenticationManager::AddPlayer(CBaseClient* pPlayer, const char* pT
 	m_PlayerAuthenticationData.insert(std::make_pair(pPlayer, additionalData));
 }
 
-void ServerAuthenticationManager::RemovePlayer(CBaseClient* pPlayer)
+void ServerAuthenticationManager::RemovePlayer(CClient* pPlayer)
 {
 	if (m_PlayerAuthenticationData.count(pPlayer))
 		m_PlayerAuthenticationData.erase(pPlayer);
@@ -86,7 +86,7 @@ bool ServerAuthenticationManager::VerifyPlayerName(const char* pAuthToken, const
 	return true;
 }
 
-bool ServerAuthenticationManager::IsDuplicateAccount(CBaseClient* pPlayer, const char* pPlayerUid)
+bool ServerAuthenticationManager::IsDuplicateAccount(CClient* pPlayer, const char* pPlayerUid)
 {
 	if (m_bAllowDuplicateAccounts)
 		return false;
@@ -99,7 +99,7 @@ bool ServerAuthenticationManager::IsDuplicateAccount(CBaseClient* pPlayer, const
 	return false;
 }
 
-bool ServerAuthenticationManager::CheckAuthentication(CBaseClient* pPlayer, uint64_t iUid, char* pAuthToken)
+bool ServerAuthenticationManager::CheckAuthentication(CClient* pPlayer, uint64_t iUid, char* pAuthToken)
 {
 	std::string sUid = std::to_string(iUid);
 
@@ -124,7 +124,7 @@ bool ServerAuthenticationManager::CheckAuthentication(CBaseClient* pPlayer, uint
 	return false;
 }
 
-void ServerAuthenticationManager::AuthenticatePlayer(CBaseClient* pPlayer, uint64_t iUid, char* pAuthToken)
+void ServerAuthenticationManager::AuthenticatePlayer(CClient* pPlayer, uint64_t iUid, char* pAuthToken)
 {
 	// for bot players, generate a new uid
 	if (pPlayer->m_bFakePlayer)
@@ -158,7 +158,7 @@ void ServerAuthenticationManager::AuthenticatePlayer(CBaseClient* pPlayer, uint6
 	}
 }
 
-bool ServerAuthenticationManager::RemovePlayerAuthData(CBaseClient* pPlayer)
+bool ServerAuthenticationManager::RemovePlayerAuthData(CClient* pPlayer)
 {
 	if (!Cvar_ns_erase_auth_info->GetBool()) // keep auth data forever
 		return false;
@@ -185,7 +185,7 @@ bool ServerAuthenticationManager::RemovePlayerAuthData(CBaseClient* pPlayer)
 	return false;
 }
 
-void ServerAuthenticationManager::WritePersistentData(CBaseClient* pPlayer)
+void ServerAuthenticationManager::WritePersistentData(CClient* pPlayer)
 {
 	if (pPlayer->m_iPersistenceReady == ePersistenceReady::READY_REMOTE)
 	{
@@ -205,7 +205,7 @@ void ServerAuthenticationManager::WritePersistentData(CBaseClient* pPlayer)
 char* pNextPlayerToken;
 uint64_t iNextPlayerUid;
 
-static void* (*o_pCBaseServer__ConnectClient)(
+static void* (*o_pCServer__ConnectClient)(
 	void* self,
 	void* addr,
 	void* a3,
@@ -223,7 +223,7 @@ static void* (*o_pCBaseServer__ConnectClient)(
 	int64_t uid,
 	uint32_t a16,
 	uint32_t a17) = nullptr;
-static void* h_CBaseServer__ConnectClient(
+static void* h_CServer__ConnectClient(
 	void* self,
 	void* addr,
 	void* a3,
@@ -246,15 +246,15 @@ static void* h_CBaseServer__ConnectClient(
 	pNextPlayerToken = serverFilter;
 	iNextPlayerUid = uid;
 
-	return o_pCBaseServer__ConnectClient(self, addr, a3, a4, a5, a6, a7, playerName, serverFilter, a10, a11, a12, a13, a14, uid, a16, a17);
+	return o_pCServer__ConnectClient(self, addr, a3, a4, a5, a6, a7, playerName, serverFilter, a10, a11, a12, a13, a14, uid, a16, a17);
 }
 
 ConVar* Cvar_ns_allowuserclantags;
 
-static bool (*o_pCBaseClient__Connect)(
-	CBaseClient* self, char* pName, void* pNetChannel, char bFakePlayer, void* a5, char pDisconnectReason[256], void* a7) = nullptr;
+static bool (*o_pCClient__Connect)(
+	CClient* self, char* pName, void* pNetChannel, char bFakePlayer, void* a5, char pDisconnectReason[256], void* a7) = nullptr;
 static bool
-h_CBaseClient__Connect(CBaseClient* self, char* pName, void* pNetChannel, char bFakePlayer, void* a5, char pDisconnectReason[256], void* a7)
+h_CClient__Connect(CClient* self, char* pName, void* pNetChannel, char bFakePlayer, void* a5, char pDisconnectReason[256], void* a7)
 {
 	const char* pAuthenticationFailure = nullptr;
 	char pVerifiedName[64];
@@ -280,7 +280,7 @@ h_CBaseClient__Connect(CBaseClient* self, char* pName, void* pNetChannel, char b
 	}
 
 	// try to actually connect the player
-	if (!o_pCBaseClient__Connect(self, pVerifiedName, pNetChannel, bFakePlayer, a5, pDisconnectReason, a7))
+	if (!o_pCClient__Connect(self, pVerifiedName, pNetChannel, bFakePlayer, a5, pDisconnectReason, a7))
 		return false;
 
 	// we already know this player's authentication data is legit, actually write it to them now
@@ -292,8 +292,8 @@ h_CBaseClient__Connect(CBaseClient* self, char* pName, void* pNetChannel, char b
 	return true;
 }
 
-static void (*o_pCBaseClient__ActivatePlayer)(CBaseClient* self) = nullptr;
-static void h_CBaseClient__ActivatePlayer(CBaseClient* self)
+static void (*o_pCClient__ActivatePlayer)(CClient* self) = nullptr;
+static void h_CClient__ActivatePlayer(CClient* self)
 {
 	// if we're authed, write our persistent data
 	// RemovePlayerAuthData returns true if it removed successfully, i.e. on first call only, and we only want to write on >= second call
@@ -305,11 +305,11 @@ static void h_CBaseClient__ActivatePlayer(CBaseClient* self)
 		g_pServerPresence->SetPlayerCount((int)g_pServerAuthentication->m_PlayerAuthenticationData.size());
 	}
 
-	o_pCBaseClient__ActivatePlayer(self);
+	o_pCClient__ActivatePlayer(self);
 }
 
-static void (*o_pCBaseClient__Disconnect)(CBaseClient* self, uint32_t unknownButAlways1, const char* pReason, ...) = nullptr;
-static void h_CBaseClient__Disconnect(CBaseClient* self, uint32_t unknownButAlways1, const char* pReason, ...)
+static void (*o_pCClient__Disconnect)(CClient* self, uint32_t unknownButAlways1, const char* pReason, ...) = nullptr;
+static void h_CClient__Disconnect(CClient* self, uint32_t unknownButAlways1, const char* pReason, ...)
 {
 	// have to manually format message because can't pass varargs to original func
 	char buf[1024];
@@ -337,7 +337,7 @@ static void h_CBaseClient__Disconnect(CBaseClient* self, uint32_t unknownButAlwa
 
 	g_pServerPresence->SetPlayerCount((int)g_pServerAuthentication->m_PlayerAuthenticationData.size());
 
-	o_pCBaseClient__Disconnect(self, unknownButAlways1, buf);
+	o_pCClient__Disconnect(self, unknownButAlways1, buf);
 }
 
 void ConCommand_ns_resetpersistence(const CCommand& args)
@@ -355,18 +355,16 @@ void ConCommand_ns_resetpersistence(const CCommand& args)
 
 ON_DLL_LOAD_RELIESON("engine.dll", ServerAuthentication, (ConCommand, ConVar), (CModule module))
 {
-	o_pCBaseServer__ConnectClient = module.Offset(0x114430).RCast<decltype(o_pCBaseServer__ConnectClient)>();
-	HookAttach(&(PVOID&)o_pCBaseServer__ConnectClient, (PVOID)h_CBaseServer__ConnectClient);
+	o_pCServer__ConnectClient = module.Offset(0x114430).RCast<decltype(o_pCServer__ConnectClient)>();
+	HookAttach(&(PVOID&)o_pCServer__ConnectClient, (PVOID)h_CServer__ConnectClient);
 
-	o_pCBaseClient__Connect = module.Offset(0x101740).RCast<decltype(o_pCBaseClient__Connect)>();
-	HookAttach(&(PVOID&)o_pCBaseClient__Connect, (PVOID)h_CBaseClient__Connect);
+	o_pCClient__Connect = module.Offset(0x101740).RCast<decltype(o_pCClient__Connect)>();
+	HookAttach(&(PVOID&)o_pCClient__Connect, (PVOID)h_CClient__Connect);
+	o_pCClient__ActivatePlayer = module.Offset(0x100F80).RCast<decltype(o_pCClient__ActivatePlayer)>();
+	HookAttach(&(PVOID&)o_pCClient__ActivatePlayer, (PVOID)h_CClient__ActivatePlayer);
 
-	o_pCBaseClient__ActivatePlayer = module.Offset(0x100F80).RCast<decltype(o_pCBaseClient__ActivatePlayer)>();
-	HookAttach(&(PVOID&)o_pCBaseClient__ActivatePlayer, (PVOID)h_CBaseClient__ActivatePlayer);
-
-	o_pCBaseClient__Disconnect = module.Offset(0x1012C0).RCast<decltype(o_pCBaseClient__Disconnect)>();
-	HookAttach(&(PVOID&)o_pCBaseClient__Disconnect, (PVOID)h_CBaseClient__Disconnect);
-
+	o_pCClient__Disconnect = module.Offset(0x1012C0).RCast<decltype(o_pCClient__Disconnect)>();
+	HookAttach(&(PVOID&)o_pCClient__Disconnect, (PVOID)h_CClient__Disconnect);
 	g_pServerAuthentication = new ServerAuthenticationManager;
 
 	g_pServerAuthentication->Cvar_ns_erase_auth_info =
@@ -388,7 +386,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", ServerAuthentication, (ConCommand, ConVar), (
 	// patch to disable fairfight marking players as cheaters and kicking them
 	module.Offset(0x101012).Patch("E9 90 00");
 
-	CBaseServer__RejectConnection = module.Offset(0x1182E0).RCast<CBaseServer__RejectConnectionType>();
+	CServer__RejectConnection = module.Offset(0x1182E0).RCast<CServer__RejectConnectionType>();
 
 	if (CommandLine()->CheckParm("-allowdupeaccounts"))
 	{
