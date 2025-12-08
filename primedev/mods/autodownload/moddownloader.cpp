@@ -1,4 +1,5 @@
 #include "moddownloader.h"
+#include "engine/netmessages.h"
 #include "util/utils.h"
 #include "config/profile.h"
 #include "engine/r2engine.h"
@@ -747,22 +748,227 @@ void ModDownloader::LoadServerModSchema()
 	}
 
 	spdlog::info("Successfully loaded server mod schema from {}", path.generic_string());
+
+	ParseSchemaDocument();
 }
 
-void ModDownloader::PromptUserConfirmation()
+void ModDownloader::ParseSchemaDocument()
 {
-    if( m_bServerModDownloadInProgress )
-	{
-		m_bServerModDownloadInProgress = false;
-        Cbuf_AddText(Cbuf_GetCurrentPlayer(), "disconnect", cmd_source_t::kCommandSrcCode);
-		Cbuf_Execute();
+	m_ParsedSchemaMods.clear();
+
+	if (!m_Document.IsObject())
 		return;
+
+	for (auto it = m_Document.MemberBegin(); it != m_Document.MemberEnd(); ++it)
+	{
+		modentry_s modEntry;
+
+		modEntry.name = it->name.GetString();
+		if (!it->value.IsObject())
+		{
+			spdlog::error("Mod entry {} is not an object, skipping.", modEntry.name);
+			continue;
+		}
+
+		if (!it->value.HasMember("Version") || !it->value["Version"].IsString())
+		{
+			spdlog::error("Mod entry {} does not have a valid Version field, skipping.", modEntry.name);
+			continue;
+		}
+
+		modEntry.version = it->value["Version"].GetString();
+
+		VerifiedModPlatform platform = VerifiedModPlatform::Unknown;
+
+		if(it->value.HasMember("Platform") && it->value["Platform"].IsString())
+		{
+			std::string platformValue = it->value["Platform"].GetString();
+			platform = resolvePlatform(platformValue);
+		}
+
+		modEntry.platform = platform;
+
+		switch(platform)
+		{
+			case VerifiedModPlatform::Thunderstore:
+				if(!it->value.HasMember("DependencyString") || !it->value["DependencyString"].IsString())
+				{
+					spdlog::error("Mod entry {} does not have a valid DependencyString field for Thunderstore platform, skipping.", modEntry.name);
+					continue;
+				}
+				modEntry.dependencyString = it->value["DependencyString"].GetString();
+				break;
+			case VerifiedModPlatform::ModWorkshop:
+				spdlog::error("ModWorkshop platform is not supported in server mod schema, skipping mod {}", modEntry.name);
+				continue;
+				break;
+			case VerifiedModPlatform::Unknown:
+				if(!it->value.HasMember("URL") || !it->value["URL"].IsString())
+				{
+					spdlog::error("Mod entry {} does not have a valid URL field for Unknown platform, skipping.", modEntry.name);
+					continue;
+				}
+				modEntry.url = it->value["URL"].GetString();
+				break;
+			default:
+				continue;
+		}
+
+		if (!it->value.HasMember("Checksum") || !it->value["Checksum"].IsString())
+		{
+			spdlog::warn("Mod entry {} does not have a valid Checksum field, you should consider adding this.", modEntry.name);
+			modEntry.checksum = "";
+		} else
+			modEntry.checksum = it->value["Checksum"].GetString();
+
+		m_ParsedSchemaMods.push_back(modEntry);
 	}
+}
+
+bool ModDownloader::SendModInfoConnectionlessPacket(netadr_t& adr, modentry_s& mod, int index, int totalMods)
+{
+	char buffer[512];
+	bf_write msg(buffer, sizeof(buffer));
+
+	msg.WriteLong(CONNECTIONLESS_HEADER);
+	msg.WriteByte(S2C_MODDOWNLOADINFO);
+	msg.WriteLong(MODDOWNLOADINFO_VERSION);
+
+	msg.WriteLong(index);
+	msg.WriteLong(totalMods);
+
+	if(!msg.WriteString(mod.name.c_str()))
+		return false;
+	if(!msg.WriteString(mod.version.c_str()))
+		return false;
+
+	switch(mod.platform)
+	{
+		case VerifiedModPlatform::Thunderstore:
+			msg.WriteChar('T');
+			if(!msg.WriteString(mod.dependencyString.c_str()))
+				return false;
+			break;
+		case VerifiedModPlatform::ModWorkshop:
+			msg.WriteChar('M');
+			break;
+		case VerifiedModPlatform::Unknown:
+			msg.WriteChar('U');
+			if(!msg.WriteString(mod.url.c_str()))
+				return false;
+			break;
+	}
+
+	if(mod.checksum.empty())
+		msg.WriteByte(0);
+	else
+		msg.WriteByte(1);
+
+	if(!mod.checksum.empty())
+		if(!msg.WriteString(mod.checksum.c_str()))
+			return false;
+
+	NET_SendPacket(nullptr, NS_SERVER, &adr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
+
+	return true;
+}
+
+bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
+{
+	// if(!g_pModDownloader->AllowingServerModDownloads())
+	// 	return false;
+
+	int protocolVersion = msg.ReadLong();
+
+	int modIndex = msg.ReadLong();
+	int totalMods = msg.ReadLong();
+
+	if(g_pModDownloader->m_iTotalServerRequestedMods != totalMods)
+		g_pModDownloader->m_iTotalServerRequestedMods = totalMods;
+
+	modentry_s modEntry;
+
+	char modName[128];
+	if(!msg.ReadString(modName, sizeof(modName)))
+		return false;
+
+	modEntry.name = std::string(modName);
+
+	char modVersion[64];
+	if(!msg.ReadString(modVersion, sizeof(modVersion)))
+		return false;
+
+	modEntry.version = std::string(modVersion);
+
+	char platformChar = msg.ReadChar();
+
+	char dependencyOrUrl[256];
+
+	switch(platformChar)
+	{
+		case 'T':
+			modEntry.platform = VerifiedModPlatform::Thunderstore;
+			if(!msg.ReadString(dependencyOrUrl, sizeof(dependencyOrUrl)))
+				return false;
+			modEntry.dependencyString = std::string(dependencyOrUrl);
+			break;
+		case 'M':
+			modEntry.platform = VerifiedModPlatform::ModWorkshop;
+			spdlog::error("Received ModWorkshop platform mod info from server, which is unsupported, skipping mod.");
+			return false;
+		case 'U':
+			modEntry.platform = VerifiedModPlatform::Unknown;
+			if(!msg.ReadString(dependencyOrUrl, sizeof(dependencyOrUrl)))
+				return false;
+			modEntry.url = std::string(dependencyOrUrl);
+			break;
+		default:
+			spdlog::warn("Received mod info packet with unrecognized platform char {}, skipping mod.", platformChar);
+			return false;
+	}
+
+	bool hasChecksum = msg.ReadByte();
+	if(hasChecksum)
+	{
+		char checksum[128];
+		if(!msg.ReadString(checksum, sizeof(checksum)))
+			return false;
+		modEntry.checksum = std::string(checksum);
+	}
+	else
+		modEntry.checksum = "";
+
+	g_pModDownloader->m_ServerRequestedMods.push_back(modEntry);
+
+	spdlog::info("{}/{} {} v{} [{}] ({} / {})", modIndex + 1, totalMods, modEntry.name, modEntry.version, GetPlatformString(modEntry.platform),
+		dependencyOrUrl, modEntry.checksum.empty() ? "no checksum" : modEntry.checksum.c_str());
+
+	if(g_pModDownloader->m_ServerRequestedMods.size() == static_cast<size_t>(g_pModDownloader->GetTotalServerRequestedMods()))
+	{
+		spdlog::info("All {} server mods received.", g_pModDownloader->GetTotalServerRequestedMods());
+		g_pModDownloader->SetIsListeningForServerMods(false);
+	}
+
+	return true;
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
 {
 	g_pModDownloader = new ModDownloader();
+}
+
+ADD_SQFUNC("void", NSAllowServerModDownloads, "", "", ScriptContext::UI)
+{
+	g_pModDownloader->SetIsListeningForServerMods(true);
+	g_pModDownloader->SetTotalServerRequestedMods(0);
+
+	return SQRESULT_NULL;
+}
+
+ADD_SQFUNC("bool", NSListeningForServerMods, "", "", ScriptContext::UI)
+{
+	g_pSquirrel<context>->pushbool(sqvm, g_pModDownloader->IsListeningForServerMods());
+	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("void", NSFetchVerifiedModsManifesto, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)

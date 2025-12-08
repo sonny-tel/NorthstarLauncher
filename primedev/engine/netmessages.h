@@ -11,7 +11,7 @@
 
 #define CUSTOMSERVERINFO_VERSION 1
 #define A2S_REQUESTCUSTOMSERVERINFO 'Q'
-#define S2C_CUSTOMSERVERINFO 'R'
+#define S2A_CUSTOMSERVERINFO 'R'
 
 enum class NetMessageType : int
 {

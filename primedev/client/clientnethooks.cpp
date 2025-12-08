@@ -1,6 +1,7 @@
 #include "engine/r2engine.h"
 #include "client/r2client.h"
 #include "engine/netmessages.h"
+#include "mods/autodownload/moddownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -16,23 +17,9 @@ AUTOHOOK(CClientState__ProcessConnectionlessPacket, engine.dll + 0x19F400, bool,
 		switch(packetType)
 		{
 			case S2C_MODDOWNLOADINFO:
-			{
-				spdlog::info("Received S2C_MODDOWNLOADINFO packet from server");
-
-				packet->message->ReadLong();
-				packet->message->ReadChar();
-
+				return g_pModDownloader->RecvModInfoConnectionlessPacket(msg);
+			case S2A_CUSTOMSERVERINFO:
 				return true;
-			}
-			case S2C_CUSTOMSERVERINFO:
-			{
-				spdlog::info("Received S2C_CUSTOMSERVERINFO packet from server");
-
-				packet->message->ReadLong();
-				packet->message->ReadChar();
-
-				return true;
-			}
 			default:
 				break;
 		}

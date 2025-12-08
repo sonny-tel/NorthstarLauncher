@@ -3,6 +3,10 @@
 #include "shared/exploit_fixes/ns_limits.h"
 #include "masterserver/masterserver.h"
 #include "engine/netmessages.h"
+#include "dedicated/dedicated.h"
+#include "server/serverpresence.h"
+#include "shared/playlist.h"
+#include "mods/autodownload/moddownloader.h"
 
 #include <string>
 #include <thread>
@@ -169,27 +173,86 @@ static void ProcessAtlasConnectionlessPacket(netpacket_t* packet)
 	return;
 }
 
-static bool ProcessCustomServerInfoRequest(netpacket_t* packet)
+static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 {
-	bf_read* msg = packet->message;
+	static const char* tempRegion = "N/A";
 
-	msg->ReadLong();
-	msg->ReadByte();
+	int protocolVersion = msg.ReadLong();
+	bool requestedMods = msg.ReadByte() != 0;
+	int modDownloadVersion = msg.ReadLong();
 
-	int protocolVersion = msg->ReadLong();
-	bool requestedMods = msg->ReadByte() != 0;
-	int modDownloadVersion = msg->ReadLong();
+	// spdlog::info(
+	// 	"client requested custom server info: protocolVersion={}, requestedMods={}, modDownloadVersion={}",
+	// 	protocolVersion,
+	// 	requestedMods,
+	// 	modDownloadVersion);
 
-	spdlog::info(
-		"client requested custom server info: protocolVersion={}, requestedMods={}, modDownloadVersion={}",
-		protocolVersion,
-		requestedMods,
-		modDownloadVersion);
+	char buffer[512];
+	bf_write response(buffer, sizeof(buffer));
+
+	response.WriteLong(CONNECTIONLESS_HEADER);
+	response.WriteChar(S2A_CUSTOMSERVERINFO);
+	response.WriteLong(CUSTOMSERVERINFO_VERSION);
+	response.WriteChar('I'); // ion marker
+
+	const char* serverName = g_pCVar->FindVar("ns_server_name")->GetString();
+
+	if( strlen(serverName) > 124 )
+	{
+		char shortName[128];
+		strncpy(shortName, serverName, 123);
+		strncat(shortName, "...", 4);
+		serverName = shortName;
+	}
+
+	const char* serverDesc = g_pCVar->FindVar("ns_server_desc")->GetString();
+
+	if( strlen(serverDesc) > 128 )
+	{
+		char shortDesc[128];
+		strncpy(shortDesc, serverDesc, 123);
+		strncat(shortDesc, "...", 4);
+		serverDesc = shortDesc;
+	}
+
+	response.WriteString(serverName);
+	response.WriteString(serverDesc);
+	response.WriteString(g_pGlobals->m_pMapName);
+	response.WriteString(R2::GetCurrentPlaylistName());
+	response.WriteByte(0); // reserved mp/sp/lobby byte
+	response.WriteLong(g_pServerPresence->GetPlayerCount());
+	response.WriteLong(g_pServerPresence->GetMaxPlayers());
+
+	if( IsDedicatedServer() )
+		response.WriteChar('d');
+	else
+		response.WriteChar('l');
+
+	response.WriteString(tempRegion);
+
+	bool areWeAcceptingInsecureConnections = g_pCVar->FindVar("ns_auth_allow_insecure")->GetBool();
+	response.WriteByte(areWeAcceptingInsecureConnections ? 1 : 0);
+	response.WriteByte(false); // reserved for future for use authing incoming clients without ms
+
+	auto& mods = g_pModDownloader->GetServerModsToInstall();
+
+	response.WriteLong(mods.size()); // required mods, do later
+
+	NET_SendPacket(nullptr, NS_SERVER, &packet->adr, response.GetData(), response.GetNumBytesWritten(), nullptr, false, 0, true);
+
+	if( requestedMods )
+	{
+		for(int i = 0; i < mods.size(); i++)
+		{
+			auto& mod = mods[i];
+			g_pModDownloader->SendModInfoConnectionlessPacket(packet->adr, mod, i, mods.size());
+		}
+	}
 
 	return true;
 }
 
-AUTOHOOK(ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (void* a1, netpacket_t* packet))
+AUTOHOOK(CServer__ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (void* a1, netpacket_t* packet))
 {
 	// packet->data consists of 0xFFFFFFFF (int32 -1) to indicate packets aren't split, followed by a header consisting of a single
 	// character, which is used to uniquely identify the packet kind. Most kinds follow this with a null-terminated string payload
@@ -211,15 +274,14 @@ AUTOHOOK(ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (void* a1, 
 			ProcessAtlasConnectionlessPacket(packet);
 			return true;
 		case A2S_REQUESTCUSTOMSERVERINFO:
-		    spdlog::info("received A2S_REQUESTCUSTOMSERVERINFO packet from client");
-			return ProcessCustomServerInfoRequest(packet);
+			return ProcessCustomServerInfoRequest(packet, msg);
 		default:
 			break;
 		}
 	}
 
 	// A, H, I, N
-	return ProcessConnectionlessPacket(a1, packet);
+	return CServer__ProcessConnectionlessPacket(a1, packet);
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ServerNetHooks, ConVar, (CModule module))

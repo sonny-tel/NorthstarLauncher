@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/netmessages.h"
+#include "engine/net.h"
 
 namespace fs = std::filesystem;
 
@@ -10,33 +10,20 @@ class ModDownloader;
 
 extern ModDownloader* g_pModDownloader;
 
-struct modentry_s
-{
-	std::string name;
-	std::string url;
-	std::string checksum;
-	std::string version;
-};
-
-enum class AcceptedServerModState
-{
-	INVALID,
-	PENDING,
-	DENIED,
-	ACCEPTED
-};
-
 class ModDownloader
 {
 private:
+	struct modentry_s;
+
 	const char* VERIFICATION_FLAG = "-disablemodverification";
 	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
 	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
 	char* modsListUrl;
 	rapidjson::Document m_Document;
-	AcceptedServerModState m_HasUserAcceptedServerMods = AcceptedServerModState::INVALID;
-	bool m_bServerModDownloadInProgress = false;
-	std::vector<modentry_s> m_ServerModsToInstall;
+	std::vector<modentry_s> m_ParsedSchemaMods;
+	bool m_bIsListeningForServerMods = false;
+	std::vector<modentry_s> m_ServerRequestedMods;
+	int m_iTotalServerRequestedMods = 0;
 
 	enum class VerifiedModPlatform
 	{
@@ -44,6 +31,20 @@ private:
 		ModWorkshop,
 		Thunderstore
 	};
+
+	struct modentry_s
+	{
+
+		std::string name;
+		std::string version;
+		VerifiedModPlatform platform = VerifiedModPlatform::Unknown;
+
+		std::string dependencyString;
+		std::string url;
+
+		std::string checksum;
+	};
+
 	VerifiedModPlatform resolvePlatform(std::string input)
 	{
 		if (input.compare("thunderstore") == 0)
@@ -56,6 +57,20 @@ private:
 		}
 		return VerifiedModPlatform::Unknown;
 	}
+
+	std::string GetPlatformString(VerifiedModPlatform platform)
+	{
+		switch (platform)
+		{
+		case VerifiedModPlatform::Thunderstore:
+			return std::string("thunderstore");
+		case VerifiedModPlatform::ModWorkshop:
+			return std::string("modworkshop");
+		default:
+			return std::string("unknown");
+		}
+	}
+
 	struct VerifiedModVersion
 	{
 		std::string checksum;
@@ -137,6 +152,8 @@ private:
 	 */
 	std::string GetModArchiveName(std::string url);
 
+	void ParseSchemaDocument();
+
 public:
 	ModDownloader();
 
@@ -209,8 +226,6 @@ public:
 		float ratio;
 	} modState = {};
 
-	bool m_bHasUserBeenPrompted = false;
-
 	/**
 	 * Cancels installation of the mod.
 	 *
@@ -229,11 +244,12 @@ public:
 	void DownloadServerMods();
 	static int ServerModFetchingProgressCallback(
 		void* ptr, curl_off_t totalDownloadSize, curl_off_t finishedDownloadSize, curl_off_t totalToUpload, curl_off_t nowUploaded);
-	void SetUserAcceptedServerModsState(AcceptedServerModState state) { m_HasUserAcceptedServerMods = state; }
-	AcceptedServerModState GetUserAcceptedServerModsState() const { return m_HasUserAcceptedServerMods; }
-	bool HasUserAcceptedServerMods() const { return m_HasUserAcceptedServerMods == AcceptedServerModState::ACCEPTED; }
-	void SetDeniedServerMods() { m_HasUserAcceptedServerMods = AcceptedServerModState::DENIED; }
-	void SetServerMods(std::vector<modentry_s>& modsToInstall) { m_ServerModsToInstall = modsToInstall; }
-	void ClearServerModsState() { m_ServerModsToInstall.clear(); m_bServerModDownloadInProgress = false; SetUserAcceptedServerModsState(AcceptedServerModState::INVALID); m_bHasUserBeenPrompted = false; }
-	std::vector<modentry_s>& GetServerModsToInstall() { return m_ServerModsToInstall; }
+	std::vector<modentry_s>& GetServerModsToInstall() { return m_ParsedSchemaMods; }
+	bool SendModInfoConnectionlessPacket(netadr_t& adr, modentry_s& mod, int index, int totalMods);
+	bool RecvModInfoConnectionlessPacket(bf_read& msg);
+	bool AllowingServerModDownloads() { return m_bIsListeningForServerMods; }
+	void SetIsListeningForServerMods(bool state) { m_bIsListeningForServerMods = state; }
+	bool IsListeningForServerMods() { return m_bIsListeningForServerMods; }
+	void SetTotalServerRequestedMods(int totalMods) { m_iTotalServerRequestedMods = totalMods; }
+	int GetTotalServerRequestedMods() { return m_iTotalServerRequestedMods; }
 };

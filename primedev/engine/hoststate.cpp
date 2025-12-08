@@ -24,9 +24,6 @@ void ServerStartingOrChangingMap()
 	ConVar* Cvar_mp_gamemode = g_pCVar->FindVar("mp_gamemode");
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
-	if(!IsDedicatedServer())
-		g_pModDownloader->ClearServerModsState();
-
 	g_pModDownloader->LoadServerModSchema();
 
 	// directly call _Cmd_Exec_f to avoid weirdness with ; being in mp_gamemode potentially
@@ -138,8 +135,6 @@ static void(__fastcall* o_pCHostState__State_GameShutdown)(CHostState* self) = n
 static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 {
 	spdlog::info("HostState: GameShutdown");
-
-	g_pModDownloader->ClearServerModsState();
 
 	g_pServerPresence->DestroyPresence();
 

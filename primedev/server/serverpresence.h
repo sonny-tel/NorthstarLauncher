@@ -86,6 +86,9 @@ public:
 	void SetMap(const char* pMapName, bool isInitialising = false);
 	void SetPlaylist(const char* pPlaylistName);
 	void SetPlayerCount(const int iPlayerCount);
+
+	int GetMaxPlayers() const { return m_ServerPresence.m_iMaxPlayers; }
+	int GetPlayerCount() const { return m_ServerPresence.m_iPlayerCount; }
 };
 
 extern ServerPresenceManager* g_pServerPresence;
