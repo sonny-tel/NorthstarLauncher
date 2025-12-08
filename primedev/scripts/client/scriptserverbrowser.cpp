@@ -84,6 +84,43 @@ ADD_SQFUNC("bool", NSWasAuthSuccessful, "", "", ScriptContext::UI)
 	return SQRESULT_NOTNULL;
 }
 
+ADD_SQFUNC("string", NSGetAuthedServerIPv4, "", "", ScriptContext::UI)
+{
+	if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)
+	{
+		g_pSquirrel<context>->raiseerror(
+			sqvm, fmt::format("Tried to get authed server info before any pending connection info was available").c_str());
+		return SQRESULT_ERROR;
+	}
+
+	RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
+
+	std::string ipString = fmt::format(
+		"{}.{}.{}.{}",
+		info.ip.S_un.S_un_b.s_b1,
+		info.ip.S_un.S_un_b.s_b2,
+		info.ip.S_un.S_un_b.s_b3,
+		info.ip.S_un.S_un_b.s_b4);
+
+	g_pSquirrel<context>->pushstring(sqvm, ipString.c_str(), -1);
+	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("int", NSGetAuthedServerPort, "", "", ScriptContext::UI)
+{
+	if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)
+	{
+		g_pSquirrel<context>->raiseerror(
+			sqvm, fmt::format("Tried to get authed server info before any pending connection info was available").c_str());
+		return SQRESULT_ERROR;
+	}
+
+	RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
+
+	g_pSquirrel<context>->pushinteger(sqvm, (SQInteger)info.port);
+	return SQRESULT_NOTNULL;
+}
+
 ADD_SQFUNC("void", NSConnectToAuthedServer, "", "", ScriptContext::UI)
 {
 	if (!g_pMasterServerManager->m_bHasPendingConnectionInfo)

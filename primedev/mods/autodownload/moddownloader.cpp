@@ -3,6 +3,8 @@
 #include "util/utils.h"
 #include "config/profile.h"
 #include "engine/r2engine.h"
+#include "core/tier0.h"
+
 #include <rapidjson/fwd.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/error/en.h>
@@ -957,12 +959,32 @@ ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module)
 	g_pModDownloader = new ModDownloader();
 }
 
+ADD_SQFUNC("void", NSClearServerRequestedMods, "", "", ScriptContext::UI)
+{
+	g_pModDownloader->GetServerRequestedMods().clear();
+	g_pModDownloader->SetTotalServerRequestedMods(0);
+	g_pModDownloader->SetIsListeningForServerMods(false);
+
+	return SQRESULT_NULL;
+}
+
 ADD_SQFUNC("void", NSAllowServerModDownloads, "", "", ScriptContext::UI)
 {
 	g_pModDownloader->SetIsListeningForServerMods(true);
-	g_pModDownloader->SetTotalServerRequestedMods(0);
 
 	return SQRESULT_NULL;
+}
+
+ADD_SQFUNC("int", NSReceivedServerModInfoCount, "", "", ScriptContext::UI)
+{
+	g_pSquirrel<context>->pushinteger(sqvm, g_pModDownloader->GetServerRequestedMods().size());
+	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("int", NSTotalServerRequestedMods, "", "", ScriptContext::UI)
+{
+	g_pSquirrel<context>->pushinteger(sqvm, g_pModDownloader->GetTotalServerRequestedMods());
+	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("bool", NSListeningForServerMods, "", "", ScriptContext::UI)

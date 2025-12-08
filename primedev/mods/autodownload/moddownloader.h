@@ -18,6 +18,7 @@ private:
 	const char* VERIFICATION_FLAG = "-disablemodverification";
 	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
 	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
+	const float SERVER_MODINFO_TIMEOUT_SECONDS = 3.0f;
 	char* modsListUrl;
 	rapidjson::Document m_Document;
 	std::vector<modentry_s> m_ParsedSchemaMods;
@@ -245,6 +246,7 @@ public:
 	static int ServerModFetchingProgressCallback(
 		void* ptr, curl_off_t totalDownloadSize, curl_off_t finishedDownloadSize, curl_off_t totalToUpload, curl_off_t nowUploaded);
 	std::vector<modentry_s>& GetServerModsToInstall() { return m_ParsedSchemaMods; }
+	std::vector<modentry_s>& GetServerRequestedMods() { return m_ServerRequestedMods; }
 	bool SendModInfoConnectionlessPacket(netadr_t& adr, modentry_s& mod, int index, int totalMods);
 	bool RecvModInfoConnectionlessPacket(bf_read& msg);
 	bool AllowingServerModDownloads() { return m_bIsListeningForServerMods; }
