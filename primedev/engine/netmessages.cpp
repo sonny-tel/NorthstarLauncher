@@ -1,6 +1,5 @@
 #include "netmessages.h"
 #include "netchannel.h"
-#include "mods/autodownload/svcdownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -15,9 +14,6 @@ AUTOHOOK(CClient__ConnectionStart, engine.dll + 0x1019C0, bool, __fastcall, (__i
 AUTOHOOK(CClientState__ConnectionStart, engine.dll + 0x8CB40, bool, __fastcall, (__int64 thisptr, CNetChan* chan))
 // clang-format on
 {
-	CNetChan__RegisterMessage(
-		chan, new SVC_SetModSchema());
-
 	return CClientState__ConnectionStart(thisptr, chan);
 }
 

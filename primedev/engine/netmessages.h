@@ -3,6 +3,16 @@
 #include "inetmessage.h"
 #include "inetchannel.h"
 
+// custom connectionless packet types
+#define A2S_SIGREQ1 'T'
+
+#define MODDOWNLOADINFO_VERSION 1
+#define S2C_MODDOWNLOADINFO 'V'
+
+#define CUSTOMSERVERINFO_VERSION 1
+#define A2S_REQUESTCUSTOMSERVERINFO 'Q'
+#define S2C_CUSTOMSERVERINFO 'R'
+
 enum class NetMessageType : int
 {
     net_StringCmd = 3,
@@ -62,9 +72,7 @@ enum class NetMessageType : int
 };
 
 enum class NSCustomNetMessages : int
-{
-	svc_SetModSchema = static_cast<int>(NetMessageType::__NEXT_INDEX__),
-};
+{ };
 
 class CNetMessage : public INetMessage
 {

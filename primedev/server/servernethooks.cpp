@@ -2,6 +2,7 @@
 #include "engine/r2engine.h"
 #include "shared/exploit_fixes/ns_limits.h"
 #include "masterserver/masterserver.h"
+#include "engine/netmessages.h"
 
 #include <string>
 #include <thread>
@@ -168,22 +169,54 @@ static void ProcessAtlasConnectionlessPacket(netpacket_t* packet)
 	return;
 }
 
+static bool ProcessCustomServerInfoRequest(netpacket_t* packet)
+{
+	bf_read* msg = packet->message;
+
+	msg->ReadLong();
+	msg->ReadByte();
+
+	int protocolVersion = msg->ReadLong();
+	bool requestedMods = msg->ReadByte() != 0;
+	int modDownloadVersion = msg->ReadLong();
+
+	spdlog::info(
+		"client requested custom server info: protocolVersion={}, requestedMods={}, modDownloadVersion={}",
+		protocolVersion,
+		requestedMods,
+		modDownloadVersion);
+
+	return true;
+}
+
 AUTOHOOK(ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (void* a1, netpacket_t* packet))
 {
 	// packet->data consists of 0xFFFFFFFF (int32 -1) to indicate packets aren't split, followed by a header consisting of a single
 	// character, which is used to uniquely identify the packet kind. Most kinds follow this with a null-terminated string payload
 	// then an arbitrary amoount of data.
 
-	// T (no rate limits since we authenticate packets before doing anything expensive)
-	if (4 < packet->size && packet->data[4] == 'T')
-	{
-		ProcessAtlasConnectionlessPacket(packet);
-		return false;
-	}
+	bf_read msg(packet->data, packet->size);
+	unsigned int header = msg.ReadLong();
 
-	// check rate limits for the original unconnected packets
 	if (!g_pServerLimits->CheckConnectionlessPacketLimits(packet))
 		return false;
+
+	if (header == CONNECTIONLESS_HEADER)
+	{
+		char packetType = msg.ReadChar();
+
+		switch(packetType)
+		{
+		case A2S_SIGREQ1:
+			ProcessAtlasConnectionlessPacket(packet);
+			return true;
+		case A2S_REQUESTCUSTOMSERVERINFO:
+		    spdlog::info("received A2S_REQUESTCUSTOMSERVERINFO packet from client");
+			return ProcessCustomServerInfoRequest(packet);
+		default:
+			break;
+		}
+	}
 
 	// A, H, I, N
 	return ProcessConnectionlessPacket(a1, packet);

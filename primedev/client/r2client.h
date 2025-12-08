@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/inetchannel.h"
+#include "engine/r2engine.h"
 
 extern char* g_pLocalPlayerUserID;
 extern char* g_pLocalPlayerOriginToken;
@@ -115,7 +116,7 @@ public:
 	uint16_t N000001BB; //0x008E
 	uint32_t N000001BD; //0x0090
 	bool silentconnect_flag_maybe; //0x0094
-	int32_t m_nSignonState; //0x0098 m_nSignonState
+	eSignonState m_nSignonState; //0x0098 m_nSignonState
 	char pad_009C[4]; //0x009C
 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
 	int32_t m_nServerCount; //0x00A8 m_nServerCount
