@@ -945,6 +945,55 @@ bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
 	spdlog::info("{}/{} {} v{} [{}] ({} / {})", modIndex + 1, totalMods, modEntry.name, modEntry.version, GetPlatformString(modEntry.platform),
 		dependencyOrUrl, modEntry.checksum.empty() ? "no checksum" : modEntry.checksum.c_str());
 
+
+	if( g_pModDownloader->verifiedMods.contains( modEntry.name ) )
+	{
+		if( !g_pModDownloader->verifiedMods[ modEntry.name ].versions.contains( modEntry.version ) )
+		{
+			VerifiedModVersion versionInfo;
+			versionInfo.checksum = modEntry.checksum;
+			versionInfo.platform = modEntry.platform;
+
+			switch( modEntry.platform )
+			{
+				case VerifiedModPlatform::Thunderstore:
+					versionInfo.downloadLink = "https://gcdn.thunderstore.io/live/repository/packages/" + modEntry.dependencyString + ".zip";
+					break;
+				case VerifiedModPlatform::Unknown:
+					versionInfo.downloadLink = modEntry.url;
+					break;
+				default:
+					spdlog::warn("Received mod {} v{} from server has unsupported platform for auto-download, skipping adding to verified mods.", modEntry.name, modEntry.version);
+					return true;
+			}
+
+			g_pModDownloader->verifiedMods[ modEntry.name ].versions.insert( { modEntry.version, versionInfo } );
+		}
+	}
+	else
+	{
+		VerifiedModDetails modDetails;
+		VerifiedModVersion versionInfo;
+		versionInfo.checksum = modEntry.checksum;
+		versionInfo.platform = modEntry.platform;
+
+		switch( modEntry.platform )
+		{
+			case VerifiedModPlatform::Thunderstore:
+				versionInfo.downloadLink = "https://gcdn.thunderstore.io/live/repository/packages/" + modEntry.dependencyString + ".zip";
+				break;
+			case VerifiedModPlatform::Unknown:
+				versionInfo.downloadLink = modEntry.url;
+				break;
+			default:
+				spdlog::warn("Received mod {} v{} from server has unsupported platform for auto-download, skipping adding to verified mods.", modEntry.name, modEntry.version);
+				return true;
+		}
+
+		modDetails.versions.insert( { modEntry.version, versionInfo } );
+		g_pModDownloader->verifiedMods.insert( { modEntry.name, modDetails } );
+	}
+
 	if(g_pModDownloader->m_ServerRequestedMods.size() == static_cast<size_t>(g_pModDownloader->GetTotalServerRequestedMods()))
 	{
 		spdlog::info("All {} server mods received.", g_pModDownloader->GetTotalServerRequestedMods());
@@ -957,6 +1006,31 @@ bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
 {
 	g_pModDownloader = new ModDownloader();
+}
+
+ADD_SQFUNC("array<RequiredModInfo>", NSGetServerRequestedMods, "", "", ScriptContext::UI)
+{
+	g_pSquirrel<context>->newarray(sqvm, 0);
+
+	const auto& serverMods = g_pModDownloader->GetServerRequestedMods();
+	for (size_t i = 0; i < serverMods.size(); ++i)
+	{
+		const auto& mod = serverMods[i];
+
+		g_pSquirrel<context>->pushnewstructinstance(sqvm, 2);
+
+		// name
+		g_pSquirrel<context>->pushstring(sqvm, mod.name.c_str());
+		g_pSquirrel<context>->sealstructslot(sqvm, 0);
+
+		// version
+		g_pSquirrel<context>->pushstring(sqvm, mod.version.c_str());
+		g_pSquirrel<context>->sealstructslot(sqvm, 1);
+
+		g_pSquirrel<context>->arrayappend(sqvm, -2);
+	}
+
+	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("void", NSClearServerRequestedMods, "", "", ScriptContext::UI)
