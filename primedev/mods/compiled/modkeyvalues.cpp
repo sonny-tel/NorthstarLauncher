@@ -212,4 +212,5 @@ void ModManager::TryBuildKeyValues(const char* filename)
 		m_ModFiles[normalisedPath] = overrideFile;
 
 	m_CompiledAssetFiles.insert(std::make_pair(normalisedPath, overrideFile));
+	m_CompiledFiles.insert(normalisedPath);
 }
