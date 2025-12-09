@@ -258,6 +258,12 @@ bool ModDownloader::IsModLegit(fs::path modPath, std::string_view expectedChecks
 		return true;
 	}
 
+	if( expectedChecksum.empty() )
+	{
+		spdlog::warn("No expected checksum provided, skipping verification.");
+		return true;
+	}
+
 	// Update state
 	modState.state = CHECKSUMING;
 
