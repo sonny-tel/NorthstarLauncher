@@ -268,7 +268,7 @@ AUTOHOOK(CServer__ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (v
 
 	if (header == CONNECTIONLESS_HEADER)
 	{
-		if ( ( packetType != A2S_SIGREQ1 ) && g_pServerLimits->CheckConnectionlessPacketLimits(packet))
+		if (!g_pServerLimits->CheckConnectionlessPacketLimits(packet, packetType))
 			return false;
 
 		switch(packetType)
