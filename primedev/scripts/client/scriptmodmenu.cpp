@@ -50,6 +50,36 @@ template <ScriptContext context> void ModToSquirrel(HSQUIRRELVM sqvm, Mod& mod)
 	g_pSquirrel<context>->arrayappend(sqvm, -2);
 }
 
+ADD_SQFUNC("void", NSDeleteRemoteMod, "string modName, string modVersion", "", ScriptContext::CLIENT | ScriptContext::UI)
+{
+	const SQChar* modName = g_pSquirrel<context>->getstring(sqvm, 1);
+	const SQChar* modVersion = g_pSquirrel<context>->getstring(sqvm, 2);
+
+    for (auto it = g_pModManager->m_LoadedMods.begin(); it != g_pModManager->m_LoadedMods.end(); ++it)
+    {
+        Mod& mod = *it;
+        if (!mod.Name.compare(modName) && !mod.Version.compare(modVersion))
+        {
+            if (!mod.m_bIsRemote)
+                return SQRESULT_NULL;
+
+            std::string splitPath = mod.m_ModDirectory.generic_string().substr(
+                GetRemoteModFolderPath().generic_string().length() + 1);
+
+            size_t slashPos = splitPath.find_first_of("/\\");
+            if (slashPos != std::string::npos)
+                splitPath = splitPath.substr(0, slashPos);
+
+            g_pModManager->m_LoadedMods.erase(it);
+            fs::remove_all(GetRemoteModFolderPath() / splitPath);
+
+            break;
+        }
+    }
+
+	return SQRESULT_NULL;
+}
+
 ADD_SQFUNC("array<ModInfo>", NSGetModsInformation, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)
 {
 	g_pSquirrel<context>->newarray(sqvm, 0);
