@@ -261,12 +261,15 @@ AUTOHOOK(CServer__ProcessConnectionlessPacket, engine.dll + 0x117800, bool, , (v
 	bf_read msg(packet->data, packet->size);
 	unsigned int header = msg.ReadLong();
 
-	if (!g_pServerLimits->CheckConnectionlessPacketLimits(packet))
-		return false;
+	if( header != CONNECTIONLESS_HEADER )
+		return CServer__ProcessConnectionlessPacket(a1, packet);
+
+	char packetType = msg.ReadChar();
 
 	if (header == CONNECTIONLESS_HEADER)
 	{
-		char packetType = msg.ReadChar();
+		if ( ( packetType != A2S_SIGREQ1 ) && g_pServerLimits->CheckConnectionlessPacketLimits(packet))
+			return false;
 
 		switch(packetType)
 		{
