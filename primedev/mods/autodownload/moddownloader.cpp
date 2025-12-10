@@ -463,13 +463,6 @@ void ModDownloader::ExtractMod(fs::path modPath, fs::path destinationPath, Verif
 	modState.total = GetModArchiveSize(file, gi);
 	modState.progress = 0;
 
-	// We don't know how to extract mods from unknown platforms
-	if (platform == VerifiedModPlatform::Unknown)
-	{
-		spdlog::error("Failed extracting mod from unknown platform.");
-		modState.state = UNKNOWN_PLATFORM;
-		return;
-	}
 
 	for (int i = 0; i < gi.number_entry; i++)
 	{
@@ -883,8 +876,8 @@ bool ModDownloader::SendModInfoConnectionlessPacket(netadr_t& adr, modentry_s& m
 
 bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
 {
-	// if(!g_pModDownloader->AllowingServerModDownloads())
-	// 	return false;
+	if(!g_pModDownloader->AllowingServerModDownloads())
+		return false;
 
 	int protocolVersion = msg.ReadLong();
 
