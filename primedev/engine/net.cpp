@@ -38,9 +38,6 @@ bool CNetAdr::CompareAdr(const CNetAdr& other) const
 //////////////////////////////////////////////////////////////////////
 const char* CNetAdr::ToString(const bool bOnlyBase) const
 {
-	// Main or server frame thread only due to use of static buffers.
-	// assert(ThreadInMainOrServerFrameThread());
-
 	// Select a static buffer.
 	static char s[4][128];
 	static int slot = 0;
@@ -219,10 +216,7 @@ bool CNetAdr::SetFromString(const char* const pch, const bool bUseDNS)
 {
 	Clear();
 	if (!pch)
-	{
-		assert(pch, "Invalid call: 'szIpAdr' was nullptr.");
 		return false;
-	}
 
 	SetType(netadrtype_t::NA_IP);
 
