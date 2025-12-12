@@ -36,8 +36,14 @@ ADD_SQFUNC("bool", NSIsWritingPlayerPersistence, "", "", ScriptContext::SERVER)
 	return SQRESULT_NOTNULL;
 }
 
-ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SERVER)
+ADD_SQFUNC("bool", 
+	, "entity player", "", ScriptContext::SERVER)
 {
+	if (IsDedicatedServer())
+	{
+		g_pSquirrel<context>->pushbool(sqvm, false);
+		return SQRESULT_NOTNULL;
+	}
 	const CBasePlayer* pPlayer = g_pSquirrel<ScriptContext::SERVER>->template getentity<CBasePlayer>(sqvm, 1);
 	if (!pPlayer)
 	{
@@ -46,6 +52,8 @@ ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SE
 		g_pSquirrel<context>->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
+
+
 
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
 	g_pSquirrel<context>->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
