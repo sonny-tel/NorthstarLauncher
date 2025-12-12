@@ -36,8 +36,7 @@ ADD_SQFUNC("bool", NSIsWritingPlayerPersistence, "", "", ScriptContext::SERVER)
 	return SQRESULT_NOTNULL;
 }
 
-ADD_SQFUNC("bool", 
-	, "entity player", "", ScriptContext::SERVER)
+ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SERVER)
 {
 	if (IsDedicatedServer())
 	{
@@ -48,12 +47,9 @@ ADD_SQFUNC("bool",
 	if (!pPlayer)
 	{
 		spdlog::warn("NSIsPlayerLocalPlayer got null player");
-
 		g_pSquirrel<context>->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
-
-
 
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
 	g_pSquirrel<context>->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
