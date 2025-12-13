@@ -92,6 +92,7 @@ add_library(
     "engine/net.h"
     "engine/r2engine.cpp"
     "engine/r2engine.h"
+	"engine/usermessages.h"
     "game/client/clientmode_shared.cpp"
     "inputsystem/ButtonCode.h"
     "inputsystem/InputEnums.h"
