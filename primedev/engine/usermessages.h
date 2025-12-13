@@ -1,5 +1,9 @@
 #pragma once
 
+class CUserMessageManager;
+
+extern CUserMessageManager* g_pUserMessageManager;
+
 enum UserMessageType
 {
 	Geiger = 0,
@@ -63,4 +67,15 @@ enum UserMessageType
 	PlayerNotifyDidDamage,
 	RemoteBulletFired,
 	RemoteWeaponReload,
+};
+
+class CUserMessageManager
+{
+private:
+	std::vector<std::pair<const char*, unsigned int>> m_UserMessages;
+
+public:
+	void Register(const char* pszName, unsigned int uiSize);
+	void RegisterUserMessages();
+	void HookMessage(const char* pszName, void* pCallback);
 };
