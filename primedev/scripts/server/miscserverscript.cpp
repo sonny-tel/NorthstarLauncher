@@ -50,7 +50,12 @@ ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SE
 		g_pSquirrel<context>->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
-
+	if (!g_pLocalPlayerUserID)
+	{
+		spdlog::warn("NSIsPlayerLocalPlayer got null uid");
+		g_pSquirrel<context>->pushbool(sqvm, false);
+		return SQRESULT_NOTNULL;
+	}
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
 	g_pSquirrel<context>->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
 	return SQRESULT_NOTNULL;
