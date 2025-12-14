@@ -381,7 +381,7 @@ void FixupCvarFlags()
 		{"aisettings_reparse_client", FCVAR_DEVELOPMENTONLY},
 		{"damagedefs_reparse", FCVAR_DEVELOPMENTONLY},
 		{"damagedefs_reparse_client", FCVAR_DEVELOPMENTONLY},
-		{"playerSettings_reparse", FCVAR_DEVELOPMENTONLY},
+		{"playerSettings_reparse", FCVAR_DEVELOPMENTONLY | FCVAR_CHEAT},
 		{"_playerSettings_reparse_Server", FCVAR_DEVELOPMENTONLY},
 		{"weapon_reparse", FCVAR_CHEAT},
 	};
