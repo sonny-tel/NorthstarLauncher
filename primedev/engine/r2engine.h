@@ -2,6 +2,7 @@
 #include "shared/keyvalues.h"
 #include "engine/bitbuf.h"
 #include "engine/net.h"
+#include "engine/netmessages.h"
 
 // Cbuf
 enum class ECommandTarget_t
@@ -133,10 +134,44 @@ enum class eSignonState : int
 	CHANGELEVEL = 9, // server is changing level; please wait
 };
 
-class CClient
+class IClientMessageHandler
 {
 public:
-	char _unk_0x0[22]; // 0x0 ( Size: 22 )
+	virtual ~IClientMessageHandler(void) {};
+	virtual void* ProcessStringCmd(void) = 0;
+	virtual void* ProcessScriptMessage(void) = 0;
+	virtual void* ProcessSetConVar(void) = 0;
+	virtual bool nullsub_0(void) = 0;
+	virtual char ProcessSignonState(void* msg) = 0; // NET_SignonState
+	virtual void* ProcessMove(void) = 0;
+	virtual void* ProcessVoiceData(void) = 0;
+	virtual void* ProcessDurangoVoiceData(void) = 0;
+	virtual bool nullsub_1(void) = 0;
+	virtual void* ProcessLoadingProgress(void) = 0;
+	virtual void* ProcessPersistenceRequestSave(void) = 0;
+	virtual bool nullsub_2(void) = 0;
+	virtual bool nullsub_3(void) = 0;
+	virtual void* ProcessSetPlaylistVarOverride(void) = 0;
+	virtual void* ProcessClaimClientSidePickup(void) = 0;
+	virtual void* ProcessCmdKeyValues(void) = 0;
+	virtual void* ProcessClientTick(void) = 0;
+	virtual void* ProcessClientSayText(void) = 0;
+	virtual bool nullsub_4(void) = 0;
+	virtual bool nullsub_5(void) = 0;
+	virtual bool nullsub_6(void) = 0;
+	virtual void* ProcessScriptMessageChecksum(void) = 0;
+};
+
+class CClient : public IClientMessageHandler, public INetMessageHandler
+{
+public:
+	virtual void* ConnectionStart(INetChannelHandler* chan) = 0;
+	virtual void ConnectionClosing(const char* reason, int unk1) = 0;
+	virtual void ConnectionCrashed(const char* reason) = 0;
+	virtual void PacketStart(int incoming_sequence, int outgoing_acknowledged) = 0;
+	virtual void PacketEnd(void) = 0;
+
+	char unk0[6];
 	char m_Name[64]; // 0x16 ( Size: 64 )
 	char _unk_0x56[514]; // 0x56 ( Size: 514 )
 	KeyValues* m_ConVars; // 0x258 ( Size: 8 )
@@ -161,6 +196,7 @@ public:
 	char m_UID[32]; // 0xf500 ( Size: 32 )
 	char _unk_0xf520[123400]; // 0xf520 ( Size: 123400 )
 };
+
 static_assert(sizeof(CClient) == 0x2D728);
 static_assert(offsetof(CClient, m_Name) == 0x16);
 static_assert(offsetof(CClient, m_ConVars) == 0x258);
