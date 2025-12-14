@@ -190,6 +190,9 @@ public:
 	int32_t N0000DD17; //0x1017C
 	char pad_10180[4]; //0x10180
 	float m_flServerUptime; //0x10184
+	bool m_bIsWatchingReplay;
+	int unk_probably_replay_related_or_pad;
+	bool m_bIsSpectatorReplay;
 
 	virtual ~CClientState();
 	virtual bool ProcessStringCmd(void* msg);
