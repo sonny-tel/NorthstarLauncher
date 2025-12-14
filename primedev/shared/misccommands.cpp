@@ -361,10 +361,10 @@ void FixupCvarFlags()
 		{"community_frame_run", FCVAR_DEVELOPMENTONLY},
 		{"sv_single_core_dedi", FCVAR_DEVELOPMENTONLY},
 		{"sv_stressbots", FCVAR_DEVELOPMENTONLY},
-		
-		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY | (IsDedicatedServer() ? 0 : FCVAR_REPLICATED)},
+
+		{"fatal_script_errors", FCVAR_DEVELOPMENTONLY | (IsDedicatedServer() ? FCVAR_NONE : FCVAR_REPLICATED)},
 		{"fatal_script_errors_client", FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED},
-		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY | (IsDedicatedServer() ? 0 : FCVAR_REPLICATED)},
+		{"fatal_script_errors_server", FCVAR_DEVELOPMENTONLY | (IsDedicatedServer() ? FCVAR_NONE : FCVAR_REPLICATED)},
 		{"script_error_on_midgame_load", FCVAR_DEVELOPMENTONLY}, // idk what this is
 
 		{"ai_ainRebuildOnMapStart", FCVAR_DEVELOPMENTONLY},
