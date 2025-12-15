@@ -1,6 +1,6 @@
 #pragma once
 
-#include "r2engine.h"
+#include "engine/net.h"
 
 class INetChannelHandler
 {

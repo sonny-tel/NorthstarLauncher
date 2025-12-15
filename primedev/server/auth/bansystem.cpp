@@ -4,6 +4,7 @@
 #include "dedicated/dedicated.h"
 #include "server/r2server.h"
 #include "engine/r2engine.h"
+#include "engine/client.h"
 #include "client/r2client.h"
 #include "config/profile.h"
 #include "shared/maxplayers.h"
@@ -201,7 +202,7 @@ void ConCommand_ban(const CCommand& args)
 		if (!strcmp(player->m_Name, args.Arg(1)) || !strcmp(player->m_UID, args.Arg(1)))
 		{
 			g_pBanSystem->BanUID(strtoull(player->m_UID, nullptr, 10));
-			CClient__Disconnect(player, 1, "Banned from server");
+			player->Disconnect(REP_REMOVE_ONLY, "Banned from server");
 			break;
 		}
 	}

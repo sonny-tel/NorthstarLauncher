@@ -3,6 +3,7 @@
 #include "squirrel/squirrel.h"
 #include "server/r2server.h"
 #include "util/utils.h"
+#include "engine/client.h"
 
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>

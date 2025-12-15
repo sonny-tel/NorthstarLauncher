@@ -1,5 +1,5 @@
 #include "squirrel/squirrel.h"
-#include "engine/r2engine.h"
+#include "engine/client.h"
 #include "server/r2server.h"
 
 // clang-format off

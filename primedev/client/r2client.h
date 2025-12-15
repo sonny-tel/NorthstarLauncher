@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/inetchannel.h"
-#include "engine/r2engine.h"
+#include "shared/signonstate.h"
 
 extern char* g_pLocalPlayerUserID;
 extern char* g_pLocalPlayerOriginToken;

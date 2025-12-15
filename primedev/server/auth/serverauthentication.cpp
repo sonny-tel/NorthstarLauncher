@@ -10,9 +10,10 @@
 #include "dedicated/dedicated.h"
 #include "config/profile.h"
 #include "core/tier0.h"
-#include "engine/r2engine.h"
+#include "engine/client.h"
 #include "client/r2client.h"
 #include "server/r2server.h"
+#include "engine/r2engine.h"
 
 #include <fstream>
 #include <filesystem>

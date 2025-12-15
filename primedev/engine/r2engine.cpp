@@ -1,4 +1,5 @@
-#include "r2engine.h"
+#include "engine/r2engine.h"
+#include "server/auth/serverauthentication.h"
 
 Cbuf_GetCurrentPlayerType Cbuf_GetCurrentPlayer;
 Cbuf_AddTextType Cbuf_AddText;
@@ -8,9 +9,6 @@ bool (*CCommand__Tokenize)(CCommand& self, const char* pCommandString, cmd_sourc
 // void (*_Cmd_Exec_f)(const CCommand& arg, bool bOnlyIfExists, bool bUseWhiteLists);
 
 CEngine* g_pEngine;
-
-void (*CClient__Disconnect)(void* self, uint32_t unknownButAlways1, const char* reason, ...);
-CClient* g_pClientArray;
 
 server_state_t* g_pServerState;
 
@@ -29,9 +27,6 @@ ON_DLL_LOAD("engine.dll", R2Engine, (CModule module))
 	//_Cmd_Exec_f = module.Offset(0x1232C0).RCast<void (*)(const CCommand&, bool, bool)>();
 
 	g_pEngine = module.Offset(0x7D70C8).Deref().RCast<CEngine*>();
-
-	CClient__Disconnect = module.Offset(0x1012C0).RCast<void (*)(void*, uint32_t, const char*, ...)>();
-	g_pClientArray = module.Offset(0x12A53F90).RCast<CClient*>();
 
 	g_pServerState = module.Offset(0x12A53D48).RCast<server_state_t*>();
 

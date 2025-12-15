@@ -4,6 +4,7 @@
 #include "dedicated/dedicated.h"
 #include "client/r2client.h"
 #include "server/r2server.h"
+#include "engine/client.h"
 
 #include <filesystem>
 
@@ -96,13 +97,9 @@ ADD_SQFUNC(
 	}
 
 	if (reason)
-	{
-		CClient__Disconnect(pClient, 1, reason);
-	}
+		pClient->Disconnect(REP_REMOVE_ONLY, reason);
 	else
-	{
-		CClient__Disconnect(pClient, 1, "Disconnected by the server.");
-	}
+		pClient->Disconnect(REP_REMOVE_ONLY, "Disconnected by the server.");
 
 	g_pSquirrel<context>->pushbool(sqvm, true);
 	return SQRESULT_NOTNULL;
