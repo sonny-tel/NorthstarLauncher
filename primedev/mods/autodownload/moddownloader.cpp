@@ -721,7 +721,7 @@ void ModDownloader::CancelDownload()
 
 void ModDownloader::LoadServerModSchema()
 {
-	fs::path path = fs::path(GetNorthstarPrefix() + "/servermodschema.json");
+	fs::path path = GetModFolderPath() / "servermodschema.json";
 	if (!fs::exists(path))
 	{
 		spdlog::warn("Server mod schema file not found at {}, skipping loading", path.generic_string());
