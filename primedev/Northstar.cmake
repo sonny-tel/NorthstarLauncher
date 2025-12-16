@@ -7,6 +7,10 @@ find_package(libcurl REQUIRED)
 find_package(minizip REQUIRED)
 find_package(silver-bun REQUIRED)
 
+set(EOS_SDK_PATH "${CMAKE_SOURCE_DIR}/primedev/thirdparty/eossdk")
+set(EOS_DLL "${EOS_SDK_PATH}/Bin/EOSSDK-Win64-Shipping.dll")
+set(EOS_LIB "${EOS_SDK_PATH}/Lib/EOSSDK-Win64-Shipping.lib")
+
 add_library(
     NorthstarDLL SHARED
     "resources.rc"
@@ -178,6 +182,17 @@ add_library(
     "server/servernethooks.cpp"
     "server/serverpresence.cpp"
     "server/serverpresence.h"
+	"eos/eos_layer.cpp"
+	"eos/eos_layer.h"
+	"eos/eos_logging_manager.cpp"
+	"eos/eos_logging_manager.h"
+	"eos/eos_network.cpp"
+	"eos/eos_network.h"
+	"eos/eos_threading.h"
+	"eos/fake_ip_layer.cpp"
+	"eos/fake_ip_layer.h"
+	"eos/net_hooks.cpp"
+	"eos/net_hooks.h"
     "shared/exploit_fixes/exploitfixes.cpp"
     "shared/exploit_fixes/exploitfixes_lzss.cpp"
     "shared/exploit_fixes/exploitfixes_utf8parser.cpp"
@@ -246,6 +261,11 @@ add_library(
     "Northstar.def"
     )
 
+target_include_directories(
+	NorthstarDLL
+	PRIVATE "${EOS_SDK_PATH}/Include"
+)
+
 target_link_libraries(
     NorthstarDLL
     PRIVATE minhook
@@ -260,6 +280,7 @@ target_link_libraries(
             normaliz.lib
             bcrypt.lib
             version.lib
+			"${EOS_LIB}"
     )
 
 target_precompile_headers(
@@ -282,3 +303,11 @@ set_target_properties(
                OUTPUT_NAME Northstar
                LINK_FLAGS "/MANIFEST:NO /DEBUG"
     )
+
+add_custom_command(
+    TARGET NorthstarDLL POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${EOS_DLL}"
+        "$<TARGET_FILE_DIR:NorthstarDLL>"
+    COMMENT "Copying EOS SDK DLL to output directory"
+)
