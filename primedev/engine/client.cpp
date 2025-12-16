@@ -23,7 +23,6 @@ void CClient::Disconnect(const Reputation_t nRepLevel, const char* reason, ...)
 	}
 }
 
-
 ON_DLL_LOAD("engine.dll", CClient, (CModule module))
 {
 	CClient__Disconnect = module.Offset(0x1012C0).RCast<void (*)(void*, uint32_t, const char*, ...)>();

@@ -2,6 +2,7 @@
 
 #include "engine/inetchannel.h"
 #include "shared/signonstate.h"
+#include "engine/net_chan.h"
 
 extern char* g_pLocalPlayerUserID;
 extern char* g_pLocalPlayerOriginToken;
@@ -104,7 +105,7 @@ class CClientState : public CClientSnapshotManager, public INetChannelHandler, p
 public:
 	int32_t m_Socket; //0x0058
 	int32_t _padding_0; //0x005C
-	void *m_NetChannel; //0x0060 m_NetChannel
+	CNetChan *m_NetChannel; //0x0060 m_NetChannel
 	int64_t unk_while_connecting; //0x0068 unk_while_connecting
 	bool unk_true_on_connecting_and_connected; //0x0070 unk_true_on_connecting_and_connected
 	char pad_0071[3]; //0x0071
