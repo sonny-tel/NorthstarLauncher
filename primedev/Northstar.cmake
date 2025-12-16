@@ -90,6 +90,7 @@ add_library(
     "engine/netmessages.cpp"
     "engine/netmessages.h"
     "engine/models.cpp"
+	"engine/models.h"
     "engine/net.cpp"
     "engine/net.h"
     "engine/r2engine.cpp"

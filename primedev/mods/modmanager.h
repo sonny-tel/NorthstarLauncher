@@ -40,6 +40,8 @@ private:
 	rapidjson_document m_EnabledModsCfg;
 	std::string cfgPath;
 	int manifestoVersion = 0;
+	int modsUsingModelsSum = 0;
+	int previousModsUsingModelsSum = 0;
 
 	// precalculated hashes
 	size_t m_hScriptsRsonHash;

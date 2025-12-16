@@ -2,12 +2,18 @@ static void (*Studio_ReloadModels)(__int64 a1, unsigned int a2) = nullptr;
 static uintptr_t model_loader;
 static uint8_t* g_VpkMode;
 
-void ConCommand_reload_models(const CCommand& args)
+void ReloadModels()
 {
 	uint8_t prevVpkMode = *g_VpkMode;
 	*g_VpkMode = 0; // need to set to zero to disable file cache temporarily
 	Studio_ReloadModels(model_loader, 2);
 	*g_VpkMode = prevVpkMode;
+}
+
+void ConCommand_reload_models(const CCommand& args)
+{
+	NOTE_UNUSED(args);
+	ReloadModels();
 };
 
 ON_DLL_LOAD("filesystem_stdio.dll", FileSystemModels, (CModule module))

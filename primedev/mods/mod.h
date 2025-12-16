@@ -78,6 +78,7 @@ public:
 	bool m_bWasReadSuccessfully = false;
 	fs::path m_ModDirectory;
 	bool m_bIsRemote;
+	bool m_bRequiredModelReload = false;
 
 	// mod.json stuff:
 

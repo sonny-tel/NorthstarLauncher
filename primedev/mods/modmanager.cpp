@@ -7,6 +7,7 @@
 #include "core/filesystem/rpakfilesystem.h"
 #include "config/profile.h"
 #include "engine/r2engine.h"
+#include "engine/models.h"
 
 #include "rapidjson/error/en.h"
 #include "rapidjson/document.h"
@@ -121,6 +122,9 @@ void ModManager::LoadMods()
 	{
 		if (!mod.m_bEnabled)
 			continue;
+
+		if (mod.m_bRequiredModelReload)
+			modsUsingModelsSum++;
 
 		// register convars
 		// for reloads, this is sorta barebones, when we have a good findconvar method, we could probably reset flags and stuff on
@@ -437,6 +441,14 @@ void ModManager::UnloadMods()
 
 	// save mods configuration to disk
 	ExportModsConfigurationToFile();
+
+	// model reloading is super slow so we want to only do it if necessary
+	if(modsUsingModelsSum > 0 && modsUsingModelsSum != previousModsUsingModelsSum)
+	{
+		ReloadModels();
+		previousModsUsingModelsSum = modsUsingModelsSum;
+		modsUsingModelsSum = 0;
+	}
 
 	// do we need to dealloc individual entries in m_loadedMods? idk, rework
 	m_LoadedMods.clear();
