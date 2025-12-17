@@ -172,65 +172,28 @@ void Initialize()
     if (g_hookInstalled)
         return;
 
-    HMODULE ws2 = GetModuleHandleA("ws2_32.dll");
-    if (!ws2)
-        ws2 = LoadLibraryA("ws2_32.dll");
-    if (!ws2)
-    {
-        spdlog::error("Failed to load ws2_32.dll for getaddrinfo hook");
-        return;
-    }
+    // IAT-hook WS2_32 getaddrinfo/freeaddrinfo imported by engine.dll
+    void* origGet = HookImportByName("engine.dll",
+                                     "WS2_32.dll",
+                                     "getaddrinfo",
+                                     reinterpret_cast<void*>(&HookedGetAddrInfo));
+    void* origFree = HookImportByName("engine.dll",
+                                      "WS2_32.dll",
+                                      "freeaddrinfo",
+                                      reinterpret_cast<void*>(&HookedFreeAddrInfo));
 
-    g_getAddrInfoTarget = GetProcAddress(ws2, "getaddrinfo");
-    g_freeAddrInfoTarget = GetProcAddress(ws2, "freeaddrinfo");
-    if (!g_getAddrInfoTarget || !g_freeAddrInfoTarget)
+    if (!origGet || !origFree)
     {
-        spdlog::error("Failed to locate getaddrinfo/freeaddrinfo for hooking");
-        g_getAddrInfoTarget = nullptr;
-        g_freeAddrInfoTarget = nullptr;
-        return;
-    }
-
-    if (MH_CreateHook(g_getAddrInfoTarget, &HookedGetAddrInfo, reinterpret_cast<void**>(&g_originalGetAddrInfo)) != MH_OK)
-    {
-        spdlog::error("Failed to create getaddrinfo hook");
-        return;
-    }
-
-    if (MH_CreateHook(g_freeAddrInfoTarget, &HookedFreeAddrInfo, reinterpret_cast<void**>(&g_originalFreeAddrInfo)) != MH_OK)
-    {
-        spdlog::error("Failed to create freeaddrinfo hook");
-        MH_RemoveHook(g_getAddrInfoTarget);
-        g_originalGetAddrInfo = nullptr;
-        g_getAddrInfoTarget = nullptr;
-        return;
-    }
-
-    if (MH_EnableHook(g_getAddrInfoTarget) != MH_OK)
-    {
-        spdlog::error("Failed to enable getaddrinfo hook");
-        MH_RemoveHook(g_getAddrInfoTarget);
-        MH_RemoveHook(g_freeAddrInfoTarget);
+        spdlog::error("net_hooks: Failed to IAT-hook WS2_32 getaddrinfo/freeaddrinfo in engine.dll");
         g_originalGetAddrInfo = nullptr;
         g_originalFreeAddrInfo = nullptr;
-        g_getAddrInfoTarget = nullptr;
-        g_freeAddrInfoTarget = nullptr;
         return;
     }
 
-    if (MH_EnableHook(g_freeAddrInfoTarget) != MH_OK)
-    {
-        spdlog::error("Failed to enable freeaddrinfo hook");
-        MH_DisableHook(g_getAddrInfoTarget);
-        MH_RemoveHook(g_getAddrInfoTarget);
-        MH_RemoveHook(g_freeAddrInfoTarget);
-        g_originalGetAddrInfo = nullptr;
-        g_originalFreeAddrInfo = nullptr;
-        g_getAddrInfoTarget = nullptr;
-        g_freeAddrInfoTarget = nullptr;
-        return;
-    }
+    g_originalGetAddrInfo = reinterpret_cast<GetAddrInfoFn>(origGet);
+    g_originalFreeAddrInfo = reinterpret_cast<FreeAddrInfoFn>(origFree);
 
+    spdlog::info("net_hooks: IAT hooks installed for WS2_32!getaddrinfo/freeaddrinfo in engine.dll");
     g_hookInstalled = true;
 }
 

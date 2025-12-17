@@ -10,6 +10,7 @@
 
 #include "eos_logging_manager.h"
 #include "eos_threading.h"
+#include "ns_version.h"
 
 namespace
 {
@@ -171,8 +172,8 @@ bool EosLayer::Initialize(const char* productId,
     m_sdkInitialized.store(true, std::memory_order_release);
     Logging::Initialize();
 
-    static const std::string clientId = Base64Decode("eHl6YTc4OTFYTXlzTEhJZ0pqN0hsWkppZWtBVFMwRWI=");
-    static const std::string clientSecret = Base64Decode("ZjFjV3FuRFcxOC8wNnlZS2J3Qk1tR0pIY05QREVMVlo1eWh0THdrRUl2UQ==");
+    static const std::string clientId = EOS_CLIENT_ID;
+    static const std::string clientSecret = EOS_CLIENT_SECRET;
 
     EOS_Platform_Options platformOptions{};
     platformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;

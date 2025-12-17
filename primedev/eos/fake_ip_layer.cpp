@@ -122,12 +122,12 @@ bool FakeIpLayer::EncodeProductId(const std::string& productId, FakeEndpoint& en
     endpoint.address.u.Word[0] = htons(kFakeIPv6Prefix);
     std::memcpy(endpoint.address.u.Byte + 2, bytes.data() + 2, 14);
 
-    uint16_t hostPort = g_pCVar->FindVar("clientport")->GetInt();
+    uint16_t hostPort = static_cast<uint16_t>(g_pCVar->FindVar("clientport")->GetInt());
 
 	int ss_state = IsDedicatedServer() ? ss_active : (g_pServerState ? static_cast<int>(*g_pServerState) : ss_dead);
 
     if (!(ss_state > ss_dead))
-        hostPort = g_pCVar->FindVar("hostport")->GetInt();
+        hostPort = static_cast<uint16_t>(g_pCVar->FindVar("hostport")->GetInt());
 
     if (hostPort == 0)
         hostPort = static_cast<uint16_t>((static_cast<uint16_t>(bytes[14]) << 8) | bytes[15]);

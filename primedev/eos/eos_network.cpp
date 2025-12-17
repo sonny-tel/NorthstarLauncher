@@ -10,9 +10,11 @@
 
 #include "eos_layer.h"
 #include "eos_threading.h"
-#include "EOSSdkConfig.h"
 #include "core/convar/cvar.h"
 #include "net_hooks.h"
+#include "util/version.h"
+
+#pragma instrinsic(_ReturnAddress)
 
 namespace
 {
@@ -29,47 +31,6 @@ struct Version
     int patch = 0;
 };
 
-bool ParseVersion(const char* versionStr, Version& out)
-{
-    if (!versionStr)
-        return false;
-
-    // Skip leading 'v' if present
-    const char* ptr = versionStr;
-    if (*ptr == 'v' || *ptr == 'V')
-        ++ptr;
-
-    char* end = nullptr;
-    out.major = static_cast<int>(strtol(ptr, &end, 10));
-    if (end == ptr || *end != '.')
-        return false;
-
-    ptr = end + 1;
-    out.minor = static_cast<int>(strtol(ptr, &end, 10));
-    if (end == ptr || *end != '.')
-        return false;
-
-    ptr = end + 1;
-    out.patch = static_cast<int>(strtol(ptr, &end, 10));
-    if (end == ptr)
-        return false;
-
-    return true;
-}
-
-bool IsVersionAtLeast(const Version& version, int major, int minor, int patch)
-{
-    if (version.major > major)
-        return true;
-    if (version.major < major)
-        return false;
-    if (version.minor > minor)
-        return true;
-    if (version.minor < minor)
-        return false;
-    return version.patch >= patch;
-}
-
 using SendToFn = int (WSAAPI*)(SOCKET, const char*, int, int, const sockaddr*, int);
 using RecvFromFn = int (WSAAPI*)(SOCKET, char*, int, int, sockaddr*, int*);
 using CloseSocketFn = int (WSAAPI*)(SOCKET);
@@ -83,6 +44,7 @@ LPVOID g_closeSocketTarget = nullptr;
 bool g_hooksInstalled = false;
 std::mutex g_socketRouteMutex;
 std::unordered_map<SOCKET, eos::PacketRoute> g_socketRoutes;
+std::unordered_map<SOCKET, bool> g_fakeIpRecvSockets;
 
 bool ExtractFakeEndpoint(const sockaddr* address, eos::FakeEndpoint& outEndpoint)
 {
@@ -105,7 +67,14 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
     if (!outAddress || !outLength)
         return;
 
-    uint16_t pretendPort = eos::GetPretendRemotePort();
+    const uint16_t prefix    = ntohs(endpoint.address.u.Word[0]);
+    const uint16_t realPort  = endpoint.port;
+    uint16_t pretendPort     = eos::GetPretendRemotePort();
+    const int    inLen       = *outLength;
+
+    spdlog::info("EOS: WriteSockaddrForFakeEndpoint in: prefix=0x{:04X} port={} pretendPort={} inLen={}",
+                 prefix, realPort, pretendPort, inLen);
+
     if (pretendPort == 0)
         pretendPort = endpoint.port;
 
@@ -114,9 +83,17 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
         auto* ipv6 = reinterpret_cast<sockaddr_in6*>(outAddress);
         std::memset(ipv6, 0, sizeof(sockaddr_in6));
         ipv6->sin6_family = AF_INET6;
-        ipv6->sin6_port = htons(pretendPort);
-        ipv6->sin6_addr = endpoint.address;
-        *outLength = sizeof(sockaddr_in6);
+        ipv6->sin6_port   = htons(pretendPort);
+        ipv6->sin6_addr   = endpoint.address;
+        *outLength        = sizeof(sockaddr_in6);
+
+        char addrStr[INET6_ADDRSTRLEN] = {};
+        InetNtopA(AF_INET6, &ipv6->sin6_addr, addrStr, sizeof(addrStr));
+        spdlog::info("EOS: wrote IPv6 sockaddr: family={} port={} addr={} outLen={}",
+                     ipv6->sin6_family,
+                     ntohs(ipv6->sin6_port),
+                     addrStr,
+                     *outLength);
         return;
     }
 
@@ -124,12 +101,22 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
     {
         auto* ipv4 = reinterpret_cast<sockaddr_in*>(outAddress);
         std::memset(ipv4, 0, sizeof(sockaddr_in));
-        ipv4->sin_family = AF_INET;
-        ipv4->sin_port = htons(pretendPort);
+        ipv4->sin_family           = AF_INET;
+        ipv4->sin_port             = htons(pretendPort);
         ipv4->sin_addr.S_un.S_addr = 0;
-        *outLength = sizeof(sockaddr_in);
+        *outLength                 = sizeof(sockaddr_in);
+
+        spdlog::info("EOS: wrote IPv4 sockaddr: family={} port={} addr=0.0.0.0 outLen={}",
+                     ipv4->sin_family,
+                     ntohs(ipv4->sin_port),
+                     *outLength);
+    }
+    else
+    {
+        spdlog::warn("EOS: WriteSockaddrForFakeEndpoint: buffer too small (inLen={})", inLen);
     }
 }
+
 
 bool IsEndpointValid(const eos::FakeEndpoint& endpoint)
 {
@@ -157,8 +144,8 @@ eos::PacketRoute ClassifySocketRoute(uint16_t port)
     if (port == 0)
         return eos::PacketRoute::All;
 
-    const uint16_t clientPort = g_pCVar->FindVar("clientport")->GetInt();
-    const uint16_t hostPort = g_pCVar->FindVar("hostport")->GetInt();
+    const uint16_t clientPort = static_cast<uint16_t>(g_pCVar->FindVar("clientport")->GetInt());
+    const uint16_t hostPort = static_cast<uint16_t>(g_pCVar->FindVar("hostport")->GetInt());
 
     if (clientPort && port == clientPort)
         return eos::PacketRoute::Client;
@@ -187,6 +174,49 @@ eos::PacketRoute DetermineSocketRoute(SOCKET socketHandle)
     }
 
     return route;
+}
+
+bool ShouldUseFakeIpOnRecv(SOCKET socketHandle)
+{
+    {
+        std::lock_guard lock(g_socketRouteMutex);
+        auto it = g_fakeIpRecvSockets.find(socketHandle);
+        if (it != g_fakeIpRecvSockets.end())
+            return it->second;
+    }
+
+    sockaddr_storage addr{};
+    int addrLen = sizeof(addr);
+    if (getsockname(socketHandle, reinterpret_cast<sockaddr*>(&addr), &addrLen) == SOCKET_ERROR)
+        return false;
+
+    if (addr.ss_family != AF_INET6)
+    {
+        // IPv4 or something else – never consume FakeIp packets
+        std::lock_guard lock(g_socketRouteMutex);
+        g_fakeIpRecvSockets[socketHandle] = false;
+        return false;
+    }
+
+    const uint16_t port = ntohs(reinterpret_cast<sockaddr_in6*>(&addr)->sin6_port);
+    const eos::PacketRoute route = ClassifySocketRoute(port);
+    const bool useFake =
+        (route == eos::PacketRoute::Client || route == eos::PacketRoute::Server);
+
+    {
+        std::lock_guard lock(g_socketRouteMutex);
+        g_fakeIpRecvSockets[socketHandle] = useFake;
+        g_socketRoutes[socketHandle]      = route;
+    }
+
+    spdlog::info("EOS: ShouldUseFakeIpOnRecv sock={} fam={} port={} route={} useFake={}",
+                 (uint64_t)socketHandle,
+                 addr.ss_family,
+                 port,
+                 (int)ClassifySocketRoute(port),
+                 useFake);
+
+    return useFake;
 }
 
 int WSAAPI HookedSendTo(SOCKET socketHandle,
@@ -239,28 +269,42 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
                           sockaddr* from,
                           int* fromLen)
 {
-    auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
-    if (layer)
+
+	uintptr_t NET_ReceiveDatagram_addr = (uintptr_t)GetModuleHandleA("engine.dll") + 0x21B520;
+
+	if((uintptr_t)_ReturnAddress() == NET_ReceiveDatagram_addr)
+		return g_realRecvFrom
+		? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
+		: SOCKET_ERROR;
+
+    if (ShouldUseFakeIpOnRecv(socketHandle))
     {
-        eos::PendingPacket packet;
-        const eos::PacketRoute desiredRoute = DetermineSocketRoute(socketHandle);
-        if (layer->PopPacket(desiredRoute, packet))
+        auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
+        if (layer)
         {
-            const int copyLength = static_cast<int>(std::min<size_t>(static_cast<size_t>(length), packet.payload.size()));
-            if (buffer && copyLength > 0)
+            eos::PendingPacket packet;
+            const eos::PacketRoute desiredRoute = DetermineSocketRoute(socketHandle);
+            if (layer->PopPacket(desiredRoute, packet))
             {
-                std::memcpy(buffer, packet.payload.data(), copyLength);
-            }
+                spdlog::info("EOS: Popped packet from FakeIpLayer");
+                const int copyLength =
+                    static_cast<int>(std::min<size_t>(static_cast<size_t>(length),
+                                                      packet.payload.size()));
+                if (buffer && copyLength > 0)
+                    std::memcpy(buffer, packet.payload.data(), copyLength);
 
-            if (from && fromLen)
-            {
-                WriteSockaddrForFakeEndpoint(packet.sender, from, fromLen);
-            }
+                if (from && fromLen)
+                {
+                    spdlog::info("EOS: Writing sockaddr for FakeEndpoint on recvfrom");
+                    WriteSockaddrForFakeEndpoint(packet.sender, from, fromLen);
+                }
 
-            return copyLength;
+                return copyLength;
+            }
         }
     }
 
+    // Fallback: normal network traffic (or no EOS packet available)
     return g_realRecvFrom
         ? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
         : SOCKET_ERROR;
@@ -271,6 +315,7 @@ int WSAAPI HookedCloseSocket(SOCKET s)
     {
         std::lock_guard lock(g_socketRouteMutex);
         g_socketRoutes.erase(s);
+        g_fakeIpRecvSockets.erase(s);
     }
     return g_realCloseSocket ? g_realCloseSocket(s) : 0;
 }
@@ -280,36 +325,37 @@ bool InstallSocketHooks()
     if (g_hooksInstalled)
         return true;
 
+    void* origSend = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 20, reinterpret_cast<void*>(&HookedSendTo));
+    void* origRecv = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 17, reinterpret_cast<void*>(&HookedRecvFrom));
+
+    if (!origSend || !origRecv)
+    {
+        spdlog::error("EOS: Failed to IAT-hook WSOCK32 sendto/recvfrom");
+        return false;
+    }
+
+    g_realSendTo   = reinterpret_cast<SendToFn>(origSend);
+    g_realRecvFrom = reinterpret_cast<RecvFromFn>(origRecv);
+
+    // Still hook closesocket globally with MinHook
     HMODULE ws2 = GetModuleHandleA("wsock32.dll");
     if (!ws2)
-    {
         ws2 = LoadLibraryA("wsock32.dll");
-    }
     if (!ws2)
         return false;
 
-    g_sendToTarget = reinterpret_cast<LPVOID>(GetProcAddress(ws2, "sendto"));
-    g_recvFromTarget = reinterpret_cast<LPVOID>(GetProcAddress(ws2, "recvfrom"));
     g_closeSocketTarget = reinterpret_cast<LPVOID>(GetProcAddress(ws2, "closesocket"));
-    if (!g_sendToTarget || !g_recvFromTarget || !g_closeSocketTarget)
+    if (!g_closeSocketTarget)
         return false;
 
-    if (MH_CreateHook(g_sendToTarget, &HookedSendTo, reinterpret_cast<LPVOID*>(&g_realSendTo)) != MH_OK)
-        return false;
-    if (MH_CreateHook(g_recvFromTarget, &HookedRecvFrom, reinterpret_cast<LPVOID*>(&g_realRecvFrom)) != MH_OK)
-        return false;
-    if (MH_CreateHook(g_closeSocketTarget, &HookedCloseSocket, reinterpret_cast<LPVOID*>(&g_realCloseSocket)) != MH_OK)
+    if (MH_CreateHook(g_closeSocketTarget,
+                      &HookedCloseSocket,
+                      reinterpret_cast<LPVOID*>(&g_realCloseSocket)) != MH_OK)
         return false;
 
-    const MH_STATUS sendStatus = MH_EnableHook(g_sendToTarget);
-    const MH_STATUS recvStatus = MH_EnableHook(g_recvFromTarget);
     const MH_STATUS closeStatus = MH_EnableHook(g_closeSocketTarget);
-    if ((sendStatus != MH_OK && sendStatus != MH_ERROR_ENABLED) ||
-        (recvStatus != MH_OK && recvStatus != MH_ERROR_ENABLED) ||
-        (closeStatus != MH_OK && closeStatus != MH_ERROR_ENABLED))
-    {
+    if (closeStatus != MH_OK && closeStatus != MH_ERROR_ENABLED)
         return false;
-    }
 
     g_hooksInstalled = true;
     return true;
