@@ -192,6 +192,7 @@ FakeEndpoint FakeIpLayer::RegisterPeer(EOS_ProductUserId remoteUser,
     }
 
     PeerBinding binding{};
+	binding.route = PacketRoute::Server;
     binding.remoteUser = remoteUser;
     binding.channel = channel;
     binding.endpoint = endpoint;

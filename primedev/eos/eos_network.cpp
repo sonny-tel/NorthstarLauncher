@@ -73,9 +73,6 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
     uint16_t pretendPort     = eos::GetPretendRemotePort();
     const int    inLen       = *outLength;
 
-    spdlog::info("EOS: WriteSockaddrForFakeEndpoint in: prefix=0x{:04X} port={} pretendPort={} inLen={}",
-                 prefix, realPort, pretendPort, inLen);
-
     if (pretendPort == 0)
         pretendPort = endpoint.port;
 
@@ -90,11 +87,6 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
 
         char addrStr[INET6_ADDRSTRLEN] = {};
         InetNtopA(AF_INET6, &ipv6->sin6_addr, addrStr, sizeof(addrStr));
-        spdlog::info("EOS: wrote IPv6 sockaddr: family={} port={} addr={} outLen={}",
-                     ipv6->sin6_family,
-                     ntohs(ipv6->sin6_port),
-                     addrStr,
-                     *outLength);
         return;
     }
 
@@ -107,14 +99,6 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
         ipv4->sin_addr.S_un.S_addr = 0;
         *outLength                 = sizeof(sockaddr_in);
 
-        spdlog::info("EOS: wrote IPv4 sockaddr: family={} port={} addr=0.0.0.0 outLen={}",
-                     ipv4->sin_family,
-                     ntohs(ipv4->sin_port),
-                     *outLength);
-    }
-    else
-    {
-        spdlog::warn("EOS: WriteSockaddrForFakeEndpoint: buffer too small (inLen={})", inLen);
     }
 }
 
@@ -142,19 +126,21 @@ uint16_t GetLocalSocketPort(SOCKET socketHandle)
 
 eos::PacketRoute ClassifySocketRoute(uint16_t port)
 {
-    if (port == 0)
-        return eos::PacketRoute::All;
+	// FIX: Unknown/Zero ports should NOT touch EOS packets. Return None.
+	if (port == 0)
+		return eos::PacketRoute::None;
 
-    const uint16_t clientPort = static_cast<uint16_t>(g_pCVar->FindVar("clientport")->GetInt());
-    const uint16_t hostPort = static_cast<uint16_t>(g_pCVar->FindVar("hostport")->GetInt());
+	const uint16_t clientPort = static_cast<uint16_t>(g_pCVar->FindVar("clientport")->GetInt());
+	const uint16_t hostPort = static_cast<uint16_t>(g_pCVar->FindVar("hostport")->GetInt());
 
-    if (clientPort && port == clientPort)
-        return eos::PacketRoute::Client;
+	if (clientPort && port == clientPort)
+		return eos::PacketRoute::Client;
 
-    if (hostPort && port == hostPort)
-        return eos::PacketRoute::Server;
+	if (hostPort && port == hostPort)
+		return eos::PacketRoute::Server;
 
-    return eos::PacketRoute::All;
+	// FIX: Default to None, not All. This prevents "other" sockets from stealing packets.
+	return eos::PacketRoute::None;
 }
 
 eos::PacketRoute DetermineSocketRoute(SOCKET socketHandle)
@@ -177,49 +163,6 @@ eos::PacketRoute DetermineSocketRoute(SOCKET socketHandle)
     return route;
 }
 
-bool ShouldUseFakeIpOnRecv(SOCKET socketHandle)
-{
-    {
-        std::lock_guard lock(g_socketRouteMutex);
-        auto it = g_fakeIpRecvSockets.find(socketHandle);
-        if (it != g_fakeIpRecvSockets.end())
-            return it->second;
-    }
-
-    sockaddr_storage addr{};
-    int addrLen = sizeof(addr);
-    if (getsockname(socketHandle, reinterpret_cast<sockaddr*>(&addr), &addrLen) == SOCKET_ERROR)
-        return false;
-
-    if (addr.ss_family != AF_INET6)
-    {
-        // IPv4 or something else – never consume FakeIp packets
-        std::lock_guard lock(g_socketRouteMutex);
-        g_fakeIpRecvSockets[socketHandle] = false;
-        return false;
-    }
-
-    const uint16_t port = ntohs(reinterpret_cast<sockaddr_in6*>(&addr)->sin6_port);
-    const eos::PacketRoute route = ClassifySocketRoute(port);
-    const bool useFake =
-        (route == eos::PacketRoute::Client || route == eos::PacketRoute::Server);
-
-    {
-        std::lock_guard lock(g_socketRouteMutex);
-        g_fakeIpRecvSockets[socketHandle] = useFake;
-        g_socketRoutes[socketHandle]      = route;
-    }
-
-    spdlog::info("EOS: ShouldUseFakeIpOnRecv sock={} fam={} port={} route={} useFake={}",
-                 (uint64_t)socketHandle,
-                 addr.ss_family,
-                 port,
-                 (int)ClassifySocketRoute(port),
-                 useFake);
-
-    return useFake;
-}
-
 int WSAAPI HookedSendTo(SOCKET socketHandle,
                         const char* buffer,
                         int length,
@@ -235,18 +178,12 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
             : SOCKET_ERROR;
     }
 
-	spdlog::info("EOS: HookedSendTo called on socket {} to FakeEndpoint port={}",
-				 (uint64_t)socketHandle,
-				 endpoint.port);
-
     // Lazy initialize EOS when we first try to send to a fakeip
     if (!eos::EnsureEosInitialized())
     {
         WSASetLastError(WSAENOTCONN);
         return SOCKET_ERROR;
     }
-
-	spdlog::info("EOS: Sending to FakeEndpoint port={} length={}", endpoint.port, length);
 
     auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
     if (!layer)
@@ -262,7 +199,6 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
                                         route);
     if (!sent)
     {
-		spdlog::error("EOS: Failed to send packet to FakeEndpoint port={}", endpoint.port);
         WSASetLastError(WSAECONNABORTED);
         return SOCKET_ERROR;
     }
@@ -294,7 +230,6 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
         const eos::PacketRoute desiredRoute = DetermineSocketRoute(socketHandle);
         if (layer->PopPacket(desiredRoute, packet))
         {
-            spdlog::info("EOS: Popped packet from FakeIpLayer");
             const int copyLength =
                 static_cast<int>(std::min<size_t>(static_cast<size_t>(length),
                                                   packet.payload.size()));
@@ -303,7 +238,6 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
 
             if (from && fromLen)
             {
-                spdlog::info("EOS: Writing sockaddr for FakeEndpoint on recvfrom");
                 WriteSockaddrForFakeEndpoint(packet.sender, from, fromLen);
             }
 
@@ -336,10 +270,7 @@ bool InstallSocketHooks()
     void* origRecv = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 17, reinterpret_cast<void*>(&HookedRecvFrom));
 
     if (!origSend || !origRecv)
-    {
-        spdlog::error("EOS: Failed to IAT-hook WSOCK32 sendto/recvfrom");
         return false;
-    }
 
     g_realSendTo   = reinterpret_cast<SendToFn>(origSend);
     g_realRecvFrom = reinterpret_cast<RecvFromFn>(origRecv);
