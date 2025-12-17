@@ -14,8 +14,6 @@
 #include "net_hooks.h"
 #include "util/version.h"
 
-#pragma instrinsic(_ReturnAddress)
-
 namespace
 {
 
@@ -234,12 +232,18 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
             : SOCKET_ERROR;
     }
 
+	spdlog::info("EOS: HookedSendTo called on socket {} to FakeEndpoint port={}",
+				 (uint64_t)socketHandle,
+				 endpoint.port);
+
     // Lazy initialize EOS when we first try to send to a fakeip
     if (!eos::EnsureEosInitialized())
     {
         WSASetLastError(WSAENOTCONN);
         return SOCKET_ERROR;
     }
+
+	spdlog::info("EOS: Sending to FakeEndpoint port={} length={}", endpoint.port, length);
 
     auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
     if (!layer)
@@ -255,11 +259,48 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
                                         route);
     if (!sent)
     {
+		spdlog::error("EOS: Failed to send packet to FakeEndpoint port={}", endpoint.port);
         WSASetLastError(WSAECONNABORTED);
         return SOCKET_ERROR;
     }
 
     return length;
+}
+
+bool IsCalledFromNetReceiveDatagram()
+{
+    static uintptr_t s_funcStart = 0;
+    static uintptr_t s_funcEnd   = 0;
+
+    if (!s_funcStart)
+    {
+        HMODULE hEngine = GetModuleHandleA("engine.dll");
+        if (!hEngine)
+            return false;
+
+        s_funcStart = reinterpret_cast<uintptr_t>(hEngine) + 0x21B520;
+        s_funcEnd   = s_funcStart + 0x1000; // adjust if you know a better size
+    }
+
+    void* frames[8] = {};
+    USHORT captured = RtlCaptureStackBackTrace(0, 8, frames, nullptr);
+    if (captured == 0)
+        return false;
+
+    // frame 0 = this function (IsCalledFromNetReceiveDatagram or HookedRecvFrom,
+    // depending where you call it). Start from 1.
+    for (USHORT i = 1; i < captured; ++i)
+    {
+        uintptr_t addr = reinterpret_cast<uintptr_t>(frames[i]);
+        if (addr >= s_funcStart && addr < s_funcEnd)
+        {
+            spdlog::debug("EOS: RecvFrom caller frame {} is inside NET_ReceiveDatagram (0x{:X})",
+                          i, addr);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 int WSAAPI HookedRecvFrom(SOCKET socketHandle,
@@ -269,38 +310,35 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
                           sockaddr* from,
                           int* fromLen)
 {
-
-	uintptr_t NET_ReceiveDatagram_addr = (uintptr_t)GetModuleHandleA("engine.dll") + 0x21B520;
-
-	if((uintptr_t)_ReturnAddress() != NET_ReceiveDatagram_addr)
-		return g_realRecvFrom
-		? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
-		: SOCKET_ERROR;
-
-    if (ShouldUseFakeIpOnRecv(socketHandle))
+    // Only intercept when NET_ReceiveDatagram is somewhere on the call stack
+    if (!IsCalledFromNetReceiveDatagram())
     {
-        auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
-        if (layer)
+        return g_realRecvFrom
+            ? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
+            : SOCKET_ERROR;
+    }
+
+    auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
+    if (layer)
+    {
+        eos::PendingPacket packet;
+        const eos::PacketRoute desiredRoute = DetermineSocketRoute(socketHandle);
+        if (layer->PopPacket(desiredRoute, packet))
         {
-            eos::PendingPacket packet;
-            const eos::PacketRoute desiredRoute = DetermineSocketRoute(socketHandle);
-            if (layer->PopPacket(desiredRoute, packet))
+            spdlog::info("EOS: Popped packet from FakeIpLayer");
+            const int copyLength =
+                static_cast<int>(std::min<size_t>(static_cast<size_t>(length),
+                                                  packet.payload.size()));
+            if (buffer && copyLength > 0)
+                std::memcpy(buffer, packet.payload.data(), copyLength);
+
+            if (from && fromLen)
             {
-                spdlog::info("EOS: Popped packet from FakeIpLayer");
-                const int copyLength =
-                    static_cast<int>(std::min<size_t>(static_cast<size_t>(length),
-                                                      packet.payload.size()));
-                if (buffer && copyLength > 0)
-                    std::memcpy(buffer, packet.payload.data(), copyLength);
-
-                if (from && fromLen)
-                {
-                    spdlog::info("EOS: Writing sockaddr for FakeEndpoint on recvfrom");
-                    WriteSockaddrForFakeEndpoint(packet.sender, from, fromLen);
-                }
-
-                return copyLength;
+                spdlog::info("EOS: Writing sockaddr for FakeEndpoint on recvfrom");
+                WriteSockaddrForFakeEndpoint(packet.sender, from, fromLen);
             }
+
+            return copyLength;
         }
     }
 
