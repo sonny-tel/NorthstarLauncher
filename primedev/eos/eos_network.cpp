@@ -272,7 +272,7 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
 
 	uintptr_t NET_ReceiveDatagram_addr = (uintptr_t)GetModuleHandleA("engine.dll") + 0x21B520;
 
-	if((uintptr_t)_ReturnAddress() == NET_ReceiveDatagram_addr)
+	if((uintptr_t)_ReturnAddress() != NET_ReceiveDatagram_addr)
 		return g_realRecvFrom
 		? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
 		: SOCKET_ERROR;
