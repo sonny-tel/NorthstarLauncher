@@ -14,6 +14,9 @@
 #include "net_hooks.h"
 #include "util/version.h"
 
+#include <intrin.h>
+#pragma intrinsic(_ReturnAddress)
+
 namespace
 {
 
@@ -267,42 +270,6 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
     return length;
 }
 
-bool IsCalledFromNetReceiveDatagram()
-{
-    static uintptr_t s_funcStart = 0;
-    static uintptr_t s_funcEnd   = 0;
-
-    if (!s_funcStart)
-    {
-        HMODULE hEngine = GetModuleHandleA("engine.dll");
-        if (!hEngine)
-            return false;
-
-        s_funcStart = reinterpret_cast<uintptr_t>(hEngine) + 0x21B520;
-        s_funcEnd   = s_funcStart + 0x1000; // adjust if you know a better size
-    }
-
-    void* frames[8] = {};
-    USHORT captured = RtlCaptureStackBackTrace(0, 8, frames, nullptr);
-    if (captured == 0)
-        return false;
-
-    // frame 0 = this function (IsCalledFromNetReceiveDatagram or HookedRecvFrom,
-    // depending where you call it). Start from 1.
-    for (USHORT i = 1; i < captured; ++i)
-    {
-        uintptr_t addr = reinterpret_cast<uintptr_t>(frames[i]);
-        if (addr >= s_funcStart && addr < s_funcEnd)
-        {
-            spdlog::debug("EOS: RecvFrom caller frame {} is inside NET_ReceiveDatagram (0x{:X})",
-                          i, addr);
-            return true;
-        }
-    }
-
-    return false;
-}
-
 int WSAAPI HookedRecvFrom(SOCKET socketHandle,
                           char* buffer,
                           int length,
@@ -311,7 +278,9 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
                           int* fromLen)
 {
     // Only intercept when NET_ReceiveDatagram is somewhere on the call stack
-    if (!IsCalledFromNetReceiveDatagram())
+	uintptr_t evilahnetreceivedatagram = (uintptr_t)_ReturnAddress() - (uintptr_t)GetModuleHandleA("engine.dll");
+
+    if (evilahnetreceivedatagram != 0x21B5DB)
     {
         return g_realRecvFrom
             ? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
