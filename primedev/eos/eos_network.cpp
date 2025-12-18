@@ -268,32 +268,14 @@ bool InstallSocketHooks()
 
     void* origSend = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 20, reinterpret_cast<void*>(&HookedSendTo));
     void* origRecv = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 17, reinterpret_cast<void*>(&HookedRecvFrom));
+	void* origClose = HookImportByOrdinal("engine.dll", "WSOCK32.dll", 3, reinterpret_cast<void*>(&HookedCloseSocket));
 
-    if (!origSend || !origRecv)
+    if (!origSend || !origRecv || !origClose)
         return false;
 
     g_realSendTo   = reinterpret_cast<SendToFn>(origSend);
     g_realRecvFrom = reinterpret_cast<RecvFromFn>(origRecv);
-
-    // Still hook closesocket globally with MinHook
-    HMODULE ws2 = GetModuleHandleA("wsock32.dll");
-    if (!ws2)
-        ws2 = LoadLibraryA("wsock32.dll");
-    if (!ws2)
-        return false;
-
-    g_closeSocketTarget = reinterpret_cast<LPVOID>(GetProcAddress(ws2, "closesocket"));
-    if (!g_closeSocketTarget)
-        return false;
-
-    if (MH_CreateHook(g_closeSocketTarget,
-                      &HookedCloseSocket,
-                      reinterpret_cast<LPVOID*>(&g_realCloseSocket)) != MH_OK)
-        return false;
-
-    const MH_STATUS closeStatus = MH_EnableHook(g_closeSocketTarget);
-    if (closeStatus != MH_OK && closeStatus != MH_ERROR_ENABLED)
-        return false;
+	g_realCloseSocket = reinterpret_cast<CloseSocketFn>(origClose);
 
     g_hooksInstalled = true;
     return true;
@@ -304,33 +286,14 @@ void RemoveSocketHooks()
     if (!g_hooksInstalled)
         return;
 
-    if (g_sendToTarget)
-    {
-        MH_DisableHook(g_sendToTarget);
-        MH_RemoveHook(g_sendToTarget);
-        g_sendToTarget = nullptr;
-    }
-    if (g_recvFromTarget)
-    {
-        MH_DisableHook(g_recvFromTarget);
-        MH_RemoveHook(g_recvFromTarget);
-        g_recvFromTarget = nullptr;
-    }
-    if (g_closeSocketTarget)
-    {
-        MH_DisableHook(g_closeSocketTarget);
-        MH_RemoveHook(g_closeSocketTarget);
-        g_closeSocketTarget = nullptr;
-    }
+	HookImportByOrdinal("engine.dll", "WSOCK32.dll", 3, reinterpret_cast<void*>(g_realCloseSocket));
+	HookImportByOrdinal("engine.dll", "WSOCK32.dll", 17, reinterpret_cast<void*>(g_realRecvFrom));
+	HookImportByOrdinal("engine.dll", "WSOCK32.dll", 20, reinterpret_cast<void*>(g_realSendTo));
 
-    g_realSendTo = nullptr;
-    g_realRecvFrom = nullptr;
-    g_realCloseSocket = nullptr;
-    g_hooksInstalled = false;
-    {
-        std::lock_guard lock(g_socketRouteMutex);
-        g_socketRoutes.clear();
-    }
+	g_realSendTo = nullptr;
+	g_realRecvFrom = nullptr;
+	g_realCloseSocket = nullptr;
+	g_hooksInstalled = false;
 }
 
 } // namespace
