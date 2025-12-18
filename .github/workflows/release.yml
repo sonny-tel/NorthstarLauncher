@@ -14,10 +14,21 @@ jobs:
   build-launcher:
     runs-on: windows-2022
     steps:
+      - name: Checkout eossdk repo
+        uses: actions/checkout@v3
+        with:
+          repository: sonny-tel/eossdk
+          token: ${{ secrets.EOS_PAT_TOKEN }}
+          path: eossdk
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: 'true'
+      - name: Move eossdk to primedev/thirdparty/eossdk
+        run: |
+          mkdir -p primedev/thirdparty/eossdk
+          mv eossdk primedev/thirdparty/eossdk/
+          rm -rf .git
       - name: Setup msvc
         uses: ilammy/msvc-dev-cmd@v1
       - name: Configure cmake
