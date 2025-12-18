@@ -401,6 +401,7 @@ bool FakeIpLayer::ResolveEndpoint(EOS_ProductUserId remoteUser,
 
     if (outRoute)
         *outRoute = PacketRoute::All;
+
     return true;
 }
 

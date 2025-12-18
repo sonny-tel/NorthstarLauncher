@@ -191,8 +191,6 @@ add_library(
 	"eos/eos_threading.h"
 	"eos/fake_ip_layer.cpp"
 	"eos/fake_ip_layer.h"
-	"eos/net_hooks.cpp"
-	"eos/net_hooks.h"
     "shared/exploit_fixes/exploitfixes.cpp"
     "shared/exploit_fixes/exploitfixes_lzss.cpp"
     "shared/exploit_fixes/exploitfixes_utf8parser.cpp"
