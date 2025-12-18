@@ -503,7 +503,7 @@ void* HookImportByOrdinal(const char* module, const char* targetDll, WORD target
                                &oldProtect);
             }
 
-            spdlog::info("EOS: IAT hook {} ord {}: {} -> {}",
+            spdlog::info("IAT hook {} ord {}: {} -> {}",
                          dllName, ord, original, replacement);
             return original;
         }
