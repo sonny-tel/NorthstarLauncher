@@ -337,7 +337,7 @@ bool EosLayer::LoginWithDeviceId()
     LoginCallbackPayload payload{};
     if (!WaitForLogin(future, &payload, 6000))
     {
-        spdlog::error("EOS: Timed out waiting for login\n");
+        NS::log::EOS->error("Timed out waiting for login");
         return false;
     }
 
@@ -354,11 +354,11 @@ bool EosLayer::LoginWithDeviceId()
         }
         if (printedUser)
         {
-            spdlog::info("EOS: Logged in as {}", puidBuffer);
+            NS::log::EOS->info("Logged in as {}", puidBuffer);
         }
         else
         {
-            spdlog::info("EOS: Logged in with ProductUserId (string conversion failed)");
+            NS::log::EOS->info("Logged in with ProductUserId (string conversion failed)");
         }
 
         if (m_fakeIpLayer)
@@ -367,7 +367,7 @@ bool EosLayer::LoginWithDeviceId()
         }
         if (!RegisterSocketNotifications())
         {
-            spdlog::error("EOS: Failed to register socket notifications");
+            NS::log::EOS->error("Failed to register socket notifications");
             return false;
         }
         return true;
@@ -375,11 +375,11 @@ bool EosLayer::LoginWithDeviceId()
 
     if (payload.result == EOS_EResult::EOS_InvalidUser && payload.continuanceToken)
     {
-        spdlog::info("EOS: DeviceID login requires account linking (continuance token)");
+        NS::log::EOS->info("DeviceID login requires account linking (continuance token)");
     }
     else
     {
-        spdlog::error("EOS: Login failed ({})", static_cast<int>(payload.result));
+        NS::log::EOS->error("Login failed ({})", static_cast<int>(payload.result));
     }
 
     return false;
