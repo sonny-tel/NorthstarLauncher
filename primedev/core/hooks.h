@@ -29,6 +29,9 @@ inline void HookAttach(PVOID* ppOriginal, PVOID pDetour)
 	}
 }
 
+void* HookImportByOrdinal(const char* module, const char* targetDll, WORD targetOrdinal, void* replacement);
+void* HookImportByName(const char* module, const char* targetDll, const char* funcName, void* replacement);
+
 void CallLoadLibraryACallbacks(LPCSTR lpLibFileName, HMODULE moduleAddress);
 
 typedef void (*DllLoadCallbackFuncType)(CModule moduleAddress);

@@ -402,6 +402,18 @@ inline uint64_t Plat_Rdtsc()
 #endif
 }
 
+__forceinline bool HasEngineCommandLineFlag(const char* flag) {
+    static auto Plat_GetCommandLineA = (const char* (*)())GetProcAddress(
+        GetModuleHandleA("tier0_orig.dll"),
+        "Plat_GetCommandLineA"
+    );
+
+    if (!Plat_GetCommandLineA) return false;
+
+    const char* cmdLine = Plat_GetCommandLineA();
+    return cmdLine && strstr(cmdLine, flag) != nullptr;
+}
+
 inline bool Plat_IsInDebugSession()
 {
 #if defined( _X360 )

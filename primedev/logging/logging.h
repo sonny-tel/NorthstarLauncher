@@ -109,6 +109,9 @@ namespace NS::log
 
 	extern std::shared_ptr<ColoredLogger> PLUGINSYS;
 
+	// p2p
+	extern std::shared_ptr<ColoredLogger> EOS;
+
 	void FlushLoggers();
 }; // namespace NS::log
 

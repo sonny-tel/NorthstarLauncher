@@ -384,6 +384,8 @@ void FixupCvarFlags()
 		{"playerSettings_reparse", FCVAR_DEVELOPMENTONLY | FCVAR_CHEAT},
 		{"_playerSettings_reparse_Server", FCVAR_DEVELOPMENTONLY},
 		{"weapon_reparse", FCVAR_CHEAT},
+		{"cl_extrapolate", FCVAR_CHEAT},
+		{"cl_predict_cmdlimit", FCVAR_CHEAT}
 	};
 
 	const std::vector<std::tuple<const char*, const char*>> CVAR_FIXUP_DEFAULT_VALUES = {

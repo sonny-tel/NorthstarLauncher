@@ -7,6 +7,8 @@ Launcher used to modify Titanfall 2 to allow Northstar mods and custom content t
 
 Check [BUILD.md](BUILD.md) for instructions on how to compile, you can also download [binaries built by GitHub Actions](https://github.com/R2Northstar/NorthstarLauncher/actions).
 
+You also need to get a copy of the [Epic Online Services SDK](https://onlineservices.epicgames.com/en-US/sdk). The contents of the "SDK" folder should go inside `primedev/thirdparty/eossdk`
+
 ## Format
 
 For project coding standards check out [STANDARDS.md](STANDARDS.md).

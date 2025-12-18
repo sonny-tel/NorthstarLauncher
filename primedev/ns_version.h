@@ -6,3 +6,6 @@
 #define ION_PATCH 0
 // clang-format on
 #endif
+
+#define EOS_CLIENT_ID "xyza78912i5cKyYWBzgbmQtnHgGubGsp"
+#define EOS_CLIENT_SECRET_B64 "RkNBZk9UWEdCN0IvWGhwSElQc2VMZXhvc1NGZEFDb2tHRmtYNzA0dXVjNA=="
