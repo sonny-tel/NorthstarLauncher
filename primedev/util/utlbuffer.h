@@ -1410,6 +1410,7 @@ inline void CUtlBuffer::Spew()
 	{
 		memset(pTmpLine, 0, sizeof(pTmpLine));
 		Get(pTmpLine, std::min((size_t)GetBytesRemaining(), sizeof(pTmpLine) - 1));
+		spdlog::info("{}", pTmpLine);
 	}
 }
 
