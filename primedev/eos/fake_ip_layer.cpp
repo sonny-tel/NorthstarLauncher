@@ -216,7 +216,7 @@ bool FakeIpLayer::SendToPeer(const FakeEndpoint& endpoint,
                              size_t length,
                              PacketRoute route)
 {
-    auto* localUser = m_localUser.load(std::memory_order_acquire);
+	EOS_ProductUserId localUser = m_localUser.load(std::memory_order_acquire);
     if (!m_p2pHandle || !localUser || !data || length == 0)
         return false;
 
@@ -294,7 +294,7 @@ bool FakeIpLayer::SendToPeer(const FakeEndpoint& endpoint,
 
 void FakeIpLayer::PumpIncoming()
 {
-    auto* localUser = m_localUser.load(std::memory_order_acquire);
+    EOS_ProductUserId localUser = m_localUser.load(std::memory_order_acquire);
     if (!m_p2pHandle || !localUser)
         return;
 
@@ -310,6 +310,14 @@ void FakeIpLayer::PumpIncoming()
             SdkLock lock(GetSdkMutex());
             sizeResult = EOS_P2P_GetNextReceivedPacketSize(m_p2pHandle, &sizeOpts, &packetSize);
         }
+
+        if (sizeResult == EOS_EResult::EOS_InvalidAuth)
+        {
+            spdlog::warn("EOS: Local user auth invalid, stopping PumpIncoming");
+            m_localUser.store(nullptr, std::memory_order_release);
+            return;
+        }
+
         if (sizeResult != EOS_EResult::EOS_Success)
             break;
 
