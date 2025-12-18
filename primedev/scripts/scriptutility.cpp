@@ -54,3 +54,15 @@ ADD_SQFUNC(
 
 	return SQRESULT_NOTNULL;
 }
+
+ADD_SQFUNC("bool", NSIsListenServer, "", "Returns true if the current context is a listen server.", ScriptContext::UI | ScriptContext::CLIENT)
+{
+	if(g_pServerState && *g_pServerState > ss_dead)
+	{
+		g_pSquirrel<context>->pushbool(sqvm, true);
+		return SQRESULT_NOTNULL;
+	}
+
+	g_pSquirrel<context>->pushbool(sqvm, false);
+	return SQRESULT_NOTNULL;
+}
