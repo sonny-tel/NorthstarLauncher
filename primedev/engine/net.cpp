@@ -7,7 +7,7 @@
 //===========================================================================//
 
 #include "net.h"
-
+char* (*GetIpStringFromClient)(int64_t a1);
 int (*NET_SendPacket)(CNetChan* pChan, int iSocket, const netadr_t* toAdr, const uint8_t* pData, unsigned int nLen, void* pVoicePayload, bool bCompress, int unMillisecondsDelay, bool bEncrypt);
 
 //////////////////////////////////////////////////////////////////////
@@ -294,7 +294,22 @@ bool CNetAdr::SetFromString(const char* const pch, const bool bUseDNS)
 	return false;
 }
 
+const char* __fastcall GetIpStringFromClientHook(int64_t a1) {
+	if (a1 == 0)
+	{
+		return "null";
+	}
+	void* net_chan = reinterpret_cast<void*>(a1 + 0x368C);
+	if (net_chan == nullptr)
+	{
+		return "null";
+	}
+	return GetIpStringFromClient(a1);
+}
+
 ON_DLL_LOAD("engine.dll", Net, (CModule module))
 {
+	GetIpStringFromClient = module.Offset(0x2101A0).RCast<decltype(GetIpStringFromClient)>();
+	HookAttach(&(PVOID&)GetIpStringFromClient, (PVOID)GetIpStringFromClientHook);
 	NET_SendPacket = module.Offset(0x21C240).RCast<decltype(NET_SendPacket)>();
 }
