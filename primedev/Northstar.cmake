@@ -78,8 +78,8 @@ add_library(
     "engine/bitbuf.cpp"
     "engine/bitbuf.h"
     "engine/bitvec.h"
-	"engine/client.cpp"
-	"engine/client.h"
+    "engine/client.cpp"
+    "engine/client.h"
     "engine/coordsize.h"
     "engine/gl_matsysiface.cpp"
     "engine/demo.h"
@@ -94,15 +94,15 @@ add_library(
     "engine/netmessages.cpp"
     "engine/netmessages.h"
     "engine/models.cpp"
-	"engine/models.h"
-	"engine/net_chan.cpp"
-	"engine/net_chan.h"
+    "engine/models.h"
+    "engine/net_chan.cpp"
+    "engine/net_chan.h"
     "engine/net.cpp"
     "engine/net.h"
     "engine/r2engine.cpp"
     "engine/r2engine.h"
-	"engine/usermessages.cpp"
-	"engine/usermessages.h"
+    "engine/usermessages.cpp"
+    "engine/usermessages.h"
     "game/client/clientmode_shared.cpp"
     "inputsystem/ButtonCode.h"
     "inputsystem/InputEnums.h"
@@ -163,7 +163,7 @@ add_library(
     "scripts/scriptjson.cpp"
     "scripts/scriptjson.h"
     "scripts/scriptremotes.cpp"
-	"scripts/scriptremotes.h"
+    "scripts/scriptremotes.h"
     "scripts/scriptutility.cpp"
     "server/auth/bansystem.cpp"
     "server/auth/bansystem.h"
@@ -182,15 +182,15 @@ add_library(
     "server/servernethooks.cpp"
     "server/serverpresence.cpp"
     "server/serverpresence.h"
-	"eos/eos_layer.cpp"
-	"eos/eos_layer.h"
-	"eos/eos_logging_manager.cpp"
-	"eos/eos_logging_manager.h"
-	"eos/eos_network.cpp"
-	"eos/eos_network.h"
-	"eos/eos_threading.h"
-	"eos/fake_ip_layer.cpp"
-	"eos/fake_ip_layer.h"
+    "eos/eos_layer.cpp"
+    "eos/eos_layer.h"
+    "eos/eos_logging_manager.cpp"
+    "eos/eos_logging_manager.h"
+    "eos/eos_network.cpp"
+    "eos/eos_network.h"
+    "eos/eos_threading.h"
+    "eos/fake_ip_layer.cpp"
+    "eos/fake_ip_layer.h"
     "shared/exploit_fixes/exploitfixes.cpp"
     "shared/exploit_fixes/exploitfixes_lzss.cpp"
     "shared/exploit_fixes/exploitfixes_utf8parser.cpp"
@@ -204,25 +204,25 @@ add_library(
     "shared/misccommands.h"
     "shared/playlist.cpp"
     "shared/playlist.h"
-	"shared/signonstate.h"
+    "shared/signonstate.h"
     "squirrel/squirrel.cpp"
     "squirrel/squirrel.h"
     "squirrel/squirrelautobind.cpp"
     "squirrel/squirrelautobind.h"
     "squirrel/squirrelclasstypes.h"
-	"util/annotations.h"
-	"util/platform.h"
+    "util/annotations.h"
+    "util/platform.h"
     "util/printcommands.cpp"
     "util/printcommands.h"
     "util/printmaps.cpp"
     "util/printmaps.h"
-	"util/strtools.cpp"
-	"util/strtools.h"
+    "util/strtools.cpp"
+    "util/strtools.h"
     "util/utils.cpp"
     "util/utils.h"
-	"util/utlmemory.h"
-	"util/utlblockmemory.h"
-	"util/utlvector.h"
+    "util/utlmemory.h"
+    "util/utlblockmemory.h"
+    "util/utlvector.h"
     "util/version.cpp"
     "util/version.h"
     "util/wininfo.cpp"
@@ -259,10 +259,7 @@ add_library(
     "Northstar.def"
     )
 
-target_include_directories(
-	NorthstarDLL
-	PRIVATE "${EOS_SDK_PATH}/Include"
-)
+target_include_directories(NorthstarDLL PRIVATE "${EOS_SDK_PATH}/Include")
 
 target_link_libraries(
     NorthstarDLL
@@ -278,7 +275,7 @@ target_link_libraries(
             normaliz.lib
             bcrypt.lib
             version.lib
-			"${EOS_LIB}"
+            "${EOS_LIB}"
     )
 
 target_precompile_headers(
@@ -303,9 +300,8 @@ set_target_properties(
     )
 
 add_custom_command(
-    TARGET NorthstarDLL POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${EOS_DLL}"
-        "$<TARGET_FILE_DIR:NorthstarDLL>"
+    TARGET NorthstarDLL
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${EOS_DLL}" "$<TARGET_FILE_DIR:NorthstarDLL>"
     COMMENT "Copying EOS SDK DLL to output directory"
-)
+    )
