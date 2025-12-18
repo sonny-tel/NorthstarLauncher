@@ -167,7 +167,7 @@ bool EosLayer::Initialize(const char* productId,
     Logging::Initialize();
 
     static const std::string clientId = EOS_CLIENT_ID;
-    static const std::string clientSecret = EOS_CLIENT_SECRET;
+    static const std::string clientSecret = Base64Decode(EOS_CLIENT_SECRET_B64);
 
     EOS_Platform_Options platformOptions{};
     platformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
@@ -446,9 +446,7 @@ void EosLayer::PumpOnce()
         EOS_Platform_Tick(m_platformHandle);
     }
     if (m_fakeIpLayer)
-    {
         m_fakeIpLayer->PumpIncoming();
-    }
 }
 
 void EosLayer::StartPumpThread()

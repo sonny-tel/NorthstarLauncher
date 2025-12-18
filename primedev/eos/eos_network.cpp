@@ -16,6 +16,8 @@
 #include <intrin.h>
 #pragma intrinsic(_ReturnAddress)
 
+ConVar* ns_allow_eos = nullptr;
+
 namespace
 {
 
@@ -285,6 +287,9 @@ namespace eos
 
 bool Initialize()
 {
+	if(ns_allow_eos->GetInt() != 1)
+        return false;
+
     auto& layer = EosLayer::Instance();
     if (layer.IsInitialized())
         return true;
@@ -294,6 +299,8 @@ bool Initialize()
         NS::log::EOS->error("Failed to initialize networking layer");
         return false;
     }
+
+	InitializeNetworking();
 
     return true;
 }
@@ -350,3 +357,8 @@ bool RegisterPeerByString(const char* remoteProductUserId,
 }
 
 } // namespace eos
+
+ON_DLL_LOAD_RELIESON("engine.dll", EOSNetwork, ConVar, (CModule module))
+{
+	ns_allow_eos = new ConVar("ns_has_agreed_allow_eos", "0", FCVAR_ARCHIVE_PLAYERPROFILE, "Allow using EOS P2P networking.");
+}

@@ -26,9 +26,6 @@ static void __fastcall h_Host_Init(bool bDedicated)
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
 	}
 
-	if (!eos::InitializeNetworking())
-		spdlog::warn("EOS: Initialization skipped or failed\n");
-
 	eos::Initialize();
 }
 
