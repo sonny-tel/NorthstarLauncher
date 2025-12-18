@@ -26,7 +26,7 @@ jobs:
         with:
           repository: sonny-tel/eos-ns
           token: ${{ secrets.EOS_PAT_TOKEN }}
-          path: primedev/thirdparty
+          path: primedev/thirdparty/eossdk
       - name: Setup msvc
         uses: ilammy/msvc-dev-cmd@v1
       - name: Configure cmake
