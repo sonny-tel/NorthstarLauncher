@@ -11,7 +11,6 @@
 #include "eos_layer.h"
 #include "eos_threading.h"
 #include "core/convar/cvar.h"
-#include "net_hooks.h"
 #include "util/version.h"
 
 #include <intrin.h>
@@ -309,7 +308,6 @@ bool InitializeNetworking()
     }
 
     spdlog::info("EOS: Hooks installed for version {}", version);
-	net_hooks::Initialize();
     return true;
 }
 
