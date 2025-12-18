@@ -18,8 +18,14 @@
 namespace eos
 {
 
-struct FakeEndpoint
+class FakeEndpoint
 {
+public:
+	bool IsValid() const
+	{
+	    return ntohs(this->address.u.Word[0]) == 0x3FFE;
+	}
+
     in6_addr address{};
     uint16_t port = 0; // host order (encodes ProductUserId bytes)
 };

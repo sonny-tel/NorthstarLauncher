@@ -17,8 +17,4 @@ bool RegisterPeerByString(const char* remoteProductUserId,
                           const char* socketName,
                           uint8_t channel,
                           FakeEndpoint* outEndpoint);
-
-EOS_ProductUserId GetLocalProductUserId();
-FakeEndpoint GetLocalFakeEndpoint();
-
 } // namespace eos

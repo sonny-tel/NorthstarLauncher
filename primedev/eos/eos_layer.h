@@ -43,6 +43,12 @@ public:
     void HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* info);
     void HandleConnectionEstablished(const EOS_P2P_OnPeerConnectionEstablishedInfo* info);
 
+	bool IsReady()
+	{
+	    const auto& layer = EosLayer::Instance();
+	    return layer.IsInitialized() && layer.GetLocalUser() != nullptr;
+	}
+
 private:
     EosLayer() = default;
     ~EosLayer();

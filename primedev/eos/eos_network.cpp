@@ -73,7 +73,7 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
     uint16_t pretendPort     = eos::GetPretendRemotePort();
     const int    inLen       = *outLength;
 
-    if (pretendPort == 0)
+    if (!pretendPort)
         pretendPort = endpoint.port;
 
     if (*outLength >= static_cast<int>(sizeof(sockaddr_in6)))
@@ -98,14 +98,7 @@ void WriteSockaddrForFakeEndpoint(const eos::FakeEndpoint& endpoint,
         ipv4->sin_port             = htons(pretendPort);
         ipv4->sin_addr.S_un.S_addr = 0;
         *outLength                 = sizeof(sockaddr_in);
-
     }
-}
-
-
-bool IsEndpointValid(const eos::FakeEndpoint& endpoint)
-{
-    return ntohs(endpoint.address.u.Word[0]) == 0x3FFE;
 }
 
 uint16_t GetLocalSocketPort(SOCKET socketHandle)
@@ -126,20 +119,18 @@ uint16_t GetLocalSocketPort(SOCKET socketHandle)
 
 eos::PacketRoute ClassifySocketRoute(uint16_t port)
 {
-	// FIX: Unknown/Zero ports should NOT touch EOS packets. Return None.
-	if (port == 0)
+	if (!port)
 		return eos::PacketRoute::None;
 
 	const uint16_t clientPort = static_cast<uint16_t>(g_pCVar->FindVar("clientport")->GetInt());
 	const uint16_t hostPort = static_cast<uint16_t>(g_pCVar->FindVar("hostport")->GetInt());
 
-	if (clientPort && port == clientPort)
+	if (port == clientPort)
 		return eos::PacketRoute::Client;
 
-	if (hostPort && port == hostPort)
+	if (port == hostPort)
 		return eos::PacketRoute::Server;
 
-	// FIX: Default to None, not All. This prevents "other" sockets from stealing packets.
 	return eos::PacketRoute::None;
 }
 
@@ -178,13 +169,6 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
             : SOCKET_ERROR;
     }
 
-    // Lazy initialize EOS when we first try to send to a fakeip
-    if (!eos::EnsureEosInitialized())
-    {
-        WSASetLastError(WSAENOTCONN);
-        return SOCKET_ERROR;
-    }
-
     auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
     if (!layer)
     {
@@ -193,11 +177,10 @@ int WSAAPI HookedSendTo(SOCKET socketHandle,
     }
 
     const eos::PacketRoute route = DetermineSocketRoute(socketHandle);
-    const bool sent = layer->SendToPeer(endpoint,
-                                        reinterpret_cast<const uint8_t*>(buffer),
-                                        static_cast<size_t>(length),
-                                        route);
-    if (!sent)
+    if (!layer->SendToPeer(endpoint,
+                           reinterpret_cast<const uint8_t*>(buffer),
+                           static_cast<size_t>(length),
+                           route))
     {
         WSASetLastError(WSAECONNABORTED);
         return SOCKET_ERROR;
@@ -301,34 +284,18 @@ void RemoveSocketHooks()
 namespace eos
 {
 
-static std::mutex g_lazyInitMutex;
-static bool g_lazyInitAttempted = false;
-static bool g_lazyInitSuccess = false;
-
 bool EnsureEosInitialized()
 {
-    std::lock_guard lock(g_lazyInitMutex);
-
-    if (g_lazyInitAttempted)
-        return g_lazyInitSuccess;
-
-    g_lazyInitAttempted = true;
-
     auto& layer = EosLayer::Instance();
     if (layer.IsInitialized())
-    {
-        g_lazyInitSuccess = true;
         return true;
-    }
 
     if (!layer.Initialize(kProductId, kSandboxId, kDeploymentId, kProductName, version))
     {
         spdlog::error("EOS: Failed to initialize networking layer");
-        g_lazyInitSuccess = false;
         return false;
     }
 
-    g_lazyInitSuccess = true;
     return true;
 }
 
@@ -341,7 +308,7 @@ bool InitializeNetworking()
         return false;
     }
 
-    spdlog::info("EOS: Hooks installed for version {}, will initialize on first fakeip packet", version);
+    spdlog::info("EOS: Hooks installed for version {}", version);
 	net_hooks::Initialize();
     return true;
 }
@@ -350,17 +317,6 @@ void ShutdownNetworking()
 {
     RemoveSocketHooks();
     EosLayer::Instance().Shutdown();
-
-    // Reset lazy init state
-    std::lock_guard lock(g_lazyInitMutex);
-    g_lazyInitAttempted = false;
-    g_lazyInitSuccess = false;
-}
-
-bool IsReady()
-{
-    const auto& layer = EosLayer::Instance();
-    return layer.IsInitialized() && layer.GetLocalUser() != nullptr;
 }
 
 bool RegisterPeerByString(const char* remoteProductUserId,
@@ -369,7 +325,7 @@ bool RegisterPeerByString(const char* remoteProductUserId,
                           FakeEndpoint* outEndpoint)
 {
     auto& layer = EosLayer::Instance();
-    if (!IsReady() || !remoteProductUserId || !socketName)
+    if (!layer.IsReady() || !remoteProductUserId || !socketName)
         return false;
 
     auto* fakeLayer = layer.GetFakeIpLayer();
@@ -381,32 +337,18 @@ bool RegisterPeerByString(const char* remoteProductUserId,
         SdkLock lock(GetSdkMutex());
         remoteUser = EOS_ProductUserId_FromString(remoteProductUserId);
     }
+
     if (!remoteUser)
         return false;
 
     const FakeEndpoint endpoint = fakeLayer->RegisterPeer(remoteUser, socketName, channel);
-    if (!IsEndpointValid(endpoint))
+    if (!endpoint.IsValid())
         return false;
 
     if (outEndpoint)
-    {
         *outEndpoint = endpoint;
-    }
 
     return true;
-}
-
-EOS_ProductUserId GetLocalProductUserId()
-{
-    return EosLayer::Instance().GetLocalUser();
-}
-
-FakeEndpoint GetLocalFakeEndpoint()
-{
-    const auto* layer = EosLayer::Instance().GetFakeIpLayer();
-    if (layer)
-        return layer->GetLocalEndpoint();
-    return {};
 }
 
 } // namespace eos
