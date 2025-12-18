@@ -8,6 +8,29 @@
 #define DEG2RAD(a) (a) * (3.14159265358979323846f / 180.0f)
 #define RAD2DEG(a) (a) * (180.0f / 3.14159265358979323846f)
 
+class Vector2
+{
+public:
+	float x, y;
+	Vector2(float _x, float _y)
+		: x(_x)
+		, y(_y)
+	{
+	}
+	Vector2(float _f)
+		: x(_f)
+		, y(_f)
+	{
+	}
+	Vector2()
+		: x(0.0f)
+		, y(0.0f)
+	{
+	}
+
+
+};
+
 class Vector3
 {
 public:
