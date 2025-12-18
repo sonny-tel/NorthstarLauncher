@@ -130,7 +130,8 @@ public:
 	int32_t m_nProcessedDeltaTick; //0x0154 m_nProcessedDeltaTick
 	int32_t m_nProcessedStringTableAckTick; //0x0158 m_nProcessedStringTableAckTick
 	bool m_bPendingTicksAvailable; //0x015C m_bPendingTicksAvailable
-	uint32_t N00000252; //0x015D
+	char N00000252[3];
+	bool m_bPaused;
 	uint8_t unk_byte; //0x0161 unk_byte
 	uint32_t N0000023C; //0x0162
 	uint16_t N00000257; //0x0166

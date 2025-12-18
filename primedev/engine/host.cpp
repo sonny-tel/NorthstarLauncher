@@ -5,6 +5,7 @@
 #include "shared/misccommands.h"
 #include "util/printcommands.h"
 #include "util/printmaps.h"
+#include "eos/eos_network.h"
 
 static void(__fastcall* o_pHost_Init)(bool bDedicated) = nullptr;
 static void __fastcall h_Host_Init(bool bDedicated)
@@ -24,6 +25,8 @@ static void __fastcall h_Host_Init(bool bDedicated)
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_client", cmd_source_t::kCommandSrcCode);
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
 	}
+
+	eos::Initialize();
 }
 
 ON_DLL_LOAD("engine.dll", Host_Init, (CModule module))
