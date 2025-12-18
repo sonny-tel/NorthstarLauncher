@@ -19,8 +19,6 @@
 namespace
 {
 
-std::mutex g_logMutex;
-std::ofstream g_logFile;
 bool g_loggingInitialized = false;
 
 bool HasCommandLineFlag(const wchar_t* flag)
@@ -47,69 +45,33 @@ EOS_ELogLevel DetermineLogLevel()
 #endif
 }
 
-void EnsureLogFile()
-{
-    //std::lock_guard lock(g_logMutex);
-    //if (g_logFile.is_open())
-        return;
-
-    std::error_code ec;
-    auto logPath = std::filesystem::current_path(ec);
-    if (ec)
-        logPath.clear();
-    std::filesystem::path filePath = logPath / "ion_eos.log";
-
-    g_logFile.open(filePath, std::ios::out | std::ios::app);
-    if (!g_logFile.good())
-    {
-        std::string filePathString = filePath.string();
-        spdlog::error("EOS: Failed to open log file at {}", filePathString);
-    }
-}
-
-const char* LevelToString(EOS_ELogLevel level)
-{
-    switch (level)
-    {
-    case EOS_ELogLevel::EOS_LOG_Fatal: return "Fatal";
-    case EOS_ELogLevel::EOS_LOG_Error: return "Error";
-    case EOS_ELogLevel::EOS_LOG_Warning: return "Warning";
-    case EOS_ELogLevel::EOS_LOG_Info: return "Info";
-    case EOS_ELogLevel::EOS_LOG_Verbose: return "Verbose";
-    case EOS_ELogLevel::EOS_LOG_VeryVerbose: return "VeryVerbose";
-    default: return "Unknown";
-    }
-}
-
 void EOS_CALL OnLogMessageReceived(const EOS_LogMessage* message)
 {
     if (!message || !message->Message)
         return;
 
-    EnsureLogFile();
-
-    auto now = std::chrono::system_clock::now();
-    std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
-    std::tm localTime{};
-#if defined(_WIN32)
-    localtime_s(&localTime, &nowTime);
-#else
-    localtime_r(&nowTime, &localTime);
-#endif
-
-    std::ostringstream builder;
-    builder << " [" << LevelToString(message->Level) << ']'
-            << " [" << (message->Category ? message->Category : "Unknown") << "] "
-            << message->Message;
-
-    const std::string line = builder.str();
-    spdlog::info("{}", line.c_str());
-
-    std::lock_guard lock(g_logMutex);
-    if (g_logFile.is_open())
-    {
-        g_logFile << line << std::endl;
-    }
+	switch (message->Level)
+	{
+		case EOS_ELogLevel::EOS_LOG_Fatal:
+		case EOS_ELogLevel::EOS_LOG_Error:
+			NS::log::EOS->error("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+		case EOS_ELogLevel::EOS_LOG_Warning:
+			NS::log::EOS->warn("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+		case EOS_ELogLevel::EOS_LOG_Info:
+			NS::log::EOS->info("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+		case EOS_ELogLevel::EOS_LOG_Verbose:
+			NS::log::EOS->debug("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+		case EOS_ELogLevel::EOS_LOG_VeryVerbose:
+			NS::log::EOS->trace("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+		default:
+			NS::log::EOS->info("[{}] {}", message->Category ? message->Category : "Unknown", message->Message);
+			break;
+	}
 }
 
 } // namespace
@@ -129,7 +91,7 @@ void Logging::Initialize()
     }
     if (callbackResult != EOS_EResult::EOS_Success)
     {
-        spdlog::error("EOS: Failed to register logging callback ({})", static_cast<int>(callbackResult));
+        NS::log::EOS->error("Failed to register logging callback ({})", static_cast<int>(callbackResult));
         return;
     }
 
@@ -141,7 +103,7 @@ void Logging::Initialize()
     }
     if (levelResult != EOS_EResult::EOS_Success)
     {
-        spdlog::error("EOS: Failed to set log level ({})", static_cast<int>(levelResult));
+        NS::log::EOS->error("Failed to set log level ({})", static_cast<int>(levelResult));
     }
 
     g_loggingInitialized = true;
@@ -155,13 +117,6 @@ void Logging::Shutdown()
     {
         SdkLock lock(GetSdkMutex());
         EOS_Logging_SetCallback(nullptr);
-    }
-
-    std::lock_guard lock(g_logMutex);
-    if (g_logFile.is_open())
-    {
-        g_logFile.flush();
-        g_logFile.close();
     }
 
     g_loggingInitialized = false;

@@ -188,7 +188,7 @@ FakeEndpoint FakeIpLayer::RegisterPeer(EOS_ProductUserId remoteUser,
 
     if (!EncodeProductId(normalizedId, endpoint))
     {
-        spdlog::error("EOS: Failed to encode product user id for peer\n");
+        NS::log::EOS->error("Failed to encode product user id for peer registration: {}", normalizedId);
         return FakeEndpoint{};
     }
 
@@ -244,7 +244,7 @@ bool FakeIpLayer::SendToPeer(const FakeEndpoint& endpoint,
             }
             if (!remoteUserHandle)
             {
-				spdlog::error("EOS: Failed to convert ProductID string to Handle for {}", productId.c_str());
+				NS::log::EOS->error("Failed to convert ProductID string to Handle for {}", productId.c_str());
                 return false;
             }
 
@@ -260,7 +260,7 @@ bool FakeIpLayer::SendToPeer(const FakeEndpoint& endpoint,
             // Insert into map so future lookups succeed
             m_peerBindings[productId] = binding;
 
-			spdlog::info("EOS: Implicitly registered peer {} from sendto address", productId);
+			NS::log::EOS->info("Implicitly registered peer {} from sendto address", productId);
         }
         else
         {
@@ -286,7 +286,7 @@ bool FakeIpLayer::SendToPeer(const FakeEndpoint& endpoint,
     }
     if (result != EOS_EResult::EOS_Success)
     {
-		spdlog::error("EOS: SendPacket failed ({})", static_cast<int>(result));
+		NS::log::EOS->error("SendPacket failed ({})", static_cast<int>(result));
         return false;
     }
 
@@ -454,7 +454,7 @@ void FakeIpLayer::UpdateLocalEndpoint()
     char buffer[INET6_ADDRSTRLEN]{};
     if (InetNtopA(AF_INET6, const_cast<in6_addr*>(&m_localEndpoint.address), buffer, sizeof(buffer)))
     {
-        spdlog::info("EOS: Local FakeIPv6 [{}]:{}", buffer, m_localEndpoint.port);
+        NS::log::EOS->info("Local FakeIPv6 [{}]:{}", buffer, m_localEndpoint.port);
     }
 }
 

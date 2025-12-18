@@ -291,7 +291,7 @@ bool Initialize()
 
     if (!layer.Initialize(kProductId, kSandboxId, kDeploymentId, kProductName, version))
     {
-        spdlog::error("EOS: Failed to initialize networking layer");
+        NS::log::EOS->error("Failed to initialize networking layer");
         return false;
     }
 
@@ -303,11 +303,11 @@ bool InitializeNetworking()
     // Only install hooks - EOS initialization will happen lazily when needed
     if (!InstallSocketHooks())
     {
-        spdlog::error("EOS: Failed to install socket hooks");
+        NS::log::EOS->error("Failed to install socket hooks");
         return false;
     }
 
-    spdlog::info("EOS: Hooks installed for version {}", version);
+    NS::log::EOS->info("Hooks installed for version {}", version);
     return true;
 }
 

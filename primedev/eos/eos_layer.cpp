@@ -70,15 +70,9 @@ struct PromiseCleanup
 
 std::string BuildDisplayName()
 {
-    std::array<char, EOS_CONNECT_USERLOGININFO_DISPLAYNAME_MAX_LENGTH> buffer{};
-
-    DWORD size = static_cast<DWORD>(buffer.size() - 1);
-    if (GetUserNameA(buffer.data(), &size) && size > 0)
-        return std::string(buffer.data(), size);
-
-    size = static_cast<DWORD>(buffer.size() - 1);
-    if (GetComputerNameA(buffer.data(), &size) && size > 0)
-        return std::string(buffer.data(), size);
+	const char* name = g_pCVar->FindVar("name")->GetString();
+	if (name && name[0] != '\0')
+		return std::string(name);
 
     return "ion_user";
 }
@@ -165,7 +159,7 @@ bool EosLayer::Initialize(const char* productId,
     }
     if (initResult != EOS_EResult::EOS_Success && initResult != EOS_EResult::EOS_AlreadyConfigured)
     {
-        spdlog::error("EOS: Initialize failed ({})", static_cast<int>(initResult));
+        NS::log::EOS->error("Initialize failed ({})", static_cast<int>(initResult));
         return false;
     }
 
@@ -191,7 +185,7 @@ bool EosLayer::Initialize(const char* productId,
     }
     if (!m_platformHandle)
     {
-        spdlog::error("EOS: Failed to create platform handle\n");
+        NS::log::EOS->error("Failed to create platform handle");
         Shutdown();
         return false;
     }
@@ -203,7 +197,7 @@ bool EosLayer::Initialize(const char* productId,
     }
     if (!m_connectHandle || !m_p2pHandle)
     {
-        spdlog::error("EOS: Missing required interfaces\n");
+        NS::log::EOS->error("Missing required interfaces");
         Shutdown();
         return false;
     }
@@ -226,14 +220,14 @@ bool EosLayer::Initialize(const char* productId,
 
     if (!CreateDeviceId())
     {
-		spdlog::error("EOS: Failed to create device ID");
+		NS::log::EOS->error("Failed to create device ID");
         Shutdown();
         return false;
     }
 
     if (!LoginWithDeviceId())
     {
-		spdlog::error("EOS: Failed to login with device ID");
+		NS::log::EOS->error("Failed to login with device ID");
         Shutdown();
         return false;
     }
@@ -300,14 +294,14 @@ bool EosLayer::CreateDeviceId()
     EOS_EResult result = EOS_EResult::EOS_UnexpectedError;
     if (!WaitForResult(future, &result, 6000))
     {
-        spdlog::error("EOS: Timed out waiting for CreateDeviceId");
+        NS::log::EOS->error("Timed out waiting for CreateDeviceId");
         return false;
     }
 
     if (result == EOS_EResult::EOS_Success || result == EOS_EResult::EOS_DuplicateNotAllowed)
         return true;
 
-    spdlog::error("EOS: CreateDeviceId failed ({})", static_cast<int>(result));
+    NS::log::EOS->error("CreateDeviceId failed ({})", static_cast<int>(result));
     return false;
 }
 
@@ -534,7 +528,7 @@ bool EosLayer::RegisterSocketNotifications()
         return false;
     }
 
-    spdlog::info("EOS: Registered socket notifications for \"{}\"", m_defaultSocketId.SocketName);
+    NS::log::EOS->info("Registered socket notifications for \"{}\"", m_defaultSocketId.SocketName);
     return true;
 }
 
@@ -574,7 +568,7 @@ void EosLayer::HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequest
     }
     if (result != EOS_EResult::EOS_Success)
     {
-        spdlog::error("EOS: AcceptConnection failed ({})", static_cast<int>(result));
+        NS::log::EOS->error("AcceptConnection failed ({})", static_cast<int>(result));
         return;
     }
 
@@ -589,11 +583,11 @@ void EosLayer::HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequest
     }
     if (haveRemoteId)
     {
-        spdlog::info("EOS: Accepted connection request from {} on socket {}", remoteId, socketId->SocketName);
+        NS::log::EOS->info("Accepted connection request from {} on socket {}", remoteId, socketId->SocketName);
     }
     else
     {
-        spdlog::info("EOS: Accepted connection request on socket {}", socketId->SocketName);
+        NS::log::EOS->info("Accepted connection request on socket {}", socketId->SocketName);
     }
 
     if (m_fakeIpLayer && info->RemoteUserId)
@@ -618,7 +612,7 @@ void EosLayer::HandleConnectionEstablished(const EOS_P2P_OnPeerConnectionEstabli
     }
     if (haveRemoteId)
     {
-        spdlog::info("EOS: Connection established with {} (type={})",
+        NS::log::EOS->info("Connection established with {} (type={})",
             remoteId,
             static_cast<int>(info->ConnectionType));
     }
