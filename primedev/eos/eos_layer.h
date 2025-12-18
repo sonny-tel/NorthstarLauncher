@@ -42,7 +42,7 @@ public:
     EOS_HP2P GetP2PHandle() const { return m_p2pHandle; }
     void HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* info);
     void HandleConnectionEstablished(const EOS_P2P_OnPeerConnectionEstablishedInfo* info);
-
+    bool LoginWithDeviceId();
 	bool IsReady()
 	{
 	    const auto& layer = EosLayer::Instance();
@@ -54,7 +54,6 @@ private:
     ~EosLayer();
 
     bool CreateDeviceId();
-    bool LoginWithDeviceId();
     bool WaitForResult(std::future<EOS_EResult>& future, EOS_EResult* outResult, int timeoutMs);
     bool WaitForLogin(std::future<LoginCallbackPayload>& future, LoginCallbackPayload* outPayload, int timeoutMs);
     void PumpOnce();

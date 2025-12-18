@@ -284,7 +284,7 @@ void RemoveSocketHooks()
 namespace eos
 {
 
-bool EnsureEosInitialized()
+bool Initialize()
 {
     auto& layer = EosLayer::Instance();
     if (layer.IsInitialized())

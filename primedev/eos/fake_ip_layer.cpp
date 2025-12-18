@@ -11,6 +11,7 @@
 #include "dedicated/dedicated.h"
 #include "engine/r2engine.h"
 #include "eos_threading.h"
+#include "eos_layer.h"
 
 namespace
 {
@@ -313,9 +314,9 @@ void FakeIpLayer::PumpIncoming()
 
         if (sizeResult == EOS_EResult::EOS_InvalidAuth)
         {
-            spdlog::warn("EOS: Local user auth invalid, stopping PumpIncoming");
-            m_localUser.store(nullptr, std::memory_order_release);
-            return;
+			auto& layer = EosLayer::Instance();
+			layer.LoginWithDeviceId();
+			continue;
         }
 
         if (sizeResult != EOS_EResult::EOS_Success)

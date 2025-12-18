@@ -8,7 +8,8 @@
 
 namespace eos
 {
-    bool EnsureEosInitialized();
+
+bool Initialize();
 bool InitializeNetworking();
 void ShutdownNetworking();
 bool IsReady();

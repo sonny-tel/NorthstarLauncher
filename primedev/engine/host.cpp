@@ -29,7 +29,7 @@ static void __fastcall h_Host_Init(bool bDedicated)
 	if (!eos::InitializeNetworking())
 		spdlog::warn("EOS: Initialization skipped or failed\n");
 
-	eos::EnsureEosInitialized();
+	eos::Initialize();
 }
 
 ON_DLL_LOAD("engine.dll", Host_Init, (CModule module))
