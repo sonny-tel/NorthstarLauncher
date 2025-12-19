@@ -10,7 +10,6 @@
 #pragma once
 #endif
 
-// #include "tier0/dbg.h"
 #include "datamap.h"	// needed for typedescription_t.  note datamap.h is tier1 as well.
 
 class CByteSwap
