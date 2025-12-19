@@ -1,6 +1,13 @@
 #include "netmessages.h"
 #include "netchannel.h"
 
+bool g_bListeningforCustomServerInfoPacket = false;
+char g_szLastServerInfoName[256] = {0};
+bool g_bNextServerAuthUs = false;
+bool g_bNextServerAllowingAuthUs = false;
+
+std::unordered_map<int, float> g_LastNotifyTimes;
+
 AUTOHOOK_INIT()
 
 // clang-format off

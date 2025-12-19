@@ -9,9 +9,19 @@
 #define MODDOWNLOADINFO_VERSION 1
 #define S2C_MODDOWNLOADINFO 'V'
 
-#define CUSTOMSERVERINFO_VERSION 1
+#define CUSTOMSERVERINFO_VERSION 2
 #define A2S_REQUESTCUSTOMSERVERINFO 'Q'
 #define S2A_CUSTOMSERVERINFO 'R'
+
+#define S2C_CLIENTNOTIFY 'U'
+#define CLIENTNOTIFY_VERSION 1
+#define NOTIFY_AUTHENTICATED 1
+
+extern bool g_bListeningforCustomServerInfoPacket;
+extern char g_szLastServerInfoName[256];
+extern bool g_bNextServerAuthUs;
+extern bool g_bNextServerAllowingAuthUs;
+extern std::unordered_map<int, float> g_LastNotifyTimes;
 
 enum class NetMessageType : int
 {

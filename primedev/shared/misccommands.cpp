@@ -25,7 +25,7 @@ void ConCommand_ns_start_reauth_and_leave_to_lobby(const CCommand& arg)
 	NOTE_UNUSED(arg);
 	// hack for special case where we're on a local server, so we erase our own newly created auth data on disconnect
 	g_pMasterServerManager->m_bNewgameAfterSelfAuth = true;
-	g_pMasterServerManager->AuthenticateWithOwnServer(g_pLocalPlayerUserID, g_pMasterServerManager->m_sOwnClientAuthToken);
+	g_pMasterServerManager->AuthenticateWithOwnServer(g_pLocalPlayerUserID, g_pMasterServerManager->m_sOwnClientAuthToken, {});
 }
 
 void ConCommand_ns_end_reauth_and_leave_to_lobby(const CCommand& arg)

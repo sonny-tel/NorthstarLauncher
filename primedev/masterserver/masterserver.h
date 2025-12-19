@@ -2,6 +2,7 @@
 
 #include "core/convar/convar.h"
 #include "server/serverpresence.h"
+#include "engine/net.h"
 #include <cstring>
 #include <future>
 #include <string>
@@ -130,7 +131,7 @@ public:
 	void RequestServerList();
 	void RequestMainMenuPromos();
 	void AuthenticateOriginWithMasterServer();
-	void AuthenticateWithOwnServer(const char* uid, const char* playerToken);
+	void AuthenticateWithOwnServer(const char* uid, const char* playerToken, netadr_t addr);
 	void AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password);
 	void WritePlayerPersistentData(const char* playerId, const char* pdata, size_t pdataSize);
 	void ProcessConnectionlessPacketSigreq1(std::string req);

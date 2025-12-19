@@ -516,7 +516,7 @@ void MasterServerManager::RequestMainMenuPromos()
 	requestThread.detach();
 }
 
-void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char* playerToken)
+void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char* playerToken, netadr_t addr = netadr_t())
 {
 	// dont wait, just stop if we're trying to do 2 auth requests at once
 	if (m_bAuthenticatingWithGameServer)
@@ -531,7 +531,7 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 	std::string tokenStr(playerToken);
 
 	std::thread requestThread(
-		[this, uidStr, tokenStr]()
+		[this, uidStr, tokenStr, addr]()
 		{
 			CURL* curl = curl_easy_init();
 			SetCommonHttpClientOptions(curl);
@@ -632,6 +632,18 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 					}
 
 					newAuthData.pdata[i++] = static_cast<char>(byte.GetUint());
+				}
+
+				if(!g_pLocalPlayerUserID && addr.GetType() == NA_IP)
+				{
+					char notifyBuffer[64];
+					bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
+					notifyWriteBuffer.WriteLong(CONNECTIONLESS_HEADER);
+					notifyWriteBuffer.WriteLong(S2C_CLIENTNOTIFY);
+					notifyWriteBuffer.WriteLong(CLIENTNOTIFY_VERSION);
+					notifyWriteBuffer.WriteLong(NOTIFY_AUTHENTICATED);
+
+					NET_SendPacket(nullptr, NS_SERVER, &addr, notifyWriteBuffer.GetData(), notifyWriteBuffer.GetNumBytesWritten(), nullptr, false, 0, true);
 				}
 
 				std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);

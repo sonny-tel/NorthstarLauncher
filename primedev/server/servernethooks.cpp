@@ -180,6 +180,16 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 	int protocolVersion = msg.ReadLong();
 	bool requestedMods = msg.ReadByte() != 0;
 	int modDownloadVersion = msg.ReadLong();
+	bool authingIncomingClient = false;
+	char uid[64];
+	char token[128];
+
+	if( protocolVersion >= CUSTOMSERVERINFO_VERSION)
+	{
+		authingIncomingClient = msg.ReadByte() != 0;
+		msg.ReadString(uid, sizeof(uid));
+		msg.ReadString(token, sizeof(token));
+	}
 
 	// spdlog::info(
 	// 	"client requested custom server info: protocolVersion={}, requestedMods={}, modDownloadVersion={}",
@@ -232,7 +242,7 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 
 	bool areWeAcceptingInsecureConnections = g_pCVar->FindVar("ns_auth_allow_insecure")->GetBool();
 	response.WriteByte(areWeAcceptingInsecureConnections ? 1 : 0);
-	response.WriteByte(false); // reserved for future for use authing incoming clients without ms
+	response.WriteByte(authingIncomingClient);
 
 	auto& mods = g_pModDownloader->GetServerModsToInstall();
 
@@ -247,6 +257,13 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 			auto& mod = mods[i];
 			g_pModDownloader->SendModInfoConnectionlessPacket(packet->adr, mod, i, mods.size());
 		}
+	}
+
+	if(authingIncomingClient)
+	{
+		// HACK: this is really bad but there's no way to auth without being on the server browser
+		g_pMasterServerManager->AuthenticateWithOwnServer(uid, token, packet->adr);
+
 	}
 
 	return true;
