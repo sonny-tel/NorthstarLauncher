@@ -13,6 +13,11 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 	bool requestMods = g_pSquirrel<context>->getbool(sqvm, 3);
 	bool serverAuthUs = g_pSquirrel<context>->getbool(sqvm, 4);
 
+	g_LastReceivedServerInfoTime = -1.0f;
+
+	auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
+	if(it == g_LastNotifyTimes.end())
+		g_LastNotifyTimes.erase(NOTIFY_AUTHENTICATED);
 
 	std::string address = fmt::format("[{}]:{}", ip, port);
 	netadr_t addr = CNetAdr();
