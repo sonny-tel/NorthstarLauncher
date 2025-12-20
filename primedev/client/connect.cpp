@@ -105,6 +105,9 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 			{
 				float startTime = Plat_FloatTime();
 
+                g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer = false;
+                g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
+
 				g_pMasterServerManager->AuthenticateWithServer(
 					g_pLocalPlayerUserID,
 					g_pMasterServerManager->m_sOwnClientAuthToken,
@@ -307,6 +310,9 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 			[mode, copyArgs, index]()
 			{
 				float startTime = Plat_FloatTime();
+
+                g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer = false;
+                g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
 
 				g_pMasterServerManager->AuthenticateWithServer(
 					g_pLocalPlayerUserID,
