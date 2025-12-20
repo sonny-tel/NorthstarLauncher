@@ -8,6 +8,9 @@
 
 AUTOHOOK_INIT()
 
+void(__fastcall* SCR_BeginLoadingPlaque)(const char* levelName) = nullptr;
+void(__fastcall* SCR_EndLoadingPlaque)() = nullptr;
+
 bool g_bConnectingToServer = false;
 
 // clang-format off
@@ -49,6 +52,7 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
 	if(mode == localUid && !g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[localUid, copyArgs]()
 			{
@@ -100,6 +104,7 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
 	if(!mode.empty() && index != -1 && !g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[mode, copyArgs, index]()
 			{
@@ -149,6 +154,7 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
 	if(!mode.empty() && !g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[mode, copyArgs]()
 			{
@@ -255,6 +261,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 	if(mode == localUid && !g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[localUid, copyArgs]()
 			{
@@ -306,6 +313,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 	if(!mode.empty() && index != -1 && !g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[mode, copyArgs, index]()
 			{
@@ -354,8 +362,9 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 		return 0;
 	}
 
-	if(!mode.empty() && !g_bConnectingToServer)
+	if(!g_bConnectingToServer)
 	{
+		SCR_BeginLoadingPlaque(nullptr);
 		std::thread authThread(
 			[mode, copyArgs]()
 			{
@@ -401,7 +410,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 			float startListeningTime = Plat_FloatTime();
 
-			while(g_LastReceivedServerInfoTime > startListeningTime && Plat_FloatTime() - startListeningTime < 5.0f)
+			while(g_LastReceivedServerInfoTime > startListeningTime && Plat_FloatTime() - startListeningTime < 2.5f)
 				Sleep(100);
 
 			g_bNextServerAuthUs = false;
@@ -421,7 +430,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 			startListeningTime = Plat_FloatTime();
 			float notifyTime = -1.0f;
 
-			while(notifyTime > startListeningTime && Plat_FloatTime() - startListeningTime < 5.0f)
+			while(notifyTime > startListeningTime && Plat_FloatTime() - startListeningTime < 10.0f)
 			{
 				auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
 				if(it != g_LastNotifyTimes.end())
@@ -451,4 +460,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 ON_DLL_LOAD_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))
 {
 	AUTOHOOK_DISPATCH();
+
+	SCR_BeginLoadingPlaque = module.Offset(0xB92E0).RCast<decltype(SCR_BeginLoadingPlaque)>();
+	SCR_EndLoadingPlaque = module.Offset(0xB9470).RCast<decltype(SCR_EndLoadingPlaque)>();
 }
