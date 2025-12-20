@@ -12,6 +12,7 @@ void(__fastcall* SCR_BeginLoadingPlaque)(const char* levelName) = nullptr;
 void(__fastcall* SCR_EndLoadingPlaque)() = nullptr;
 
 bool g_bConnectingToServer = false;
+bool g_bRetryingConnection = false;
 
 // clang-format off
 AUTOHOOK(matchmake, engine.dll + 0xF220, int*, __fastcall, ())
@@ -33,6 +34,14 @@ AUTOHOOK(silentconnect, engine.dll + 0x76F00, int*, __fastcall, (__int64 a1))
 	return silentconnect(a1);
 }
 
+// clang-format off
+AUTOHOOK(retry, engine.dll + 0x73D10, int*, __fastcall, (__int64 a1))
+// clang-format on
+{
+	g_bRetryingConnection = true;
+	return retry(a1);
+}
+
 // vanilla only uses connectwithtoken and silentconnect, this is actually pretty good for us to differentiate
 // clang-format off
 AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const CCommand* args))
@@ -43,8 +52,10 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
 
-	if(mode == "matchmaking")
+	if(mode == "matchmaking" || !g_bRetryingConnection)
 		return concommand_connect(args);
+
+	g_bRetryingConnection = false;
 
 	std::string localUid = g_pLocalPlayerUserID;
 
@@ -254,8 +265,10 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 {
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
 
-	if(mode == "matchmaking")
-		return connectWithKey(args);
+	if(mode == "matchmaking" || !g_bRetryingConnection)
+		return concommand_connect(args);
+
+	g_bRetryingConnection = false;
 
 	std::string localUid = g_pLocalPlayerUserID;
 
