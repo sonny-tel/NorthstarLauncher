@@ -181,21 +181,21 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 	bool requestedMods = msg.ReadByte() != 0;
 	int modDownloadVersion = msg.ReadLong();
 	bool authingIncomingClient = false;
-	char uid[64];
-	char token[128];
+	char uid[128];
+	char token[256];
 
 	if( protocolVersion >= CUSTOMSERVERINFO_VERSION)
 	{
 		authingIncomingClient = msg.ReadByte() != 0;
-		msg.ReadString(uid, sizeof(uid));
-		msg.ReadString(token, sizeof(token));
-	}
 
-	// spdlog::info(
-	// 	"client requested custom server info: protocolVersion={}, requestedMods={}, modDownloadVersion={}",
-	// 	protocolVersion,
-	// 	requestedMods,
-	// 	modDownloadVersion);
+		if( authingIncomingClient )
+		{
+			if(!msg.ReadString(uid, sizeof(uid)))
+				return false;
+			if(!msg.ReadString(token, sizeof(token)))
+				return false;
+		}
+	}
 
 	char buffer[512];
 	bf_write response(buffer, sizeof(buffer));
@@ -263,7 +263,6 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 	{
 		// HACK: this is really bad but there's no way to auth without being on the server browser
 		g_pMasterServerManager->AuthenticateWithOwnServer(uid, token, packet->adr);
-
 	}
 
 	return true;

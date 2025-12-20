@@ -22,11 +22,11 @@ static void __fastcall h_Host_Init(bool bDedicated)
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_dedicatedserver", cmd_source_t::kCommandSrcCode);
 	else
 	{
+		eos::Initialize();
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_client", cmd_source_t::kCommandSrcCode);
 		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "exec autoexec_ns_listenserver", cmd_source_t::kCommandSrcCode);
 	}
 
-	eos::Initialize();
 }
 
 ON_DLL_LOAD("engine.dll", Host_Init, (CModule module))

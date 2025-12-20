@@ -3,6 +3,7 @@
 #include "engine/netmessages.h"
 #include "masterserver/masterserver.h"
 #include "client/r2client.h"
+#include "core/tier0.h"
 
 ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, bool serverAuthUs", "", ScriptContext::UI)
 {
@@ -16,7 +17,7 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 	g_bNextServerAllowingAuthUs = false;
 	g_bNextServerAuthUs = false;
 
-	char buffer[64];
+	char buffer[256];
 	bf_write msg(buffer, sizeof(buffer));
 
 	msg.WriteLong(CONNECTIONLESS_HEADER);
@@ -56,7 +57,7 @@ ADD_SQFUNC("string", NSGetNameFromServerInfo, "", "Returns the name from the las
 	return SQRESULT_NOTNULL;
 }
 
-ADD_SQFUNC("float", NSGetTimeSinceLastAuthNotify, "", "Returns the time in seconds since the last auth notify was received from the server.", ScriptContext::UI)
+ADD_SQFUNC("float", NSGetLastAuthNotifyTime, "", "Returns the time when the last auth notify was received from the server.", ScriptContext::UI)
 {
 	auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
 	if(it == g_LastNotifyTimes.end())
@@ -66,5 +67,12 @@ ADD_SQFUNC("float", NSGetTimeSinceLastAuthNotify, "", "Returns the time in secon
 	}
 
 	g_pSquirrel<context>->pushfloat(sqvm, it->second);
+	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("float", NSGetLastServerInfoTime, "", "Returns the time when the last server info packet was received.", ScriptContext::UI)
+{
+	float currentTime = Plat_FloatTime();
+	g_pSquirrel<context>->pushfloat(sqvm, g_LastReceivedServerInfoTime);
 	return SQRESULT_NOTNULL;
 }

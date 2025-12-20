@@ -22,6 +22,7 @@ extern char g_szLastServerInfoName[256];
 extern bool g_bNextServerAuthUs;
 extern bool g_bNextServerAllowingAuthUs;
 extern std::unordered_map<int, float> g_LastNotifyTimes;
+extern float g_LastReceivedServerInfoTime;
 
 enum class NetMessageType : int
 {

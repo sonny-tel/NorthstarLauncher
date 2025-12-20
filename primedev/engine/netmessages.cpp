@@ -7,6 +7,7 @@ bool g_bNextServerAuthUs = false;
 bool g_bNextServerAllowingAuthUs = false;
 
 std::unordered_map<int, float> g_LastNotifyTimes;
+float g_LastReceivedServerInfoTime = 0.0f;
 
 AUTOHOOK_INIT()
 
