@@ -113,11 +113,13 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
                 g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer = false;
                 g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
 
+				const char* password = g_pCVar->FindVar("ns_last_server_password")->GetString();
+
 				g_pMasterServerManager->AuthenticateWithServer(
 					g_pLocalPlayerUserID,
 					g_pMasterServerManager->m_sOwnClientAuthToken,
 					g_pMasterServerManager->m_vRemoteServers[index],
-					"");
+					password);
 
 				while(!g_pMasterServerManager->m_bHasPendingConnectionInfo && Plat_FloatTime() - startTime < 10.0f)
 					Sleep(100);
@@ -322,11 +324,13 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
                 g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer = false;
                 g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
 
+				const char* password = g_pCVar->FindVar("ns_last_server_password")->GetString();
+
 				g_pMasterServerManager->AuthenticateWithServer(
 					g_pLocalPlayerUserID,
 					g_pMasterServerManager->m_sOwnClientAuthToken,
 					g_pMasterServerManager->m_vRemoteServers[index],
-					"");
+					password);
 
 				while(!g_pMasterServerManager->m_bHasPendingConnectionInfo &&
 					  Plat_FloatTime() - startTime < 10.0f)

@@ -29,6 +29,7 @@ MasterServerManager* g_pMasterServerManager;
 ConVar* Cvar_ns_masterserver_hostname;
 ConVar* Cvar_ns_curl_log_enable;
 ConVar* Cvar_ns_server_auth_mode;
+ConVar* Cvar_ns_last_server_password;
 
 RemoteServerInfo::RemoteServerInfo(
 	const char* newId,
@@ -789,6 +790,7 @@ void MasterServerManager::AuthenticateWithServer(const char* uid, const char* pl
 				m_pendingConnectionInfo.serverId = serverIdStr;
 
 				g_pCVar->FindVar("ns_server_auth_mode")->SetValue(serverIdStr.c_str());
+				g_pCVar->FindVar("ns_last_server_password")->SetValue(passwordStr.c_str());
 
 				strncpy_s(
 					m_pendingConnectionInfo.authToken,
@@ -1166,6 +1168,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 	Cvar_ns_masterserver_hostname = new ConVar("ns_masterserver_hostname", "127.0.0.1", FCVAR_NONE, "");
 	Cvar_ns_curl_log_enable = new ConVar("ns_curl_log_enable", "0", FCVAR_NONE, "Whether curl should log to the console");
 	Cvar_ns_server_auth_mode = new ConVar("ns_server_auth_mode", "", FCVAR_NONE, "The last used server authentication mode");
+	Cvar_ns_last_server_password = new ConVar("ns_last_server_password", "", FCVAR_NONE, "The last used server password");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
 	RegisterConCommand("ns_try_join_serverid", ConCommand_ns_try_join_serverid, "Try to join a server by its id", FCVAR_CLIENTDLL);
