@@ -53,7 +53,10 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
 
 	if(mode == "matchmaking" || !g_bRetryingConnection)
+	{
+		g_pCVar->FindVar("ns_server_auth_mode")->SetValue("direct");
 		return concommand_connect(args);
+	}
 
 	g_bRetryingConnection = false;
 
@@ -266,7 +269,10 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
 
 	if(mode == "matchmaking" || !g_bRetryingConnection)
+	{
+		g_pCVar->FindVar("ns_server_auth_mode")->SetValue("direct");
 		return connectWithKey(args);
+	}
 
 	g_bRetryingConnection = false;
 
