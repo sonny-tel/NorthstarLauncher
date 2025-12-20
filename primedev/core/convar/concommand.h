@@ -14,6 +14,7 @@ class CCommand
 {
 public:
 	CCommand() = delete;
+	CCommand(const CCommand& other);
 
 	int64_t ArgC() const;
 	const char** ArgV() const;
@@ -37,6 +38,30 @@ private:
 	char m_pArgvBuffer[COMMAND_MAX_LENGTH];
 	const char* m_ppArgv[COMMAND_MAX_ARGC];
 };
+
+inline CCommand::CCommand(const CCommand& other)
+{
+    m_nArgc = other.m_nArgc;
+    m_nArgv0Size = other.m_nArgv0Size;
+
+    std::memcpy(m_pArgSBuffer, other.m_pArgSBuffer, sizeof(m_pArgSBuffer));
+    std::memcpy(m_pArgvBuffer, other.m_pArgvBuffer, sizeof(m_pArgvBuffer));
+
+    for (int i = 0; i < COMMAND_MAX_ARGC; ++i)
+    {
+        if (!other.m_ppArgv[i])
+        {
+            m_ppArgv[i] = nullptr;
+            continue;
+        }
+
+        ptrdiff_t offset = other.m_ppArgv[i] - other.m_pArgvBuffer;
+        if (offset >= 0 && offset < COMMAND_MAX_LENGTH)
+            m_ppArgv[i] = m_pArgvBuffer + offset;
+        else
+            m_ppArgv[i] = nullptr;
+    }
+}
 
 inline int CCommand::MaxCommandLength()
 {

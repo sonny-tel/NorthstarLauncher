@@ -28,7 +28,7 @@ MasterServerManager* g_pMasterServerManager;
 
 ConVar* Cvar_ns_masterserver_hostname;
 ConVar* Cvar_ns_curl_log_enable;
-ConVar* Cvar_ns_last_tried_server_id;
+ConVar* Cvar_ns_server_auth_mode;
 
 RemoteServerInfo::RemoteServerInfo(
 	const char* newId,
@@ -651,6 +651,7 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 				}
 				else
 				{
+					g_pCVar->FindVar("ns_server_auth_mode")->SetValue(authInfoJson["id"].GetString());
 					g_pServerAuthentication->m_RemoteAuthenticationData.clear();
 				}
 
@@ -786,6 +787,8 @@ void MasterServerManager::AuthenticateWithServer(const char* uid, const char* pl
 				m_pendingConnectionInfo.ip.S_un.S_addr = inet_addr(connectionInfoJson["ip"].GetString());
 				m_pendingConnectionInfo.port = (unsigned short)connectionInfoJson["port"].GetUint();
 				m_pendingConnectionInfo.serverId = serverIdStr;
+
+				g_pCVar->FindVar("ns_server_auth_mode")->SetValue(serverIdStr.c_str());
 
 				strncpy_s(
 					m_pendingConnectionInfo.authToken,
@@ -1123,7 +1126,7 @@ void ConCommand_ns_try_join_serverid(const CCommand& args)
 
 			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
 
-			g_pCVar->FindVar("ns_last_tried_server_id")->SetValue(info.serverId.c_str());
+			g_pCVar->FindVar("ns_server_auth_mode")->SetValue(info.serverId.c_str());
 
 			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
 			Cbuf_AddText(
@@ -1162,7 +1165,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 
 	Cvar_ns_masterserver_hostname = new ConVar("ns_masterserver_hostname", "127.0.0.1", FCVAR_NONE, "");
 	Cvar_ns_curl_log_enable = new ConVar("ns_curl_log_enable", "0", FCVAR_NONE, "Whether curl should log to the console");
-	Cvar_ns_last_tried_server_id = new ConVar("ns_last_tried_server_id", "", FCVAR_NONE, "The last server id that was tried to connect to");
+	Cvar_ns_server_auth_mode = new ConVar("ns_server_auth_mode", "", FCVAR_NONE, "The last used server authentication mode");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
 	RegisterConCommand("ns_try_join_serverid", ConCommand_ns_try_join_serverid, "Try to join a server by its id", FCVAR_CLIENTDLL);

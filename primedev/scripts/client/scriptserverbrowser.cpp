@@ -132,8 +132,6 @@ ADD_SQFUNC("void", NSConnectToAuthedServer, "", "", ScriptContext::UI)
 
 	RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
 
-	g_pCVar->FindVar("ns_last_tried_server_id")->SetValue(info.serverId.c_str());
-
 	// set auth token, then try to connect
 	// i'm honestly not entirely sure how silentconnect works regarding ports and encryption so using connect for now
 	g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);

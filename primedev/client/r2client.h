@@ -144,7 +144,8 @@ public:
 	char pad_0275[3]; //0x0275
 	int32_t m_nTeam; //0x0278 m_nTeam
 	int32_t m_nMaxClients; //0x027C m_nMaxClients
-	char pad_0280[8]; //0x0280
+	char pad_0280[4]; //0x0280
+	int m_nNumPlayersToConnect; //0x0284
 	float m_flTickTime; //0x0288 m_flTickTime
 	float m_flOldTickTime; //0x028C m_flOldTickTime
 	char pad_0290[4]; //0x0290

@@ -261,6 +261,7 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 
 	if(authingIncomingClient)
 	{
+		spdlog::info("Authenticating incoming client {}", uid);
 		// HACK: this is really bad but there's no way to auth without being on the server browser
 		g_pMasterServerManager->AuthenticateWithOwnServer(uid, token, packet->adr);
 	}

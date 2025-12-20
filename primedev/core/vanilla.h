@@ -25,4 +25,4 @@ private:
 	CompatibilityMode m_bLastCompatabilityMode = CompatibilityMode::Vanilla;
 };
 
-extern VanillaCompatibility* g_pVanillaCompatibility;
+inline VanillaCompatibility* g_pVanillaCompatibility;

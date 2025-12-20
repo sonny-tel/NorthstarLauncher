@@ -28,12 +28,11 @@ AUTOHOOK(CClientState__ProcessConnectionlessPacket, engine.dll + 0x19F400, bool,
 			case S2C_MODDOWNLOADINFO:
 				return g_pModDownloader->RecvModInfoConnectionlessPacket(msg);
 			case S2A_CUSTOMSERVERINFO:
-				if(!g_bListeningforCustomServerInfoPacket)
-					break;
-
 				version = msg.ReadLong();
 				if(version != CUSTOMSERVERINFO_VERSION)
 					break;
+
+				g_LastReceivedServerInfoTime = Plat_FloatTime();
 
 				msg.ReadChar(); // marker
 				if(!msg.ReadString(g_szLastServerInfoName, sizeof(g_szLastServerInfoName)))
@@ -58,6 +57,7 @@ AUTOHOOK(CClientState__ProcessConnectionlessPacket, engine.dll + 0x19F400, bool,
 				return true;
 			case S2C_CLIENTNOTIFY:
 				version = msg.ReadLong();
+				spdlog::info("Received client notify packet, version {}", version);
 				if(version != CLIENTNOTIFY_VERSION)
 					break;
 

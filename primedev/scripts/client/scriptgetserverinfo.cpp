@@ -4,6 +4,7 @@
 #include "masterserver/masterserver.h"
 #include "client/r2client.h"
 #include "core/tier0.h"
+#include "client/connect.h"
 
 ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, bool serverAuthUs", "", ScriptContext::UI)
 {
@@ -72,7 +73,12 @@ ADD_SQFUNC("float", NSGetLastAuthNotifyTime, "", "Returns the time when the last
 
 ADD_SQFUNC("float", NSGetLastServerInfoTime, "", "Returns the time when the last server info packet was received.", ScriptContext::UI)
 {
-	float currentTime = Plat_FloatTime();
 	g_pSquirrel<context>->pushfloat(sqvm, g_LastReceivedServerInfoTime);
 	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("void", NSMarkConnectingToServer, "bool state", "Skips the retry logic and marks that we're connecting to the server.", ScriptContext::UI)
+{
+	g_bConnectingToServer = g_pSquirrel<context>->getbool(sqvm, 1);
+	return SQRESULT_NULL;
 }
