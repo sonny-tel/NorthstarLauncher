@@ -7,6 +7,9 @@
 extern char* g_pLocalPlayerUserID;
 extern char* g_pLocalPlayerOriginToken;
 
+typedef void (__fastcall* CClientState__SendStringCmd_t)(const char*);
+extern CClientState__SendStringCmd_t CClientState__SendStringCmd;
+
 class CClientState;
 
 typedef CClientState* (*GetBaseLocalClientType)();
@@ -196,6 +199,8 @@ public:
 	bool m_bIsWatchingReplay;
 	int unk_probably_replay_related_or_pad;
 	bool m_bIsSpectatorReplay;
+
+	inline void SendStringCmd(const char* cmd) { CClientState__SendStringCmd(cmd); }
 
 	virtual ~CClientState();
 	virtual bool ProcessStringCmd(void* msg);
