@@ -12,8 +12,33 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 	SQInteger port = g_pSquirrel<context>->getinteger(sqvm, 2);
 	bool requestMods = g_pSquirrel<context>->getbool(sqvm, 3);
 	bool serverAuthUs = g_pSquirrel<context>->getbool(sqvm, 4);
+
+
 	std::string address = fmt::format("[{}]:{}", ip, port);
-	netadr_t addr = CNetAdr(address.c_str());
+	netadr_t addr = CNetAdr();
+
+
+	if (std::strchr(ip, ':') != nullptr)
+    {
+        // IPv6
+        in6_addr ipv6Addr{};
+        if (InetPtonA(AF_INET6, ip, &ipv6Addr) != 1)
+        {
+            spdlog::error("NSRequestServerInfo: invalid IPv6 address '{}'", ip);
+            return SQRESULT_NULL;
+        }
+
+        // assumes you have an overload/ctor like CNetAdr(const in6_addr&, uint16_t)
+        addr = CNetAdr();
+		addr.SetIP(&ipv6Addr);
+		addr.SetType(netadrtype_t::NA_IP);
+		addr.SetPort(static_cast<uint16_t>(port));
+    }
+	else
+	{
+		std::string address = fmt::format("[::ffff:{}]:{}", ip, port);
+		addr = CNetAdr(address.c_str());
+	}
 
 	g_bNextServerAllowingAuthUs = false;
 	g_bNextServerAuthUs = false;

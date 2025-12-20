@@ -637,7 +637,7 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 
 				std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);
 
-				if(!g_pLocalPlayerUserID && addr.GetType() == NA_IP)
+				if(addr.GetType() == NA_IP)
 				{
 					char notifyBuffer[256];
 					bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
