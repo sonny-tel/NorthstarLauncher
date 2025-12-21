@@ -4,6 +4,9 @@
 
 #define CONNECTIONLESS_HEADER 0xFFFFFFFF
 
+typedef const char*(__fastcall* netadr_s__GetEncryptionKey_t)(void* thisptr);
+extern netadr_s__GetEncryptionKey_t netadr_s__GetEncryptionKey;
+
 class CNetChan;
 
 typedef enum
@@ -47,6 +50,8 @@ public:
 	inline netadrtype_t	GetType(void) const { return type; }
 	inline uint16_t		GetPort(void) const { return port; }
 	inline const in6_addr* GetIP(void) const { return &ip; }
+	// not 100% if this is the encryption key but it's some sort of key definitely, and used in connectWithKey
+	inline const char* GetEncryptionKey(void) const { return netadr_s__GetEncryptionKey((void*)this); }
 
 	bool		CompareAdr(const CNetAdr& other) const;
 	inline bool	ComparePort(const CNetAdr& other) const { return port == other.port; }
