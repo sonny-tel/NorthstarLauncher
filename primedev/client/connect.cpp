@@ -14,7 +14,9 @@ void(__fastcall* SCR_EndLoadingPlaque)() = nullptr;
 bool g_bConnectingToServer = false;
 bool g_bRetryingConnection = false;
 
-bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)
+ConnectionManager* g_pConnectionManager = nullptr;
+
+bool ConnectionManager::ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)
 {
     ip.clear();
     port = -1;
@@ -97,6 +99,47 @@ bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& 
     return true;
 }
 
+void ConnectionManager::ConnectToLocalServer()
+{
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
+
+	EnsureAuthenticatedToMasterServer();
+
+	std::thread authThread([&]()
+		{
+			spdlog::info("Authenticating with own server for uid {}", g_pLocalPlayerUserID);
+
+			m_flConnectionStartTime = Plat_FloatTime();
+			float maxTime = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
+
+			g_pMasterServerManager->AuthenticateWithOwnServer(
+				g_pLocalPlayerUserID,
+				g_pMasterServerManager->m_sOwnClientAuthToken,
+				{});
+
+			while(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer &&
+				  Plat_FloatTime() - g_pConnectionManager->m_flConnectionStartTime < maxTime)
+				Sleep(100);
+
+			if(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
+			{
+				spdlog::error("Timed out authenticating with own server for uid {}", g_pLocalPlayerUserID);
+				SetFailed("Failed to authenticate with own server: timeout");
+				return;
+			}
+
+			if (g_pServerAuthentication->m_RemoteAuthenticationData.size())
+				g_pCVar->FindVar("serverfilter")->SetValue(g_pServerAuthentication->m_RemoteAuthenticationData.begin()->first.c_str());
+
+			m_bAuthSucessful = true;
+
+			if(m_bRetrying)
+				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
+		});
+
+	authThread.detach();
+}
+
 // clang-format off
 AUTOHOOK(matchmake, engine.dll + 0xF220, int*, __fastcall, ())
 // clang-format on
@@ -141,7 +184,7 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 	int port;
 	bool isV6 = false;
 
-	if(!ParseAddress(address, ipPart, port, isV6))
+	if(!g_pConnectionManager->ParseAddress(address, ipPart, port, isV6))
 		return concommand_connect(args);
 
 	spdlog::info("Parsed connect address: ip='{}', port={}, isV6={}", ipPart, port, isV6 ? "true" : "false");
@@ -367,7 +410,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 	int port;
 	bool isV6 = false;
 
-	if(!ParseAddress(address, ipPart, port, isV6))
+	if(!g_pConnectionManager->ParseAddress(address, ipPart, port, isV6))
 		return connectWithKey(args);
 
 	spdlog::info("Parsed connect address: ip='{}', port={}, isV6={}", ipPart, port, isV6 ? "true" : "false");
@@ -581,6 +624,8 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 ON_DLL_LOAD_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))
 {
 	AUTOHOOK_DISPATCH();
+
+	g_pConnectionManager = new ConnectionManager();
 
 	SCR_BeginLoadingPlaque = module.Offset(0xB92E0).RCast<decltype(SCR_BeginLoadingPlaque)>();
 	SCR_EndLoadingPlaque = module.Offset(0xB9470).RCast<decltype(SCR_EndLoadingPlaque)>();

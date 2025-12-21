@@ -9,6 +9,7 @@
 #include "net.h"
 char* (*GetIpStringFromClient)(int64_t a1);
 int (*NET_SendPacket)(CNetChan* pChan, int iSocket, const netadr_t* toAdr, const uint8_t* pData, unsigned int nLen, void* pVoicePayload, bool bCompress, int unMillisecondsDelay, bool bEncrypt);
+netadr_s__GetEncryptionKey_t netadr_s__GetEncryptionKey = nullptr;
 
 //////////////////////////////////////////////////////////////////////
 // Clears IP.
