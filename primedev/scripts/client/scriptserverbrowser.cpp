@@ -3,6 +3,7 @@
 #include "server/auth/serverauthentication.h"
 #include "engine/r2engine.h"
 #include "client/r2client.h"
+#include "client/connect.h"
 
 // functions for viewing server browser
 
@@ -247,4 +248,11 @@ ADD_SQFUNC("array<ServerInfo>", NSGetGameServers, "", "", ScriptContext::UI)
 		g_pSquirrel<context>->arrayappend(sqvm, -2);
 	}
 	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("void", NSCancelConnection, "", "", ScriptContext::UI)
+{
+	NOTE_UNUSED(sqvm);
+	g_pConnectionManager->Interrupt();
+	return SQRESULT_NULL;
 }

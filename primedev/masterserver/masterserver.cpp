@@ -637,11 +637,9 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 
 				std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);
 
-				spdlog::info("Successfully authenticated with own server, sending client notify");
-
 				if(addr.GetType() == NA_IP)
 				{
-					spdlog::info("Sending client notify");
+					spdlog::info("Sending client auth notify");
 					char notifyBuffer[256];
 					bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
 					notifyWriteBuffer.WriteLong(CONNECTIONLESS_HEADER);
