@@ -24,11 +24,11 @@ public:
 
 ADD_SQFUNC("void", Hud_DialogList_RemoveListItems, "var elem", "", ScriptContext::UI)
 {
-	CClientScriptHudElement* hudElement = g_pSquirrel<context>->gethudelement<CClientScriptHudElement>(sqvm, 1);
+	CClientScriptHudElement* hudElement = g_pSquirrel[context]->gethudelement<CClientScriptHudElement>(sqvm, 1);
 
 	if (!hudElement)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, "First parameter is not a hud element");
+		g_pSquirrel[context]->raiseerror(sqvm, "First parameter is not a hud element");
 		return SQRESULT_ERROR;
 	}
 
@@ -44,7 +44,7 @@ ADD_SQFUNC("void", Hud_DialogList_RemoveListItems, "var elem", "", ScriptContext
 
 	if (!isDialogListButton)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, fmt::format("No DialogListButton element with name '{}'.", name).c_str());
+		g_pSquirrel[context]->raiseerror(sqvm, fmt::format("No DialogListButton element with name '{}'.", name).c_str());
 		return SQRESULT_ERROR;
 	}
 
@@ -59,12 +59,12 @@ ADD_SQFUNC("void", Hud_DialogList_RemoveListItems, "var elem", "", ScriptContext
 
 ADD_SQFUNC("void", Hud_ChangeDialogListConVar, "var elem, string convarName", "", ScriptContext::UI)
 {
-	CClientScriptHudElement* hudElement = g_pSquirrel<context>->gethudelement<CClientScriptHudElement>(sqvm, 1);
-	const char* convarName = g_pSquirrel<context>->getstring(sqvm, 2);
+	CClientScriptHudElement* hudElement = g_pSquirrel[context]->gethudelement<CClientScriptHudElement>(sqvm, 1);
+	const char* convarName = g_pSquirrel[context]->getstring(sqvm, 2);
 
 	if (!hudElement)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, "First parameter is not a hud element");
+		g_pSquirrel[context]->raiseerror(sqvm, "First parameter is not a hud element");
 		return SQRESULT_ERROR;
 	}
 
@@ -80,7 +80,7 @@ ADD_SQFUNC("void", Hud_ChangeDialogListConVar, "var elem, string convarName", ""
 
 	if (!isDialogListButton)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, fmt::format("No DialogListButton element with name '{}'.", name).c_str());
+		g_pSquirrel[context]->raiseerror(sqvm, fmt::format("No DialogListButton element with name '{}'.", name).c_str());
 		return SQRESULT_ERROR;
 	}
 

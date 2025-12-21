@@ -40,7 +40,7 @@ void ConnectionManager::InvokeConnectionStartCallbacks()
 {
 	bool scriptManagedLoading = !m_bUseSCRPlaque;
 
-	g_pSquirrel<ScriptContext::UI>->Call("NSUICodeCallback_ConnectionStarted", scriptManagedLoading);
+	g_pSquirrel[ScriptContext::UI]->Call("NSUICodeCallback_ConnectionStarted", scriptManagedLoading);
 }
 
 bool ConnectionManager::ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)

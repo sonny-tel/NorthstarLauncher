@@ -6,21 +6,21 @@ ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 	auto& eosLayer = eos::EosLayer::Instance();
 	if(!eosLayer.IsInitialized() || !eosLayer.IsReady())
 	{
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
 	eos::FakeIpLayer* ipLayer = eosLayer.GetFakeIpLayer();
 	if (!ipLayer)
 	{
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
 	const eos::FakeEndpoint& endpoint = ipLayer->GetLocalEndpoint();
 	if (!endpoint.IsValid())
 	{
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
@@ -28,7 +28,7 @@ ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 	inet_ntop(AF_INET6, &endpoint.address, addrStr, sizeof(addrStr));
 	std::string result = fmt::format("{}", addrStr);
 
-	g_pSquirrel<context>->pushstring(sqvm, result.c_str());
+	g_pSquirrel[context]->pushstring(sqvm, result.c_str());
 	return SQRESULT_NOTNULL;
 }
 
@@ -38,24 +38,24 @@ ADD_SQFUNC("int", NSGetLocalP2PEndpointPort, "", "", ScriptContext::UI)
 
 	if(!eosLayer.IsInitialized() || !eosLayer.IsReady())
 	{
-		g_pSquirrel<context>->pushinteger(sqvm, 0);
+		g_pSquirrel[context]->pushinteger(sqvm, 0);
 		return SQRESULT_NOTNULL;
 	}
 
 	eos::FakeIpLayer* ipLayer = eosLayer.GetFakeIpLayer();
 	if (!ipLayer)
 	{
-		g_pSquirrel<context>->pushinteger(sqvm, 0);
+		g_pSquirrel[context]->pushinteger(sqvm, 0);
 		return SQRESULT_NOTNULL;
 	}
 
 	const eos::FakeEndpoint& endpoint = ipLayer->GetLocalEndpoint();
 	if (!endpoint.IsValid())
 	{
-		g_pSquirrel<context>->pushinteger(sqvm, 0);
+		g_pSquirrel[context]->pushinteger(sqvm, 0);
 		return SQRESULT_NOTNULL;
 	}
 
-	g_pSquirrel<context>->pushinteger(sqvm, endpoint.port);
+	g_pSquirrel[context]->pushinteger(sqvm, endpoint.port);
 	return SQRESULT_NOTNULL;
 }

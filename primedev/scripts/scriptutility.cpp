@@ -10,7 +10,7 @@ ADD_SQFUNC(
 	"converts a given string to an asset",
 	ScriptContext::UI | ScriptContext::CLIENT | ScriptContext::SERVER)
 {
-	g_pSquirrel<context>->pushasset(sqvm, g_pSquirrel<context>->getstring(sqvm, 1), -1);
+	g_pSquirrel[context]->pushasset(sqvm, g_pSquirrel[context]->getstring(sqvm, 1), -1);
 	return SQRESULT_NOTNULL;
 }
 
@@ -20,7 +20,7 @@ ADD_SQFUNC(
 {
 	if (g_pLocalPlayerUserID)
 	{
-		g_pSquirrel<context>->pushstring(sqvm, g_pLocalPlayerUserID);
+		g_pSquirrel[context]->pushstring(sqvm, g_pLocalPlayerUserID);
 		return SQRESULT_NOTNULL;
 	}
 
@@ -34,23 +34,23 @@ ADD_SQFUNC(
 	"Returns convar's default value as a string",
 	ScriptContext::UI | ScriptContext::CLIENT | ScriptContext::SERVER)
 {
-	const char* convarName = g_pSquirrel<context>->getstring(sqvm, 1);
+	const char* convarName = g_pSquirrel[context]->getstring(sqvm, 1);
 	if (!convarName)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, "ConVar name is null");
+		g_pSquirrel[context]->raiseerror(sqvm, "ConVar name is null");
 		return SQRESULT_ERROR;
 	}
 
 	auto convar = g_pCVar->FindVar(convarName);
 	if (!convar)
 	{
-		g_pSquirrel<context>->raiseerror(sqvm, fmt::format("ConVar '{}' not found", convarName).c_str());
+		g_pSquirrel[context]->raiseerror(sqvm, fmt::format("ConVar '{}' not found", convarName).c_str());
 		return SQRESULT_ERROR;
 	}
 
 	const char* defaultValue = convar->m_pszDefaultValue;
 
-	g_pSquirrel<context>->pushstring(sqvm, defaultValue);
+	g_pSquirrel[context]->pushstring(sqvm, defaultValue);
 
 	return SQRESULT_NOTNULL;
 }
@@ -59,10 +59,10 @@ ADD_SQFUNC("bool", NSIsListenServer, "", "Returns true if the current context is
 {
 	if(g_pServerState && *g_pServerState > ss_dead)
 	{
-		g_pSquirrel<context>->pushbool(sqvm, true);
+		g_pSquirrel[context]->pushbool(sqvm, true);
 		return SQRESULT_NOTNULL;
 	}
 
-	g_pSquirrel<context>->pushbool(sqvm, false);
+	g_pSquirrel[context]->pushbool(sqvm, false);
 	return SQRESULT_NOTNULL;
 }

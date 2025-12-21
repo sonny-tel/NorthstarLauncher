@@ -2,7 +2,7 @@
 
 ADD_SQFUNC("void", NSCopyToClipboard, "string text", "", ScriptContext::UI)
 {
-	const SQChar* text = g_pSquirrel<context>->getstring(sqvm, 1);
+	const SQChar* text = g_pSquirrel[context]->getstring(sqvm, 1);
 
 	if (!OpenClipboard(nullptr))
 		return SQRESULT_NULL;
@@ -35,7 +35,7 @@ ADD_SQFUNC("string", NSPasteFromClipboard, "", "", ScriptContext::UI)
 {
 	if (!OpenClipboard(nullptr))
 	{
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
@@ -43,7 +43,7 @@ ADD_SQFUNC("string", NSPasteFromClipboard, "", "", ScriptContext::UI)
 	if (hData == nullptr)
 	{
 		CloseClipboard();
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
@@ -51,7 +51,7 @@ ADD_SQFUNC("string", NSPasteFromClipboard, "", "", ScriptContext::UI)
 	if (pText == nullptr)
 	{
 		CloseClipboard();
-		g_pSquirrel<context>->pushstring(sqvm, "");
+		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
 
@@ -60,6 +60,6 @@ ADD_SQFUNC("string", NSPasteFromClipboard, "", "", ScriptContext::UI)
 	GlobalUnlock(hData);
 	CloseClipboard();
 
-	g_pSquirrel<context>->pushstring(sqvm, result.c_str());
+	g_pSquirrel[context]->pushstring(sqvm, result.c_str());
 	return SQRESULT_NOTNULL;
 }

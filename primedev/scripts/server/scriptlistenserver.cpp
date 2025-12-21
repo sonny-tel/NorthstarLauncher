@@ -20,7 +20,7 @@ ADD_SQFUNC(
 	"Returns whether the listen server should clear playlist overrides.",
 	ScriptContext::SERVER)
 {
-	g_pSquirrel<context>->pushbool(sqvm, g_bNSClearPlaylistOverrides);
+	g_pSquirrel[context]->pushbool(sqvm, g_bNSClearPlaylistOverrides);
 	g_bNSClearPlaylistOverrides = false;
 	return SQRESULT_NOTNULL;
 }

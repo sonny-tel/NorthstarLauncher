@@ -3,7 +3,7 @@
 
 ADD_SQFUNC("bool", Demo_IsPlayingBack, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushbool(sqvm, s_ClientDemoPlayer->IsPlayingBack());
+	g_pSquirrel[context]->pushbool(sqvm, s_ClientDemoPlayer->IsPlayingBack());
 	return SQRESULT_NOTNULL;
 }
 
@@ -23,14 +23,14 @@ ADD_SQFUNC("void", Demo_TogglePause, "", "", ScriptContext::UI)
 
 ADD_SQFUNC("int", Demo_GetPlaybackTick, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushinteger(sqvm, s_ClientDemoPlayer->GetPlaybackTick());
+	g_pSquirrel[context]->pushinteger(sqvm, s_ClientDemoPlayer->GetPlaybackTick());
 
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("int", Demo_GetTotalTicks, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushinteger(sqvm, s_ClientDemoPlayer->GetTotalTicks());
+	g_pSquirrel[context]->pushinteger(sqvm, s_ClientDemoPlayer->GetTotalTicks());
 
 	return SQRESULT_NOTNULL;
 }
@@ -39,7 +39,7 @@ std::vector<char*> buf;
 
 ADD_SQFUNC("array<string>", Demo_GetDemoFiles, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->newarray(sqvm, 0);
+	g_pSquirrel[context]->newarray(sqvm, 0);
 
 	for (char* item : buf)
 		delete item;
@@ -54,8 +54,8 @@ ADD_SQFUNC("array<string>", Demo_GetDemoFiles, "", "", ScriptContext::UI)
 			strcpy(buff_entry, entry.path().filename().string().c_str());
 			buf.push_back(buff_entry);
 
-			g_pSquirrel<context>->pushstring(sqvm, buff_entry);
-			g_pSquirrel<context>->arrayappend(sqvm, -2);
+			g_pSquirrel[context]->pushstring(sqvm, buff_entry);
+			g_pSquirrel[context]->arrayappend(sqvm, -2);
 		}
 	}
 
