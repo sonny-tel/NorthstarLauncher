@@ -11,6 +11,7 @@
 #include "squirrel/squirrel.h"
 #include "core/vanilla.h"
 #include "mods/autodownload/moddownloader.h"
+#include "eos/eos_layer.h"
 
 CHostState* g_pHostState;
 
@@ -155,6 +156,10 @@ static void __fastcall h_CHostState__State_GameShutdown(CHostState* self)
 
 		sLastMode.clear();
 	}
+
+	auto& layer = eos::EosLayer::Instance();
+	if(layer.GetFakeIpLayer() != nullptr)
+		layer.GetFakeIpLayer()->Clear();
 }
 
 static void(__fastcall* o_pCHostState__FrameUpdate)(CHostState* self, double flCurrentTime, float flFrameTime) = nullptr;

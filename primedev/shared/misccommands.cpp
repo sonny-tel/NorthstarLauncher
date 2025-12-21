@@ -356,6 +356,7 @@ void FixupCvarFlags()
 		{"not_focus_sleep", FCVAR_DEVELOPMENTONLY},
 		{"sp_not_focus_pause", FCVAR_DEVELOPMENTONLY},
 		{"joy_requireFocus", FCVAR_DEVELOPMENTONLY},
+		{"encrypt_multiKey", FCVAR_DEVELOPMENTONLY},
 
 		{"host_thread_mode", FCVAR_DEVELOPMENTONLY},
 		{"phys_enable_simd_optimizations", FCVAR_DEVELOPMENTONLY},

@@ -32,7 +32,7 @@ AUTOHOOK(CClientState__ProcessConnectionlessPacket, engine.dll + 0x19F400, bool,
 				if(version != CUSTOMSERVERINFO_VERSION)
 					break;
 
-				g_LastReceivedServerInfoTime = Plat_FloatTime();
+				g_bReceivedServerInfo = true;
 
 				msg.ReadChar(); // marker
 				if(!msg.ReadString(g_szLastServerInfoName, sizeof(g_szLastServerInfoName)))
@@ -65,7 +65,7 @@ AUTOHOOK(CClientState__ProcessConnectionlessPacket, engine.dll + 0x19F400, bool,
 				serverNotifyTime = msg.ReadFloat();
 				clientNotifyTime = Plat_FloatTime();
 
-				g_LastNotifyTimes[notifyType] = clientNotifyTime;
+				g_bReceivedAuthNotify = true;
 
 				switch(notifyType)
 				{

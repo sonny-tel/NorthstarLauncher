@@ -18,6 +18,10 @@
 
 ConVar* ns_allow_eos = nullptr;
 
+std::mutex g_socketRouteMutex;
+std::unordered_map<SOCKET, eos::PacketRoute> g_socketRoutes;
+std::unordered_map<SOCKET, bool> g_fakeIpRecvSockets;
+
 namespace
 {
 
@@ -44,9 +48,6 @@ LPVOID g_sendToTarget = nullptr;
 LPVOID g_recvFromTarget = nullptr;
 LPVOID g_closeSocketTarget = nullptr;
 bool g_hooksInstalled = false;
-std::mutex g_socketRouteMutex;
-std::unordered_map<SOCKET, eos::PacketRoute> g_socketRoutes;
-std::unordered_map<SOCKET, bool> g_fakeIpRecvSockets;
 
 bool ExtractFakeEndpoint(const sockaddr* address, eos::FakeEndpoint& outEndpoint)
 {

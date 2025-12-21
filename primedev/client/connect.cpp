@@ -14,6 +14,89 @@ void(__fastcall* SCR_EndLoadingPlaque)() = nullptr;
 bool g_bConnectingToServer = false;
 bool g_bRetryingConnection = false;
 
+bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)
+{
+    ip.clear();
+    port = -1;
+    isV6 = false;
+
+    std::string s = address;
+
+    // trim
+    const auto begin = s.find_first_not_of(" \t");
+    if (begin == std::string::npos)
+        return false;
+    const auto end = s.find_last_not_of(" \t");
+    s = s.substr(begin, end - begin + 1);
+
+    if (s.empty())
+        return false;
+
+    // [v6] or [v6]:port
+    if (s.front() == '[')
+    {
+        const auto close = s.find(']');
+        if (close == std::string::npos)
+            return false;
+
+        ip = s.substr(1, close - 1);
+
+        if (close + 1 < s.size() && s[close + 1] == ':')
+        {
+            const std::string portStr = s.substr(close + 2);
+            if (!portStr.empty())
+            {
+                try { port = std::stoi(portStr); }
+                catch (...) { port = -1; }
+            }
+        }
+    }
+    else
+    {
+        // host:port (single ':') OR bare v6 / v4
+        const auto firstColon = s.find(':');
+        const auto lastColon  = s.rfind(':');
+
+        if (firstColon != std::string::npos && firstColon == lastColon)
+        {
+            ip = s.substr(0, firstColon);
+            const std::string portStr = s.substr(firstColon + 1);
+            if (!portStr.empty())
+            {
+                try { port = std::stoi(portStr); }
+                catch (...) { port = -1; }
+            }
+        }
+        else
+        {
+            // bare IP (v4 or v6, or v4-mapped)
+            ip = s;
+        }
+    }
+
+    if (ip.empty())
+        return false;
+
+    // Decide if it's real IPv6. Treat ::ffff:a.b.c.d as IPv4 (not v6).
+    if (ip.find(':') != std::string::npos)
+    {
+        const std::string prefix = "::ffff:";
+        if (ip.rfind(prefix, 0) == 0)
+        {
+            std::string rest = ip.substr(prefix.size());
+            // v4-mapped form ::ffff:a.b.c.d -> NOT v6
+            if (!(rest.find('.') != std::string::npos && rest.find(':') == std::string::npos))
+                isV6 = true; // some other IPv6, or non‑standard form
+        }
+        else
+        {
+            isV6 = true; // normal IPv6
+        }
+    }
+
+    return true;
+}
+
 // clang-format off
 AUTOHOOK(matchmake, engine.dll + 0xF220, int*, __fastcall, ())
 // clang-format on
@@ -51,6 +134,17 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
+
+	std::string address = args->Arg(1);
+
+	std::string ipPart;
+	int port;
+	bool isV6 = false;
+
+	if(!ParseAddress(address, ipPart, port, isV6))
+		return concommand_connect(args);
+
+	spdlog::info("Parsed connect address: ip='{}', port={}, isV6={}", ipPart, port, isV6 ? "true" : "false");
 
 	if(mode == "matchmaking" || !g_bRetryingConnection)
 	{
@@ -174,6 +268,12 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 		std::thread authThread(
 			[mode, copyArgs]()
 			{
+
+			char dummyBuf[32];
+			bf_write pkt(dummyBuf, sizeof(dummyBuf));
+			pkt.WriteLong(CONNECTIONLESS_HEADER);
+			// send
+
 			char buffer[256];
 
 			bf_write msg(buffer, sizeof(buffer));
@@ -215,7 +315,7 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
 			float startListeningTime = Plat_FloatTime();
 
-			while(g_LastReceivedServerInfoTime > startListeningTime && Plat_FloatTime() - startListeningTime < 5.0f)
+			while(!g_bReceivedServerInfo && Plat_FloatTime() - startListeningTime < 5.0f)
 				Sleep(100);
 
 			g_bNextServerAuthUs = false;
@@ -233,18 +333,11 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 			}
 
 			startListeningTime = Plat_FloatTime();
-			float notifyTime = -1.0f;
 
-			while(notifyTime > startListeningTime && Plat_FloatTime() - startListeningTime < 5.0f)
-			{
-				auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
-				if(it != g_LastNotifyTimes.end())
-					notifyTime = it->second;
-
+			while(!g_bReceivedAuthNotify && Plat_FloatTime() - startListeningTime < 5.0f)
 				Sleep(100);
-			}
 
-			if(notifyTime < startListeningTime)
+			if(!g_bReceivedAuthNotify)
 				spdlog::warn("Timed out waiting for authentication notify from server");
 
 			g_bConnectingToServer = true;
@@ -267,6 +360,18 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 // clang-format on
 {
 	std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
+
+	std::string address = args->Arg(1);
+
+	std::string ipPart;
+	int port;
+	bool isV6 = false;
+
+	if(!ParseAddress(address, ipPart, port, isV6))
+		return connectWithKey(args);
+
+	spdlog::info("Parsed connect address: ip='{}', port={}, isV6={}", ipPart, port, isV6 ? "true" : "false");
+
 
 	if(mode == "matchmaking" || !g_bRetryingConnection)
 	{
@@ -433,7 +538,7 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 			float startListeningTime = Plat_FloatTime();
 
-			while(g_LastReceivedServerInfoTime > startListeningTime && Plat_FloatTime() - startListeningTime < 2.5f)
+			while(!g_bReceivedServerInfo && Plat_FloatTime() - startListeningTime < 2.5f)
 				Sleep(100);
 
 			g_bNextServerAuthUs = false;
@@ -451,18 +556,11 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 			}
 
 			startListeningTime = Plat_FloatTime();
-			float notifyTime = -1.0f;
 
-			while(notifyTime > startListeningTime && Plat_FloatTime() - startListeningTime < 10.0f)
-			{
-				auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
-				if(it != g_LastNotifyTimes.end())
-					notifyTime = it->second;
-
+			while(!g_bReceivedAuthNotify && Plat_FloatTime() - startListeningTime < 5.0f)
 				Sleep(100);
-			}
 
-			if(notifyTime < startListeningTime)
+			if(!g_bReceivedAuthNotify)
 				spdlog::warn("Timed out waiting for authentication notify from server");
 
 			g_bConnectingToServer = true;

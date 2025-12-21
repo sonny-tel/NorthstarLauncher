@@ -13,11 +13,8 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 	bool requestMods = g_pSquirrel<context>->getbool(sqvm, 3);
 	bool serverAuthUs = g_pSquirrel<context>->getbool(sqvm, 4);
 
-	g_LastReceivedServerInfoTime = -1.0f;
-
-	auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
-	if(it == g_LastNotifyTimes.end())
-		g_LastNotifyTimes.erase(NOTIFY_AUTHENTICATED);
+	g_bReceivedServerInfo = false;
+	g_bReceivedAuthNotify = false;
 
 	std::string address = fmt::format("[{}]:{}", ip, port);
 	netadr_t addr = CNetAdr();
@@ -38,6 +35,11 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 		addr.SetIP(&ipv6Addr);
 		addr.SetType(netadrtype_t::NA_IP);
 		addr.SetPort(static_cast<uint16_t>(port));
+
+		char dummyPackBuf[32];
+		bf_write dummyPack(dummyPackBuf, sizeof(dummyPackBuf));
+		dummyPack.WriteLong(CONNECTIONLESS_HEADER);
+		NET_SendPacket(nullptr, NS_CLIENT, &addr, dummyPack.GetData(), dummyPack.GetNumBytesWritten(), nullptr, false, 0, true);
     }
 	else
 	{
@@ -88,22 +90,15 @@ ADD_SQFUNC("string", NSGetNameFromServerInfo, "", "Returns the name from the las
 	return SQRESULT_NOTNULL;
 }
 
-ADD_SQFUNC("float", NSGetLastAuthNotifyTime, "", "Returns the time when the last auth notify was received from the server.", ScriptContext::UI)
+ADD_SQFUNC("bool", NSReceivedAuthNotify, "", "", ScriptContext::UI)
 {
-	auto it = g_LastNotifyTimes.find(NOTIFY_AUTHENTICATED);
-	if(it == g_LastNotifyTimes.end())
-	{
-		g_pSquirrel<context>->pushfloat(sqvm, -1.0f);
-		return SQRESULT_NOTNULL;
-	}
-
-	g_pSquirrel<context>->pushfloat(sqvm, it->second);
+	g_pSquirrel<context>->pushbool(sqvm, g_bReceivedAuthNotify);
 	return SQRESULT_NOTNULL;
 }
 
-ADD_SQFUNC("float", NSGetLastServerInfoTime, "", "Returns the time when the last server info packet was received.", ScriptContext::UI)
+ADD_SQFUNC("bool", NSReceivedServerInfo, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushfloat(sqvm, g_LastReceivedServerInfoTime);
+	g_pSquirrel<context>->pushbool(sqvm, g_bReceivedServerInfo);
 	return SQRESULT_NOTNULL;
 }
 

@@ -7,6 +7,7 @@
 #include "server/serverpresence.h"
 #include "shared/playlist.h"
 #include "mods/autodownload/moddownloader.h"
+#include "core/tier0.h"
 
 #include <string>
 #include <thread>

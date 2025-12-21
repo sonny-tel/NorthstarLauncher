@@ -637,8 +637,11 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 
 				std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);
 
+				spdlog::info("Successfully authenticated with own server, sending client notify");
+
 				if(addr.GetType() == NA_IP)
 				{
+					spdlog::info("Sending client notify");
 					char notifyBuffer[256];
 					bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
 					notifyWriteBuffer.WriteLong(CONNECTIONLESS_HEADER);
@@ -656,7 +659,8 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 					g_pServerAuthentication->m_RemoteAuthenticationData.clear();
 				}
 
-				g_pServerAuthentication->m_RemoteAuthenticationData[authInfoJson["authToken"].GetString()] = newAuthData;
+				g_pServerAuthentication->m_RemoteAuthenticationData.insert(
+					std::make_pair(authInfoJson["authToken"].GetString(), newAuthData));
 
 				m_bSuccessfullyAuthenticatedWithGameServer = true;
 

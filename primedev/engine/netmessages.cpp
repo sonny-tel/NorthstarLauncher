@@ -6,8 +6,8 @@ char g_szLastServerInfoName[256] = {0};
 bool g_bNextServerAuthUs = false;
 bool g_bNextServerAllowingAuthUs = false;
 
-std::unordered_map<int, float> g_LastNotifyTimes;
-float g_LastReceivedServerInfoTime = 0.0f;
+bool g_bReceivedAuthNotify = false;
+bool g_bReceivedServerInfo = false;
 
 AUTOHOOK_INIT()
 
