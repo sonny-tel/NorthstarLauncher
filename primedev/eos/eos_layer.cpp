@@ -440,13 +440,21 @@ bool EosLayer::WaitForLogin(std::future<LoginCallbackPayload>& future,
 void EosLayer::PumpOnce()
 {
     std::lock_guard guard(m_tickMutex);
-    if (m_platformHandle)
+    try
     {
-        SdkLock lock(GetSdkMutex());
-        EOS_Platform_Tick(m_platformHandle);
+        if (m_platformHandle)
+        {
+            SdkLock lock(GetSdkMutex());
+            EOS_Platform_Tick(m_platformHandle);
+        }
+        if (m_fakeIpLayer)
+            m_fakeIpLayer->PumpIncoming();
     }
-    if (m_fakeIpLayer)
-        m_fakeIpLayer->PumpIncoming();
+    catch (const std::exception& e)
+    {
+        NS::log::EOS->error("Exception in PumpOnce: {}", e.what());
+        throw;
+    }
 }
 
 void EosLayer::StartPumpThread()
