@@ -211,7 +211,21 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 		if(args.ArgC() == 3)
 			atoi(args.Arg(2)) == 1 ? scrPlaque = true : scrPlaque = false;
 
-		g_pConnectionManager->Connect(ConnectionManager::eConnectionMode::Direct, scrPlaque);
+		if(args.ArgC() < 2)
+		{
+			spdlog::warn("Map load failed: no map name provided");
+			return;
+		}
+
+		if (std::find_if(vMapList.begin(), vMapList.end(), [&](MapVPKInfo map) -> bool { return map.name == args.Arg(1); }) == vMapList.end())
+		{
+			spdlog::warn("Map load failed: {} not found or invalid", args.Arg(1));
+			return;
+		}
+
+		std::string map = args.Arg(1);
+
+		g_pConnectionManager->Connect(ConnectionManager::eConnectionMode::Direct, scrPlaque, map);
 		return;
 	}
 

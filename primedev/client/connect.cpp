@@ -126,6 +126,24 @@ bool ConnectionManager::ParseAddress(const std::string& address, std::string& ip
     return true;
 }
 
+ConnectionManager::eConnectionMode ConnectionManager::DetermineModeFromAddress(const std::string& address)
+{
+	if(address.find("localhost") != std::string::npos)
+		return eConnectionMode::LocalServer;
+
+	std::string ip;
+	int port;
+	bool isV6;
+
+	if(!ParseAddress(address, ip, port, isV6))
+		return eConnectionMode::Direct;
+
+	if(isV6)
+		return eConnectionMode::P2P;
+
+	return eConnectionMode::Direct;
+}
+
 void ConnectionManager::AuthenticateToMasterServer()
 {
 	if (g_pMasterServerManager->m_bOriginAuthWithMasterServerDone || g_pMasterServerManager->m_bOriginAuthWithMasterServerInProgress)
@@ -155,6 +173,9 @@ void ConnectionManager::AuthenticateToMasterServer()
 void ConnectionManager::ConnectToLocalServer()
 {
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
+
+	m_eLastMode = m_eCurrentMode;
+	m_eCurrentMode = eConnectionMode::LocalServer;
 
 	std::thread authThread([&]()
 		{
@@ -239,6 +260,7 @@ AUTOHOOK(retry, engine.dll + 0x73D10, int*, __fastcall, (__int64 a1))
 // clang-format on
 {
 	g_bRetryingConnection = true;
+	g_pConnectionManager->Retrying(true);
 	return retry(a1);
 }
 
@@ -478,6 +500,39 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand* args))
 // clang-format on
 {
+	if(!g_pConnectionManager->IsConnecting())
+	{
+		if(g_pVanillaCompatibility->GetVanillaCompatibility())
+		{
+			g_pConnectionManager->SetMatchmaking();
+			return connectWithKey(args);
+		}
+
+		const char* address = args->Arg(1);
+
+		auto mode = g_pConnectionManager->DetermineModeFromAddress(address);
+
+		int argCount = args->ArgC();
+		bool useSCRPlaque = true;
+
+		if(argCount == 4)
+			atoi(args->Arg(3)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
+
+		spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<int>(mode));
+
+		if(mode == ConnectionManager::eConnectionMode::LocalServer)
+		{
+			g_pConnectionManager->Connect(mode, useSCRPlaque);
+			return 0;
+		}
+	}
+
+	if(g_pConnectionManager->IsFailed())
+		g_pConnectionManager->ResetState();
+
+	if(g_pConnectionManager->IsConnecting())
+		g_pConnectionManager->Finalise();
+
 	return connectWithKey(args);
 
 	// std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();

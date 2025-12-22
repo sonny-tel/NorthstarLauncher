@@ -48,10 +48,8 @@ private:
 	void HandleModDownloads();
 	bool IsCancelled() { return !m_bConnecting;}
 	void Cancel() { InvokeCancelCallbacks(); }
-
 	void InvokeConnectionStartCallbacks();
 	void InvokeCancelCallbacks() {}
-
 	void AuthenticateToMasterServer();
 
 public:
@@ -64,6 +62,7 @@ public:
 		m_eCurrentMode = m_eLastMode;
 		m_szFailReason = reason;
 	}
+	void Retrying(bool retrying) { m_bRetrying = retrying; }
 
 	void Finalise() { m_bConnecting = false; }
 
@@ -89,6 +88,8 @@ public:
 	bool IsFailed() { return m_bFailed; }
 	bool IsConnecting() { return m_bConnecting; }
 	eConnectionMode GetCurrentMode() { return m_eCurrentMode; }
+	void SetMatchmaking() { m_eLastMode = m_eCurrentMode; m_eCurrentMode = eConnectionMode::Matchmaking; }
+	eConnectionMode DetermineModeFromAddress(const std::string& address);
 };
 
 extern ConnectionManager* g_pConnectionManager;
