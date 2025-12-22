@@ -1004,8 +1004,7 @@ bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
 
 ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
 {
-	if (!g_pVanillaCompatibility->GetVanillaCompatibility())
-		g_pModDownloader = new ModDownloader();
+	g_pModDownloader = new ModDownloader();
 }
 
 ADD_SQFUNC("array<RequiredModInfo>", NSGetServerRequestedMods, "", "", ScriptContext::UI)
