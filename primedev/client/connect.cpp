@@ -303,7 +303,6 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			if (m_bRetrying)
 				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
-
 		});
 }
 
@@ -348,7 +347,10 @@ void ConnectionManager::ConnectToLocalServer()
 			RETURN_IF_CANCELLED()
 
 			if(m_bRetrying)
+			{
+				Retrying(false);
 				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
+			}
 			else
 			{
 				std::string command;
@@ -387,6 +389,23 @@ AUTOHOOK(silentconnect, engine.dll + 0x76F00, int*, __fastcall, (__int64 a1))
 	g_pConnectionManager->SetMatchmaking();
 
 	return silentconnect(a1);
+}
+
+//clang-format off
+AUTOHOOK(Host_Disconnect, engine.dll + 0x15ABE0, void, __fastcall, (bool bShowMainMenu))
+//clang-format on
+{
+	g_pConnectionManager->ResetState();
+
+	Host_Disconnect(bShowMainMenu);
+}
+
+// clang-format off
+AUTOHOOK(CL_FullyConnected, engine.dll + 0x72D20, int, __fastcall, ())
+// clang-format on
+{
+	g_pConnectionManager->ResetState();
+	return CL_FullyConnected();
 }
 
 // clang-format off

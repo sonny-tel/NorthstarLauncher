@@ -82,6 +82,7 @@ public:
 		m_bConnecting = false;
 		m_flConnectionStartTime = 0.0f;
 		m_bAuthSucessful = false;
+		m_bRetrying = false;
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
