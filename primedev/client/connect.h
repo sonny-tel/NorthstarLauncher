@@ -38,7 +38,7 @@ private:
 	int m_nAttemptCount = 0;
 	bool m_bIncomingP2PServerAuthenticating = false;
 	std::string m_szFailReason;
-	std::string m_szProgressMessage;
+	std::string m_szProgressMessage = "";
 	bool m_bFinished = false;
 	bool m_bFailed = false;
 	bool m_bUseSCRPlaque = false; // whether we're expecting script to show progress or use LoadingProgress from BaseModUI
@@ -57,7 +57,9 @@ private:
 	void Cancel() { InvokeCancelCallbacks(); }
 	void InvokeConnectionStartCallbacks();
 	void InvokeCancelCallbacks() {}
+	void InvokeConnectionMessageCallbacks(const std::string& message);
 	void AuthenticateToMasterServer();
+	void UpdateMessage(const std::string& message = "") { m_szProgressMessage = message; InvokeConnectionMessageCallbacks(m_szProgressMessage); }
 
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");

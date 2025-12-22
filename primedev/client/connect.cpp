@@ -106,7 +106,12 @@ void ConnectionManager::InvokeConnectionStartCallbacks()
 {
 	bool scriptManagedLoading = !m_bUseSCRPlaque;
 
-	g_pSquirrel[ScriptContext::UI]->Call("NSUICodeCallback_ConnectionStarted", scriptManagedLoading);
+	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConnectionStarted", scriptManagedLoading);
+}
+
+void ConnectionManager::InvokeConnectionMessageCallbacks(const std::string& message)
+{
+	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConnectionMessage", message.c_str());
 }
 
 bool ConnectionManager::ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)
@@ -219,6 +224,8 @@ void ConnectionManager::AuthenticateToMasterServer()
 	if (agreedToSendToken != AGREED_TO_SEND_TOKEN)
 		return;
 
+	UpdateMessage("Authenticating with master server.");
+
 	float startTime = Plat_FloatTime();
 	float timeOut = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
 
@@ -228,6 +235,8 @@ void ConnectionManager::AuthenticateToMasterServer()
 		Sleep(100);
 
 	RETURN_IF_CANCELLED()
+
+	UpdateMessage();
 
 	if (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone)
 		spdlog::error("Timed out authenticating with master server for origin auth");
@@ -325,6 +334,8 @@ void ConnectionManager::ConnectToLocalServer()
 				g_pLocalPlayerUserID,
 				g_pMasterServerManager->m_sOwnClientAuthToken,
 				{});
+
+			UpdateMessage("Getting account data.");
 
 			while(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer &&
 				  Plat_FloatTime() - g_pConnectionManager->m_flConnectionStartTime < maxTime && !IsCancelled())
@@ -682,27 +693,19 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 void ConCommand_connectWithRemoteId(const CCommand& args)
 {
-	if(args.ArgC() < 2)
+	if(args.ArgC() < 3)
 	{
 		spdlog::warn("connectWithRemoteId called with insufficient arguments");
 		return;
 	}
 
 	std::string remoteId = args.Arg(1);
+	std::string password = args.Arg(2);
 
-	if(g_pMasterServerManager->m_vRemoteServers.size() == 0)
-	{
-		spdlog::warn("No remote servers available to connect to for remote ID {}", remoteId);
-		return;
-	}
+	bool useSCRPlaque = true;
 
-	for(auto& server : g_pMasterServerManager->m_vRemoteServers)
-	{
-		if(std::string(server.id) == remoteId)
-		{
-			return;
-		}
-	}
+	if(args.ArgC() == 4)
+		atoi(args.Arg(3)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
 
 	spdlog::warn("No matching remote server found for remote ID {}", remoteId);
 }
