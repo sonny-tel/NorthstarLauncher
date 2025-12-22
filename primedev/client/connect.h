@@ -27,7 +27,7 @@ public:
 		Direct = 0, // unauthenticated direct connect
 		Matchmaking = 'V', // vanilla matchmaking
 		LocalServer = 'L', // listen server AuthWithOwnServer
-		ServerBrowser = 'N', // server browser AuthWithServer
+		RemoteServer = 'N', // server browser AuthWithServer
 		P2P = 'P', // connectionless self auth hack only for p2p
 	};
 
@@ -48,7 +48,7 @@ private:
 	std::string m_szMapName;
 
 	void ConnectToLocalServer();
-	void ConnectToNorthstarServer(const std::string& address);
+	void ConnectToRemoteServer(const std::string& id, const std::string& password);
 	void ConnectToVanillaMatchmakingServer(const std::string& address);
 	void ConnectToP2PServer(const std::string& address);
 	void SendInfoRequestPacket(const CNetAdr& addr, bool serverAuthUs, bool requestMods);
@@ -61,7 +61,8 @@ private:
 
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
-	void Connect(eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
+	void Connect(bool useSCRPlaque = true, std::string mapName = "");
+	void Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName = "");
 	void Interrupt(const char* reason = "#CODE_CONNECTION_INTERRUPTED_BY_USER")
 	{
 		m_bFailed = true;

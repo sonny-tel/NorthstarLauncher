@@ -234,7 +234,7 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 
 		std::string map = args.Arg(1);
 
-		g_pConnectionManager->Connect(ConnectionManager::eConnectionMode::Direct, scrPlaque, map);
+		g_pConnectionManager->Connect(scrPlaque, map);
 		return;
 	}
 
