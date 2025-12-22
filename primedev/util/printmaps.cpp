@@ -204,38 +204,7 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 
 	server_state_t state = g_pServerState ? *g_pServerState : server_state_t::ss_dead;
 
-	if(state == server_state_t::ss_dead && !g_pConnectionManager->IsConnecting() && !IsDedicatedServer() && !g_pConnectionManager->IsFailed())
-	{
-		bool scrPlaque = true;
-
-		if(args.ArgC() == 3)
-			atoi(args.Arg(2)) == 1 ? scrPlaque = true : scrPlaque = false;
-
-		if(args.ArgC() < 2)
-		{
-			spdlog::warn("Map load failed: no map name provided");
-			return;
-		}
-
-		if (std::find_if(vMapList.begin(), vMapList.end(), [&](MapVPKInfo map) -> bool { return map.name == args.Arg(1); }) == vMapList.end())
-		{
-			spdlog::warn("Map load failed: {} not found or invalid", args.Arg(1));
-			return;
-		}
-
-		std::string map = args.Arg(1);
-
-		g_pConnectionManager->Connect(ConnectionManager::eConnectionMode::Direct, scrPlaque, map);
-		return;
-	}
-
-	if(g_pConnectionManager->IsFailed())
-		g_pConnectionManager->ResetState();
-
-	if(g_pConnectionManager->IsConnecting())
-	    g_pConnectionManager->Finalise();
-
-	if (args.ArgC() > 2)
+	if (args.ArgC() > 3)
 	{
 		spdlog::warn("Map load failed: too many arguments provided");
 		return;
@@ -252,6 +221,25 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 		spdlog::warn("Map load failed: no map name provided");
 		return;
 	}
+
+	if(state == server_state_t::ss_dead && !g_pConnectionManager->IsConnecting() && !IsDedicatedServer())
+	{
+		bool scrPlaque = true;
+
+		if(g_pConnectionManager->IsFailed())
+			g_pConnectionManager->ResetState();
+
+		if(args.ArgC() == 3)
+			atoi(args.Arg(2)) == 1 ? scrPlaque = true : scrPlaque = false;
+
+		std::string map = args.Arg(1);
+
+		g_pConnectionManager->Connect(ConnectionManager::eConnectionMode::Direct, scrPlaque, map);
+		return;
+	}
+
+	if(g_pConnectionManager->IsConnecting())
+	    g_pConnectionManager->Finalise();
 
 	if (state >= server_state_t::ss_active)
 		return Host_Changelevel_f(args);

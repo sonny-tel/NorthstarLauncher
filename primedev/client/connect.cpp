@@ -161,8 +161,7 @@ void ConnectionManager::AuthenticateToMasterServer()
 	while (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone && Plat_FloatTime() - startTime < timeOut && !IsCancelled())
 		Sleep(100);
 
-	if(IsCancelled())
-		return Cancel();
+	RETURN_IF_CANCELLED()
 
 	if (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone)
 		spdlog::error("Timed out authenticating with master server for origin auth");
@@ -181,8 +180,7 @@ void ConnectionManager::ConnectToLocalServer()
 		{
 			AuthenticateToMasterServer();
 
-			if(IsCancelled())
-				return Cancel();
+			RETURN_IF_CANCELLED();
 
 			spdlog::info("Authenticating with own server for uid {}", g_pLocalPlayerUserID);
 
@@ -198,8 +196,7 @@ void ConnectionManager::ConnectToLocalServer()
 				  Plat_FloatTime() - g_pConnectionManager->m_flConnectionStartTime < maxTime && !IsCancelled())
 				Sleep(100);
 
-			if(IsCancelled())
-				return Cancel();
+			RETURN_IF_CANCELLED()
 
 			if(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
 			{
@@ -212,6 +209,8 @@ void ConnectionManager::ConnectToLocalServer()
 				g_pCVar->FindVar("serverfilter")->SetValue(g_pServerAuthentication->m_RemoteAuthenticationData.begin()->first.c_str());
 
 			m_bAuthSucessful = true;
+
+			RETURN_IF_CANCELLED()
 
 			if(m_bRetrying)
 				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);

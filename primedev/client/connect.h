@@ -12,6 +12,13 @@ const int NOT_DECIDED_TO_SEND_TOKEN = 0;
 const int AGREED_TO_SEND_TOKEN = 1;
 const int DISAGREED_TO_SEND_TOKEN = 2;
 
+#define RETURN_IF_CANCELLED() \
+	if (IsCancelled())        \
+	{                         \
+		Cancel();             \
+		return;               \
+	}
+
 class ConnectionManager
 {
 public:
