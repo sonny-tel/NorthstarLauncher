@@ -8,10 +8,10 @@
 
 ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, bool serverAuthUs", "", ScriptContext::UI)
 {
-	const SQChar* ip = g_pSquirrel<context>->getstring(sqvm, 1);
-	SQInteger port = g_pSquirrel<context>->getinteger(sqvm, 2);
-	bool requestMods = g_pSquirrel<context>->getbool(sqvm, 3);
-	bool serverAuthUs = g_pSquirrel<context>->getbool(sqvm, 4);
+	const SQChar* ip = g_pSquirrel[context]->getstring(sqvm, 1);
+	SQInteger port = g_pSquirrel[context]->getinteger(sqvm, 2);
+	bool requestMods = g_pSquirrel[context]->getbool(sqvm, 3);
+	bool serverAuthUs = g_pSquirrel[context]->getbool(sqvm, 4);
 
 	g_bReceivedServerInfo = false;
 	g_bReceivedAuthNotify = false;
@@ -80,30 +80,30 @@ ADD_SQFUNC("void", NSRequestServerInfo, "string ip, int port, bool requestMods, 
 
 ADD_SQFUNC("bool", NSIsServerAuthingUs, "", "Returns true if the last requested server is authenticating us.", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushbool(sqvm, g_bNextServerAllowingAuthUs);
+	g_pSquirrel[context]->pushbool(sqvm, g_bNextServerAllowingAuthUs);
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("string", NSGetNameFromServerInfo, "", "Returns the name from the last received server info packet.", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushstring(sqvm, g_szLastServerInfoName);
+	g_pSquirrel[context]->pushstring(sqvm, g_szLastServerInfoName);
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("bool", NSReceivedAuthNotify, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushbool(sqvm, g_bReceivedAuthNotify);
+	g_pSquirrel[context]->pushbool(sqvm, g_bReceivedAuthNotify);
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("bool", NSReceivedServerInfo, "", "", ScriptContext::UI)
 {
-	g_pSquirrel<context>->pushbool(sqvm, g_bReceivedServerInfo);
+	g_pSquirrel[context]->pushbool(sqvm, g_bReceivedServerInfo);
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("void", NSMarkConnectingToServer, "bool state", "Skips the retry logic and marks that we're connecting to the server.", ScriptContext::UI)
 {
-	g_bConnectingToServer = g_pSquirrel<context>->getbool(sqvm, 1);
+	g_bConnectingToServer = g_pSquirrel[context]->getbool(sqvm, 1);
 	return SQRESULT_NULL;
 }

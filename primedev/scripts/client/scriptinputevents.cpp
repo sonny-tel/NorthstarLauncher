@@ -6,12 +6,12 @@ AUTOHOOK_INIT()
 #define CInputSystem__PostEvent_SQFunc "CInputSystem__ProcessPostEvent"
 
 #define CALL_INPUTSYS_SQ_FUNC(context) \
-	if( g_pSquirrel<ScriptContext::context>->m_pSQVM && g_pSquirrel<ScriptContext::context>->m_pSQVM->sqvm ) \
+	if( g_pSquirrel[ScriptContext::context]->m_pSQVM && g_pSquirrel[ScriptContext::context]->m_pSQVM->sqvm ) \
 	{ \
-		HSQUIRRELVM sqvm = g_pSquirrel<ScriptContext::context>->m_pSQVM->sqvm; \
+		HSQUIRRELVM sqvm = g_pSquirrel[ScriptContext::context]->m_pSQVM->sqvm; \
 		SQObject functionobj {}; \
-		if( g_pSquirrel<ScriptContext::context>->sq_getfunction(sqvm, CInputSystem__PostEvent_SQFunc, &functionobj, 0) == 0) \
-			g_pSquirrel<ScriptContext::context>->AsyncCall( \
+		if( g_pSquirrel[ScriptContext::context]->sq_getfunction(sqvm, CInputSystem__PostEvent_SQFunc, &functionobj, 0) == 0) \
+			g_pSquirrel[ScriptContext::context]->AsyncCall( \
 				CInputSystem__PostEvent_SQFunc, nType, nTick, nData, nData2, nData3); \
 	}
 

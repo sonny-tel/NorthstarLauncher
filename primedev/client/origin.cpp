@@ -240,14 +240,14 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 
 	RegisterConCommand("ns_fetchpres", ConCommand_ns_fetch_presence, "Fetch presence for uid", FCVAR_CLIENTDLL);
 	RegisterConCommand("ns_send_friend_request", ConCommand_ns_send_friend_request, "Send friend request to uid", FCVAR_CLIENTDLL);
-	g_pSquirrel<ScriptContext::CLIENT>->AddFuncRegistration(
+	g_pSquirrel[ScriptContext::CLIENT]->AddFuncRegistration(
 		"string",
 		"GetUID",
 		"entity player",
 		"Get uid of a player",
 		[](HSQUIRRELVM sqvm) -> SQRESULT
 		{
-			auto pPlayer = g_pSquirrel<ScriptContext::CLIENT>->getentity<CBaseEntity>(sqvm, 1);
+			auto pPlayer = g_pSquirrel[ScriptContext::CLIENT]->getentity<CBaseEntity>(sqvm, 1);
 
 			if (!pPlayer)
 			{
@@ -259,7 +259,7 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientOrigin, ConCommand, (CModule mod
 			char uidBuffer[64];
 			sprintf_s(uidBuffer, "%llu", uid);
 
-			g_pSquirrel<ScriptContext::CLIENT>->pushstring(sqvm, uidBuffer, -1);
+			g_pSquirrel[ScriptContext::CLIENT]->pushstring(sqvm, uidBuffer, -1);
 
 			return SQRESULT_NOTNULL;
 		});

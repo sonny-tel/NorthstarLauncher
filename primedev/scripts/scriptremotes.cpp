@@ -310,12 +310,12 @@ REPLACE_SQFUNC(Remote_RegisterFunction, ScriptContext::CLIENT)
 {
 	if (g_pVanillaCompatibility->GetVanillaCompatibility())
 	{
-		std::string functionName = g_pSquirrel<context>->getstring(sqvm, 1);
+		std::string functionName = g_pSquirrel[context]->getstring(sqvm, 1);
 
 		// spdlog::info("Remote_RegisterFunction called with function name: {}", functionName);
 
 		if (g_VanillaRemoteFunctions.contains(functionName))
-			return g_pSquirrel<context>->m_funcOriginals["Remote_RegisterFunction"](sqvm);
+			return g_pSquirrel[context]->m_funcOriginals["Remote_RegisterFunction"](sqvm);
 		else
 		{
 			spdlog::warn("Remote_RegisterFunction called with unknown function name: {}", functionName);
@@ -323,5 +323,5 @@ REPLACE_SQFUNC(Remote_RegisterFunction, ScriptContext::CLIENT)
 		}
 	}
 
-	return g_pSquirrel<context>->m_funcOriginals["Remote_RegisterFunction"](sqvm);
+	return g_pSquirrel[context]->m_funcOriginals["Remote_RegisterFunction"](sqvm);
 }

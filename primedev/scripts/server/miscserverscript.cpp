@@ -10,19 +10,19 @@
 
 ADD_SQFUNC("void", NSEarlyWritePlayerPersistenceForLeave, "entity player", "", ScriptContext::SERVER)
 {
-	const CBasePlayer* pPlayer = g_pSquirrel<context>->template getentity<CBasePlayer>(sqvm, 1);
+	const CBasePlayer* pPlayer = g_pSquirrel[context]->template getentity<CBasePlayer>(sqvm, 1);
 	if (!pPlayer)
 	{
 		spdlog::warn("NSEarlyWritePlayerPersistenceForLeave got null player");
 
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
 	if (g_pServerAuthentication->m_PlayerAuthenticationData.find(pClient) == g_pServerAuthentication->m_PlayerAuthenticationData.end())
 	{
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 
@@ -33,7 +33,7 @@ ADD_SQFUNC("void", NSEarlyWritePlayerPersistenceForLeave, "entity player", "", S
 
 ADD_SQFUNC("bool", NSIsWritingPlayerPersistence, "", "", ScriptContext::SERVER)
 {
-	g_pSquirrel<context>->pushbool(sqvm, g_pMasterServerManager->m_bSavingPersistentData);
+	g_pSquirrel[context]->pushbool(sqvm, g_pMasterServerManager->m_bSavingPersistentData);
 	return SQRESULT_NOTNULL;
 }
 
@@ -41,30 +41,30 @@ ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SE
 {
 	if (IsDedicatedServer())
 	{
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
-	const CBasePlayer* pPlayer = g_pSquirrel<ScriptContext::SERVER>->template getentity<CBasePlayer>(sqvm, 1);
+	const CBasePlayer* pPlayer = g_pSquirrel[ScriptContext::SERVER]->template getentity<CBasePlayer>(sqvm, 1);
 	if (!pPlayer)
 	{
 		spdlog::warn("NSIsPlayerLocalPlayer got null player");
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 	if (!g_pLocalPlayerUserID)
 	{
 		spdlog::warn("NSIsPlayerLocalPlayer got null uid");
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
-	g_pSquirrel<context>->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
+	g_pSquirrel[context]->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
 	return SQRESULT_NOTNULL;
 }
 
 ADD_SQFUNC("bool", NSIsDedicated, "", "", ScriptContext::SERVER)
 {
-	g_pSquirrel<context>->pushbool(sqvm, IsDedicatedServer());
+	g_pSquirrel[context]->pushbool(sqvm, IsDedicatedServer());
 	return SQRESULT_NOTNULL;
 }
 
@@ -75,14 +75,14 @@ ADD_SQFUNC(
 	"Disconnects the player from the server with the given reason",
 	ScriptContext::SERVER)
 {
-	const CBasePlayer* pPlayer = g_pSquirrel<context>->template getentity<CBasePlayer>(sqvm, 1);
-	const char* reason = g_pSquirrel<context>->getstring(sqvm, 2);
+	const CBasePlayer* pPlayer = g_pSquirrel[context]->template getentity<CBasePlayer>(sqvm, 1);
+	const char* reason = g_pSquirrel[context]->getstring(sqvm, 2);
 
 	if (!pPlayer)
 	{
 		spdlog::warn("Attempted to call NSDisconnectPlayer() with null player.");
 
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 
@@ -92,7 +92,7 @@ ADD_SQFUNC(
 	{
 		spdlog::warn("NSDisconnectPlayer(): player entity has null CClient!");
 
-		g_pSquirrel<context>->pushbool(sqvm, false);
+		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
 
@@ -101,6 +101,6 @@ ADD_SQFUNC(
 	else
 		pClient->Disconnect(REP_REMOVE_ONLY, "Disconnected by the server.");
 
-	g_pSquirrel<context>->pushbool(sqvm, true);
+	g_pSquirrel[context]->pushbool(sqvm, true);
 	return SQRESULT_NOTNULL;
 }
