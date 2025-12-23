@@ -244,7 +244,7 @@ void ConnectionManager::AuthenticateToMasterServer()
 	UpdateMessage();
 
 	if (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone)
-		spdlog::error("Timed out authenticating with master server for origin auth");
+		Interrupt("Failed to authenticate with master server.");
 	else
 		spdlog::info("Successfully authenticated with master server for origin auth");
 }
@@ -320,6 +320,30 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 		});
 }
 
+void ConnectionManager::FinaliseJoiningLocalServer()
+{
+	if(m_bRetrying)
+	{
+		Retrying(false);
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
+	}
+	else
+	{
+		std::string command;
+
+		if(!m_szMapName.empty())
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format("map {}", m_szMapName).c_str(),
+				cmd_source_t::kCommandSrcCode);
+		else
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				"map mp_lobby",
+				cmd_source_t::kCommandSrcCode);
+	}
+}
+
 void ConnectionManager::ConnectToLocalServer()
 {
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
@@ -327,8 +351,6 @@ void ConnectionManager::ConnectToLocalServer()
 	std::thread authThread([&]()
 		{
 			AuthenticateToMasterServer();
-
-			Interrupt("evil!");
 
 			RETURN_IF_CANCELLED();
 
@@ -364,26 +386,7 @@ void ConnectionManager::ConnectToLocalServer()
 
 			RETURN_IF_CANCELLED()
 
-			if(m_bRetrying)
-			{
-				Retrying(false);
-				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
-			}
-			else
-			{
-				std::string command;
-
-				if(!m_szMapName.empty())
-					Cbuf_AddText(
-						Cbuf_GetCurrentPlayer(),
-						fmt::format("map {}", m_szMapName).c_str(),
-						cmd_source_t::kCommandSrcCode);
-				else
-					Cbuf_AddText(
-						Cbuf_GetCurrentPlayer(),
-						"map mp_lobby",
-						cmd_source_t::kCommandSrcCode);
-			}
+			FinaliseJoiningLocalServer();
 		});
 
 	authThread.detach();

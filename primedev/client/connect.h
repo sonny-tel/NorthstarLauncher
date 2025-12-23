@@ -64,6 +64,8 @@ private:
 	void AuthenticateToMasterServer();
 	void UpdateMessage(const std::string& message = "") { m_szProgressMessage = message; InvokeConnectionMessageCallbacks(m_szProgressMessage); }
 
+	void FinaliseJoiningLocalServer();
+
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
