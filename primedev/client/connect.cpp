@@ -6,7 +6,6 @@
 #include "engine/r2engine.h"
 #include "core/tier0.h"
 #include "squirrel/squirrel.h"
-#include "mods/autodownload/moddownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -276,7 +275,108 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 	UpdateMessage("Requesting server info.");
 
 	while(g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
-		Sleep(100);
+	{
+		int retryInterval = g_pCVar->FindVar("cl_resend_interval")->GetInt();
+		NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
+		Sleep(retryInterval);
+	}
+}
+
+void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
+{
+	int unverifiedModCount = g_pModDownloader->GetTotalServerRequestedMods();
+
+	if(unverifiedModCount)
+		Interrupt("Connection failed: unverified mod downloading not implemented yet.");
+
+	int reloadCount = 0;
+
+	for(const auto& mod : info->requiredMods)
+	{
+		UpdateMessage(fmt::format("Downloading mod {} version {}.", mod.Name.c_str(), mod.Version.c_str()));
+
+		bool found = false;
+
+		for(auto& existingMod : g_pModManager->m_LoadedMods)
+		{
+			if(existingMod.Name == mod.Name && existingMod.Version == mod.Version)
+			{
+				found = true;
+
+				if(!existingMod.m_bEnabled)
+				{
+					reloadCount++;
+					existingMod.m_bEnabled = true;
+				}
+
+				break;
+			}
+		}
+
+		if(found)
+			continue;
+
+		g_pModDownloader->DownloadMod(mod.Name, mod.Version);
+
+		while(g_pModDownloader->modState.state == ModDownloader::DOWNLOADING && !IsCancelled())
+			Sleep(100);
+
+		RETURN_IF_CANCELLED()
+
+		bool downloadFailed = true;
+		bool downloadAborted = false;
+		std::string interruptMessage;
+
+		switch(g_pModDownloader->modState.state)
+		{
+			case ModDownloader::DONE:
+				downloadFailed = false;
+				break;
+			case ModDownloader::ABORTED:
+				downloadAborted = true;
+				downloadFailed = false;
+				break;
+			case ModDownloader::FAILED: // Generic error message, should be avoided as much as possible
+				interruptMessage = "download failed";
+				break;
+			case ModDownloader::FAILED_READING_ARCHIVE:
+				interruptMessage = "failed reading archive";
+				break;
+			case ModDownloader::FAILED_WRITING_TO_DISK:
+				interruptMessage = "failed writing to disk";
+				break;
+			case ModDownloader::MOD_FETCHING_FAILED:
+				interruptMessage = "mod fetching failed";
+				break;
+			case ModDownloader::MOD_CORRUPTED: // Downloaded archive checksum does not match verified hash
+				interruptMessage = "mod corrupted (checksum mismatch)";
+				break;
+			case ModDownloader::NO_DISK_SPACE_AVAILABLE:
+				interruptMessage = "no disk space available";
+				break;
+			case ModDownloader::NOT_FOUND: // Mod is not currently being auto-downloaded
+				interruptMessage = "mod not found";
+				break;
+			case ModDownloader::UNKNOWN_PLATFORM:
+				interruptMessage = "unknown platform";
+				break;
+			default:
+				break;
+		}
+
+		if(downloadAborted)
+			Interrupt();
+
+		if(downloadFailed)
+			Interrupt(fmt::format("Download for {} v{} failed: {}", mod.Name, mod.Version, interruptMessage));
+
+		RETURN_IF_CANCELLED()
+	}
+
+	RETURN_IF_CANCELLED()
+
+	if(reloadCount > 0)
+		g_pModManager->LoadMods();
 }
 
 void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::string& password)
@@ -323,7 +423,6 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 				Interrupt("Failed to authenticate with remote server: server not found");
 				return;
 			}
-
 
 			g_pMasterServerManager->AuthenticateWithServer(
 				g_pLocalPlayerUserID,
@@ -381,6 +480,8 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 				Sleep(100);
 
 			RETURN_IF_CANCELLED()
+
+			DownloadMods(true, serverInfo);
 		});
 
 	authThread.detach();

@@ -4,6 +4,7 @@
 #include "masterserver/masterserver.h"
 #include "core/tier0.h"
 #include "engine/r2engine.h"
+#include "mods/autodownload/moddownloader.h"
 
 extern bool g_bConnectingToServer;
 extern bool g_bRetryingConnection;
@@ -16,7 +17,6 @@ const int DISAGREED_TO_SEND_TOKEN = 2;
 #define RETURN_IF_CANCELLED() \
 	if (IsCancelled())        \
 	{                         \
-		Cancel();             \
 		return;               \
 	}
 
@@ -56,9 +56,7 @@ private:
 	void ConnectToVanillaMatchmakingServer(const std::string& address);
 	void ConnectToP2PServer(const std::string& address);
 	void SendInfoRequestPacket(const CNetAdr& addr, bool serverAuthUs, bool requestMods);
-	void HandleModDownloads();
-	bool IsCancelled() { return !m_bConnecting;}
-	void Cancel() { InvokeConnectionStoppedCallbacks(); }
+	bool IsCancelled() { return !m_bConnecting; }
 
 	void InvokeConnectionStartCallbacks();
 	void InvokeConnectionStoppedCallbacks(std::string reason = "");
@@ -70,8 +68,7 @@ private:
 	void FinaliseJoiningLocalServer();
 	void FinaliseJoiningServer(std::string& address);
 
-	void DownloadMods(bool remoteServer);
-
+	void DownloadMods(bool remoteServer, RemoteServerInfo* info);
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
@@ -83,6 +80,7 @@ public:
 		m_bConnecting = false;
 		m_eCurrentMode = m_eLastMode;
 		m_szFailReason = reason;
+		g_pModDownloader->CancelDownload();
 
 		InvokeConnectionStoppedCallbacks(reason);
 
