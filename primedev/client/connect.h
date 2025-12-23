@@ -47,6 +47,9 @@ private:
 	float m_flConnectionStartTime = 0.0f;
 	bool m_bAuthSucessful = false;
 	std::string m_szMapName;
+	std::string m_szLastServerID;
+	std::string m_szLastServerPassword;
+	std::string m_szLastServerAddress;
 
 	void ConnectToLocalServer();
 	void ConnectToRemoteServer(const std::string& id, const std::string& password);
@@ -65,11 +68,15 @@ private:
 	void UpdateMessage(const std::string& message = "") { m_szProgressMessage = message; InvokeConnectionMessageCallbacks(m_szProgressMessage); }
 
 	void FinaliseJoiningLocalServer();
+	void FinaliseJoiningServer(std::string& address);
+
+	void DownloadMods(bool remoteServer);
 
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName = "");
+
 	void Interrupt(const std::string& reason = "")
 	{
 		m_bFailed = true;
@@ -86,9 +93,7 @@ public:
 				cmd_source_t::kCommandSrcCode);
 	}
 	void Retrying(bool retrying) { m_bRetrying = retrying; }
-
 	void Finalise() { m_bConnecting = false; InvokeConnectionStoppedCallbacks(); }
-
 	void ResetState()
 	{
 		m_bFailed = false;
@@ -109,6 +114,7 @@ public:
 	eConnectionMode GetCurrentMode() { return m_eCurrentMode; }
 	void SetMatchmaking() { m_eLastMode = m_eCurrentMode; m_eCurrentMode = eConnectionMode::Matchmaking; }
 	eConnectionMode DetermineModeFromAddress(const std::string& address);
+	bool IsRetrying() { return m_bRetrying; }
 };
 
 extern ConnectionManager* g_pConnectionManager;

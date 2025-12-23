@@ -19,6 +19,8 @@
 #include <winternl.h>
 #include <fstream>
 
+ConVar* Cvar_allow_mod_auto_download = nullptr;
+
 ModDownloader* g_pModDownloader = nullptr;
 
 ModDownloader::ModDownloader()
@@ -1002,8 +1004,14 @@ bool ModDownloader::RecvModInfoConnectionlessPacket(bf_read& msg)
 	return true;
 }
 
-ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConCommand), (CModule module))
+ON_DLL_LOAD_RELIESON("engine.dll", ModDownloader, (ConVar), (CModule module))
 {
+	Cvar_allow_mod_auto_download = new ConVar(
+		"allow_mod_auto_download",
+		"1",
+		FCVAR_ARCHIVE_PLAYERPROFILE,
+		"Allows the client to automatically download required mods from the server if they are verified.");
+
 	g_pModDownloader = new ModDownloader();
 }
 

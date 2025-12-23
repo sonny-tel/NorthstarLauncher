@@ -6,6 +6,7 @@
 #include "engine/r2engine.h"
 #include "core/tier0.h"
 #include "squirrel/squirrel.h"
+#include "mods/autodownload/moddownloader.h"
 
 AUTOHOOK_INIT()
 
@@ -49,6 +50,7 @@ void ConnectionManager::Connect(const std::string& address, const std::string& p
 	m_bConnecting = true;
 	m_eLastMode = m_eCurrentMode;
 	m_eCurrentMode = eConnectionMode::RemoteServer;
+	m_szLastServerID = address;
 
 	InvokeConnectionStartCallbacks();
 
@@ -91,7 +93,7 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
 		ConnectToLocalServer();
 		break;
 	case eConnectionMode::RemoteServer:
-		ConnectToRemoteServer(address, "");
+		ConnectToRemoteServer(m_szLastServerID, m_szLastServerPassword);
 		break;
 	case eConnectionMode::P2P:
 		break;
@@ -249,17 +251,50 @@ void ConnectionManager::AuthenticateToMasterServer()
 		spdlog::info("Successfully authenticated with master server for origin auth");
 }
 
+void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAuthUs, bool requestMods)
+{
+	char buffer[256];
+	bf_write msg(buffer, sizeof(buffer));
+	msg.WriteLong(CONNECTIONLESS_HEADER);
+	msg.WriteChar(A2S_REQUESTCUSTOMSERVERINFO);
+	msg.WriteLong(CUSTOMSERVERINFO_VERSION);
+	msg.WriteByte(requestMods);
+	msg.WriteLong(MODDOWNLOADINFO_VERSION);
+	msg.WriteByte(serverAuthUs);
+
+	if(serverAuthUs)
+	{
+		msg.WriteString(g_pLocalPlayerUserID);
+		msg.WriteString(g_pMasterServerManager->m_sOwnClientAuthToken);
+	}
+
+	NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
+
+	float startTime = Plat_FloatTime();
+	float timeOut = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
+
+	UpdateMessage("Requesting server info.");
+
+	while(g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
+		Sleep(100);
+}
+
 void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::string& password)
 {
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
-	std::thread authThread([&]()
+	std::string serverId = id;
+	std::string serverPassword = password;
+
+	std::thread authThread([&, serverId, serverPassword]()
 		{
 			AuthenticateToMasterServer();
 
 			RETURN_IF_CANCELLED();
 
 			g_pMasterServerManager->RequestServerList();
+
+			UpdateMessage("Requesting server list.");
 
 			while(g_pMasterServerManager->m_bScriptRequestingServerList && !IsCancelled())
 				Sleep(100);
@@ -275,7 +310,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			for (auto& server : g_pMasterServerManager->m_vRemoteServers)
 			{
-				if (std::string(server.id) == id)
+				if (std::string(server.id) == serverId)
 				{
 					serverInfo = &server;
 					break;
@@ -284,16 +319,19 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			if (!serverInfo)
 			{
-				spdlog::error("Failed to find server info for id {}", id);
+				spdlog::error("Failed to find server info for id {}", serverId);
 				Interrupt("Failed to authenticate with remote server: server not found");
 				return;
 			}
+
 
 			g_pMasterServerManager->AuthenticateWithServer(
 				g_pLocalPlayerUserID,
 				g_pMasterServerManager->m_sOwnClientAuthToken,
 				*serverInfo,
-				password.c_str());
+				serverPassword.c_str());
+
+			UpdateMessage("Authenticating with server.");
 
 			while (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer &&
 				   Plat_FloatTime() - g_pConnectionManager->m_flConnectionStartTime < maxTime && !IsCancelled())
@@ -308,16 +346,62 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 				return;
 			}
 
-			if (g_pServerAuthentication->m_RemoteAuthenticationData.size())
-				g_pCVar->FindVar("serverfilter")->SetValue(g_pServerAuthentication->m_RemoteAuthenticationData.begin()->first.c_str());
-
 			m_bAuthSucessful = true;
+
+			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
+			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
+
+			std::string ip = fmt::format(
+				"{}.{}.{}.{}",
+				info.ip.S_un.S_un_b.s_b1,
+				info.ip.S_un.S_un_b.s_b2,
+				info.ip.S_un.S_un_b.s_b3,
+				info.ip.S_un.S_un_b.s_b4);
+			int port = ntohs(info.port);
+
+			std::string address = fmt::format("{}:{}", ip, port);
+
+			if(!g_pCVar->FindVar("allow_mod_auto_download")->GetBool())
+			{
+				FinaliseJoiningServer(address);
+				return;
+			}
 
 			RETURN_IF_CANCELLED()
 
-			if (m_bRetrying)
-				Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
+			std::string netAdr = fmt::format("[::ffff:{}]:{}", ip, port);
+			SendInfoRequestPacket(CNetAdr(netAdr.c_str()), false, true);
+
+			RETURN_IF_CANCELLED()
+
+			UpdateMessage("Fetching verified mods manifest.");
+			g_pModDownloader->FetchModsListFromAPI();
+
+			while(g_pModDownloader->modState.state == ModDownloader::MANIFESTO_FETCHING && !IsCancelled())
+				Sleep(100);
+
+			RETURN_IF_CANCELLED()
 		});
+
+	authThread.detach();
+}
+
+void ConnectionManager::FinaliseJoiningServer(std::string& address)
+{
+	if(m_bRetrying)
+	{
+		Retrying(false);
+		Cbuf_AddText(Cbuf_GetCurrentPlayer(), "retry", cmd_source_t::kCommandSrcCode);
+	}
+	else
+	{
+		std::string command;
+
+		Cbuf_AddText(
+			Cbuf_GetCurrentPlayer(),
+			fmt::format("connect {}", address).c_str(),
+		 	cmd_source_t::kCommandSrcCode);
+	}
 }
 
 void ConnectionManager::FinaliseJoiningLocalServer()
@@ -463,14 +547,16 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 		const char* address = args->Arg(1);
 
 		auto mode = g_pConnectionManager->DetermineModeFromAddress(address);
+		if(g_pConnectionManager->IsRetrying())
+			mode = g_pConnectionManager->GetCurrentMode();
+		else
+			spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<int>(mode));
 
 		int argCount = args->ArgC();
 		bool useSCRPlaque = true;
 
 		if(argCount == 4)
 			atoi(args->Arg(3)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
-
-		spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<int>(mode));
 
 		g_pConnectionManager->Connect(address, mode, useSCRPlaque);
 
@@ -713,9 +799,14 @@ void ConCommand_connectWithRemoteId(const CCommand& args)
 
 	if(args.ArgC() == 4)
 		atoi(args.Arg(3)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
+
+	if(password == "0")
+		password = "";
+
+	g_pConnectionManager->Connect(remoteId, password, useSCRPlaque);
 }
 
-ON_DLL_LOAD_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))
+ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))
 {
 	AUTOHOOK_DISPATCH();
 
