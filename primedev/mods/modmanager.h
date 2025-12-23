@@ -119,6 +119,8 @@ public:
 	std::string NormaliseModFilePath(const fs::path path);
 	void CompileAssetsForFile(const char* filename);
 
+	void DeleteRemoteMod(const char* modName, const char* version);
+
 	// compile asset type stuff, these are done in files under runtime/compiled/
 	void BuildScriptsRson();
 	void TryBuildKeyValues(const char* filename);

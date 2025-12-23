@@ -876,6 +876,30 @@ void ModManager::CompileAssetsForFile(const char* filename)
 	}
 }
 
+void ModManager::DeleteRemoteMod(const char* modName, const char* version) {
+
+	for (auto it = m_LoadedMods.begin(); it != m_LoadedMods.end(); ++it)
+	{
+		Mod& mod = *it;
+		if (!mod.Name.compare(modName) && !mod.Version.compare(version))
+		{
+			if (!mod.m_bIsRemote)
+				return;
+
+			std::string splitPath = mod.m_ModDirectory.generic_string().substr(GetRemoteModFolderPath().generic_string().length() + 1);
+
+			size_t slashPos = splitPath.find_first_of("/\\");
+			if (slashPos != std::string::npos)
+				splitPath = splitPath.substr(0, slashPos);
+
+			m_LoadedMods.erase(it);
+			fs::remove_all(GetRemoteModFolderPath() / splitPath);
+
+			break;
+		}
+	}
+}
+
 void ConCommand_reload_mods(const CCommand& args)
 {
 	NOTE_UNUSED(args);
