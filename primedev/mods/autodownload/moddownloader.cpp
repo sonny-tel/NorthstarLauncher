@@ -631,6 +631,16 @@ void ModDownloader::DownloadMod(std::string modName, std::string modVersion)
 		return;
 	}
 
+	// Remove old versions of this mod before downloading the new version
+	for (auto& mod : g_pModManager->m_LoadedMods)
+	{
+		if (mod.Name == modName && mod.Version != modVersion && mod.m_bIsRemote)
+		{
+			spdlog::info("Removing old version {} of mod {} before downloading version {}", mod.Version, modName, modVersion);
+			g_pModManager->DeleteRemoteMod(mod.Name.c_str(), mod.Version.c_str());
+		}
+	}
+
 	// Tell VM we're ready to download mod
 	modState.state = DOWNLOADING;
 

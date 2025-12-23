@@ -222,6 +222,14 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 		return;
 	}
 
+	if (IsDedicatedServer())
+	{
+		if (state >= server_state_t::ss_active)
+			return Host_Changelevel_f(args);
+		else
+			return Host_Map_helper(args, nullptr);
+	}
+
 	if(state == server_state_t::ss_dead && !g_pConnectionManager->IsConnecting() && !IsDedicatedServer())
 	{
 		bool scrPlaque = true;
