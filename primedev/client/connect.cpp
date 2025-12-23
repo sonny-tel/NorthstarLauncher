@@ -81,7 +81,7 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
 	if(mode != eConnectionMode::RemoteServer && !ParseAddress(address, ip, port, isV6))
 	{
 		spdlog::warn("Failed to parse address '{}', aborting connection", address);
-		SetFailed("#CONNECTION_FAILED_INVALID_ADDRESS");
+		Interrupt("#CONNECTION_FAILED_INVALID_ADDRESS");
 		return;
 	}
 
@@ -112,6 +112,11 @@ void ConnectionManager::InvokeConnectionStartCallbacks()
 void ConnectionManager::InvokeConnectionMessageCallbacks(const std::string& message)
 {
 	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConnectionMessage", message.c_str());
+}
+
+void ConnectionManager::InvokeConnectionStoppedCallbacks(std::string reason)
+{
+	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConnectionStopped", reason.c_str());
 }
 
 bool ConnectionManager::ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6)
@@ -280,7 +285,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 			if (!serverInfo)
 			{
 				spdlog::error("Failed to find server info for id {}", id);
-				SetFailed("Failed to authenticate with remote server: server not found");
+				Interrupt("Failed to authenticate with remote server: server not found");
 				return;
 			}
 
@@ -299,7 +304,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 			if (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
 			{
 				spdlog::error("Timed out authenticating with remote server for uid {}", g_pLocalPlayerUserID);
-				SetFailed("Failed to authenticate with remote server: timeout");
+				Interrupt("Failed to authenticate with remote server: timeout");
 				return;
 			}
 
@@ -322,6 +327,8 @@ void ConnectionManager::ConnectToLocalServer()
 	std::thread authThread([&]()
 		{
 			AuthenticateToMasterServer();
+
+			Interrupt("evil!");
 
 			RETURN_IF_CANCELLED();
 
@@ -346,7 +353,7 @@ void ConnectionManager::ConnectToLocalServer()
 			if(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
 			{
 				spdlog::error("Timed out authenticating with own server for uid {}", g_pLocalPlayerUserID);
-				SetFailed("Failed to authenticate with own server: timeout");
+				Interrupt("Failed to authenticate with own server: timeout");
 				return;
 			}
 
@@ -406,6 +413,7 @@ AUTOHOOK(silentconnect, engine.dll + 0x76F00, int*, __fastcall, (__int64 a1))
 AUTOHOOK(Host_Disconnect, engine.dll + 0x15ABE0, void, __fastcall, (bool bShowMainMenu))
 //clang-format on
 {
+	g_pConnectionManager->Finalise();
 	g_pConnectionManager->ResetState();
 
 	Host_Disconnect(bShowMainMenu);
@@ -415,7 +423,9 @@ AUTOHOOK(Host_Disconnect, engine.dll + 0x15ABE0, void, __fastcall, (bool bShowMa
 AUTOHOOK(CL_FullyConnected, engine.dll + 0x72D20, int, __fastcall, ())
 // clang-format on
 {
+	g_pConnectionManager->Finalise();
 	g_pConnectionManager->ResetState();
+
 	return CL_FullyConnected();
 }
 
@@ -463,12 +473,6 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 
 		return 0;
 	}
-
-	if(g_pConnectionManager->IsFailed())
-		g_pConnectionManager->ResetState();
-
-	if(g_pConnectionManager->IsConnecting())
-		g_pConnectionManager->Finalise();
 
 	return connectWithKey(args);
 

@@ -3,6 +3,7 @@
 #include "engine/net.h"
 #include "masterserver/masterserver.h"
 #include "core/tier0.h"
+#include "engine/r2engine.h"
 
 extern bool g_bConnectingToServer;
 extern bool g_bRetryingConnection;
@@ -54,10 +55,12 @@ private:
 	void SendInfoRequestPacket(const CNetAdr& addr, bool serverAuthUs, bool requestMods);
 	void HandleModDownloads();
 	bool IsCancelled() { return !m_bConnecting;}
-	void Cancel() { InvokeCancelCallbacks(); }
+	void Cancel() { InvokeConnectionStoppedCallbacks(); }
+
 	void InvokeConnectionStartCallbacks();
-	void InvokeCancelCallbacks() {}
+	void InvokeConnectionStoppedCallbacks(std::string reason = "");
 	void InvokeConnectionMessageCallbacks(const std::string& message);
+
 	void AuthenticateToMasterServer();
 	void UpdateMessage(const std::string& message = "") { m_szProgressMessage = message; InvokeConnectionMessageCallbacks(m_szProgressMessage); }
 
@@ -65,16 +68,24 @@ public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName = "");
-	void Interrupt(const char* reason = "#CODE_CONNECTION_INTERRUPTED_BY_USER")
+	void Interrupt(const std::string& reason = "")
 	{
 		m_bFailed = true;
 		m_bConnecting = false;
 		m_eCurrentMode = m_eLastMode;
 		m_szFailReason = reason;
+
+		InvokeConnectionStoppedCallbacks(reason);
+
+		if(m_bUseSCRPlaque)
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format("disconnect \"{}\"", reason).c_str(),
+				cmd_source_t::kCommandSrcCode);
 	}
 	void Retrying(bool retrying) { m_bRetrying = retrying; }
 
-	void Finalise() { m_bConnecting = false; }
+	void Finalise() { m_bConnecting = false; InvokeConnectionStoppedCallbacks(); }
 
 	void ResetState()
 	{
@@ -88,11 +99,6 @@ public:
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
-	void SetFailed(const std::string& reason)
-	{
-		m_bFailed = true;
-		m_szFailReason = reason;
-	}
 	std::string& GetFailReason() { return m_szFailReason; }
 	void SetProgressMessage(const std::string& message) { m_szProgressMessage = message; }
 	std::string& GetProgressMessage() { return m_szProgressMessage; }

@@ -238,9 +238,6 @@ AUTOHOOK(Host_Map_f, engine.dll + 0x15B340, void, __fastcall, (const CCommand& a
 		return;
 	}
 
-	if(g_pConnectionManager->IsConnecting())
-	    g_pConnectionManager->Finalise();
-
 	if (state >= server_state_t::ss_active)
 		return Host_Changelevel_f(args);
 	else
