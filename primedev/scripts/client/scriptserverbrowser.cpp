@@ -41,6 +41,28 @@ ADD_SQFUNC("void", NSClearRecievedServerList, "", "", ScriptContext::UI)
 
 // functions for authenticating with servers
 
+ADD_SQFUNC("string", NSGetServerIDFromIndex, "int serverIndex", "", ScriptContext::UI)
+{
+	SQInteger serverIndex = g_pSquirrel[context]->getinteger(sqvm, 1);
+
+	if (serverIndex >= g_pMasterServerManager->m_vRemoteServers.size())
+	{
+		g_pSquirrel[context]->raiseerror(
+			sqvm,
+			fmt::format(
+				"Tried to get server ID from index {} when only {} servers are available",
+				serverIndex,
+				g_pMasterServerManager->m_vRemoteServers.size())
+				.c_str());
+		return SQRESULT_ERROR;
+	}
+
+	const RemoteServerInfo& remoteServer = g_pMasterServerManager->m_vRemoteServers[serverIndex];
+
+	g_pSquirrel[context]->pushstring(sqvm, remoteServer.id, -1);
+	return SQRESULT_NOTNULL;
+}
+
 ADD_SQFUNC("void", NSTryAuthWithServer, "int serverIndex, string password = ''", "", ScriptContext::UI)
 {
 	SQInteger serverIndex = g_pSquirrel[context]->getinteger(sqvm, 1);

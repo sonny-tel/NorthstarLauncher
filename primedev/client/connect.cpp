@@ -713,8 +713,6 @@ void ConCommand_connectWithRemoteId(const CCommand& args)
 
 	if(args.ArgC() == 4)
 		atoi(args.Arg(3)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
-
-	spdlog::warn("No matching remote server found for remote ID {}", remoteId);
 }
 
 ON_DLL_LOAD_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))
