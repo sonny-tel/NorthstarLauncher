@@ -1130,7 +1130,7 @@ ADD_SQFUNC("void", NSDownloadMod, "string name, string version", "", ScriptConte
 
 ADD_SQFUNC("ModInstallState", NSGetModInstallState, "", "", ScriptContext::SERVER | ScriptContext::CLIENT | ScriptContext::UI)
 {
-	g_pSquirrel[context]->pushnewstructinstance(sqvm, 4);
+	g_pSquirrel[context]->pushnewstructinstance(sqvm, 6);
 
 	ModDownloader::MOD_STATE modState = {};
 	if (g_pModDownloader)
