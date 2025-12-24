@@ -76,17 +76,6 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
 
 	InvokeConnectionStartCallbacks();
 
-	std::string ip;
-	int port;
-	bool isV6;
-
-	if(mode != eConnectionMode::RemoteServer && !ParseAddress(address, ip, port, isV6))
-	{
-		spdlog::warn("Failed to parse address '{}', aborting connection", address);
-		Interrupt("#CONNECTION_FAILED_INVALID_ADDRESS");
-		return;
-	}
-
 	switch(mode)
 	{
 	case eConnectionMode::LocalServer:
@@ -231,7 +220,7 @@ void ConnectionManager::AuthenticateToMasterServer()
 	if (agreedToSendToken != AGREED_TO_SEND_TOKEN)
 		return;
 
-	UpdateMessage("Authenticating with master server.");
+	UpdateMessage("#DIALOG_AUTHENTICATING_MASTERSERVER");
 
 	float startTime = Plat_FloatTime();
 	float timeOut = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
@@ -246,7 +235,7 @@ void ConnectionManager::AuthenticateToMasterServer()
 	UpdateMessage();
 
 	if (!g_pMasterServerManager->m_bOriginAuthWithMasterServerDone)
-		Interrupt("Failed to authenticate with master server.");
+		Interrupt("#AUTHENTICATION_FAILED_BODY");
 	else
 		spdlog::info("Successfully authenticated with master server for origin auth");
 }
@@ -273,7 +262,7 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 	float startTime = Plat_FloatTime();
 	float timeOut = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
 
-	UpdateMessage("Requesting server info.");
+	UpdateMessage("#REQUESTING_CUSTOM_SERVER_INFO");
 
 	while(g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
 	{
@@ -293,7 +282,7 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 
 	for(const auto& mod : info->requiredMods)
 	{
-		UpdateMessage(fmt::format("Downloading mod {} version {}.", mod.Name.c_str(), mod.Version.c_str()));
+		UpdateMessage("#DOWNLOADING_MOD_TEXT", mod.Name, mod.Version);
 
 		bool found = false;
 
@@ -349,36 +338,30 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 				downloadAborted = true;
 				downloadFailed = false;
 				break;
-			// case ModDownloader::FAILED: // Generic error message, should be avoided as much as possible
-			// 	interruptMessage = "download failed";
-			// 	break;
 			case ModDownloader::FAILED_READING_ARCHIVE:
-				interruptMessage = "failed reading archive";
+				interruptMessage = "#FAILED_READING_ARCHIVE";
 				break;
 			case ModDownloader::FAILED_WRITING_TO_DISK:
-				interruptMessage = "failed writing to disk";
+				interruptMessage = "#FAILED_WRITING_TO_DISK";
 				break;
 			case ModDownloader::MOD_FETCHING_FAILED:
-				interruptMessage = "mod fetching failed";
+				interruptMessage = "#MOD_FETCHING_FAILED";
 				break;
 			case ModDownloader::MOD_CORRUPTED: // Downloaded archive checksum does not match verified hash
-				interruptMessage = "mod corrupted (checksum mismatch)";
+				interruptMessage = "#MOD_CORRUPTED";
 				break;
 			case ModDownloader::NO_DISK_SPACE_AVAILABLE:
-				interruptMessage = "no disk space available";
-				break;
-			case ModDownloader::NOT_FOUND: // Mod is not currently being auto-downloaded
-				interruptMessage = "mod not found";
+				interruptMessage = "#NO_DISK_SPACE_AVAILABLE";
 				break;
 			case ModDownloader::UNKNOWN_PLATFORM:
-				interruptMessage = "unknown platform";
+				interruptMessage = "#MOD_FETCHING_FAILED_GENERAL";
 				break;
 			default:
 				break;
 		}
 
 		if(downloadAborted)
-			Interrupt("aborted");
+			Interrupt();
 
 		if(downloadFailed)
 			Interrupt(fmt::format("Download for {} v{} failed: {}", mod.Name, mod.Version, interruptMessage));
@@ -405,7 +388,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			g_pMasterServerManager->RequestServerList();
 
-			UpdateMessage("Requesting server list.");
+			UpdateMessage("#REQUESTING_SERVERS");
 
 			while(g_pMasterServerManager->m_bScriptRequestingServerList && !IsCancelled())
 				Sleep(100);
@@ -441,7 +424,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 				*serverInfo,
 				serverPassword.c_str());
 
-			UpdateMessage("Authenticating with server.");
+			UpdateMessage("#DIALOG_SERVERCONNECTING_MSG", serverInfo->name);
 
 			while (!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer &&
 				   Plat_FloatTime() - g_pConnectionManager->m_flConnectionStartTime < maxTime && !IsCancelled())
@@ -484,7 +467,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			RETURN_IF_CANCELLED()
 
-			UpdateMessage("Fetching verified mods manifest.");
+			UpdateMessage("#MANIFESTO_FETCHING_TEXT");
 			g_pModDownloader->FetchModsListFromAPI();
 
 			while(g_pModDownloader->modState.state == ModDownloader::MANIFESTO_FETCHING && !IsCancelled())
@@ -508,10 +491,13 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 void ConnectionManager::ReloadMods(RemoteServerInfo* info)
 {
-	UpdateMessage("Reloading mods.");
+    UpdateMessage("Reloading mods.");
+
+    bool shouldReloadMods = false;
 
     for (Mod& loaded : g_pModManager->m_LoadedMods)
     {
+        bool wasEnabled = loaded.m_bEnabled;
         bool isRequired = false;
 
         for (const auto& required : info->requiredMods)
@@ -530,19 +516,28 @@ void ConnectionManager::ReloadMods(RemoteServerInfo* info)
             loaded.m_bEnabled = true;
         else if (loaded.RequiredOnClient)
             loaded.m_bEnabled = false;
+
+        // Only trigger reload if we had to enable a RequiredOnClient mod
+        if (!wasEnabled && loaded.m_bEnabled && loaded.RequiredOnClient)
+            shouldReloadMods = true;
     }
 
-    g_pModManager->LoadMods();
+    if (shouldReloadMods)
+	{
+    	g_pModManager->LoadMods();
 
-	Cbuf_AddText(
-		Cbuf_GetCurrentPlayer(),
-		"reload_localization; loadPlaylists; weapon_reparse; playerSettings_reparse; uiscript_reset",
-		cmd_source_t::kCommandSrcCode);
+    	Cbuf_AddText(
+    	    Cbuf_GetCurrentPlayer(),
+    	    "reload_localization; loadPlaylists; weapon_reparse; playerSettings_reparse; uiscript_reset",
+    	    cmd_source_t::kCommandSrcCode);
 
-	Cbuf_Execute();
+    	Cbuf_Execute();
+	}
 
-	Sleep(500); // going too fast here can cause the ui to just not ever start
+    if(m_bRetrying)
+        Sleep(500); // going too fast here can cause the ui to just not ever start
 }
+
 
 void ConnectionManager::FinaliseJoiningServer(std::string& address)
 {

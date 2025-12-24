@@ -5,6 +5,7 @@
 #include "core/tier0.h"
 #include "engine/r2engine.h"
 #include "mods/autodownload/moddownloader.h"
+#include "engine/localize.h"
 
 extern bool g_bConnectingToServer;
 extern bool g_bRetryingConnection;
@@ -63,7 +64,8 @@ private:
 	void InvokeConnectionMessageCallbacks(const std::string& message);
 
 	void AuthenticateToMasterServer();
-	void UpdateMessage(const std::string& message = "") { m_szProgressMessage = message; InvokeConnectionMessageCallbacks(m_szProgressMessage); }
+	template <typename... Args>
+	void UpdateMessage(const std::string& message = "", Args... args) { m_szProgressMessage = Localize(message.c_str(), args...); InvokeConnectionMessageCallbacks(m_szProgressMessage); }
 
 	void FinaliseJoiningLocalServer();
 	void FinaliseJoiningServer(std::string& address);
@@ -75,7 +77,8 @@ public:
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName = "");
 
-	void Interrupt(const std::string& reason = "")
+	template <typename... Args>
+	void Interrupt(const std::string& reason = "", Args... args)
 	{
 		m_bFailed = true;
 		m_bConnecting = false;
@@ -84,12 +87,12 @@ public:
 		g_pModDownloader->CancelDownload();
 
 		InvokeConnectionStoppedCallbacks(reason);
-		spdlog::info("Connection interrupted: {}", reason);
+		spdlog::info("Connection interrupted: {}", Localize(reason.c_str(), args...));
 
 		if(m_bUseSCRPlaque)
 			Cbuf_AddText(
 				Cbuf_GetCurrentPlayer(),
-				fmt::format("disconnect \"{}\"", reason).c_str(),
+				fmt::format("disconnect \"{}\"", Localize(reason.c_str(), args...)).c_str(),
 				cmd_source_t::kCommandSrcCode);
 	}
 	void Retrying(bool retrying) { m_bRetrying = retrying; }
