@@ -445,7 +445,7 @@ void ModManager::UnloadMods()
 	// model reloading is super slow so we want to only do it if necessary
 	if(modsUsingModelsSum > 0 && modsUsingModelsSum != previousModsUsingModelsSum)
 	{
-		ReloadModels();
+		// ReloadModels();
 		previousModsUsingModelsSum = modsUsingModelsSum;
 		modsUsingModelsSum = 0;
 	}
