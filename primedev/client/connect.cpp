@@ -20,6 +20,7 @@ ConnectionManager* g_pConnectionManager = nullptr;
 
 ConVar* Cvar_cl_resend_inforequest_timeout = nullptr;
 ConVar* Cvar_cl_resend_inforequest_timeout_remote = nullptr;
+ConVar* Cvar_cl_resend_inforequest_interval_ms = nullptr;
 
 void ConnectionManager::Connect(bool useSCRPlaque, std::string mapName)
 {
@@ -272,9 +273,9 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 
 	while(!g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
 	{
-		int retryInterval = g_pCVar->FindVar("cl_resend")->GetFloat();
+		int retryInterval = g_pCVar->FindVar("cl_resend_inforequest_interval_ms")->GetInt();
 		NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
-		Sleep(retryInterval * 1000);
+		Sleep(retryInterval);
 	}
 }
 
@@ -495,6 +496,13 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 	authThread.detach();
 }
 
+void ConnectionManager::ConnectToP2PServer(const std::string& address)
+{
+	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
+
+
+}
+
 void ConnectionManager::ReloadMods(RemoteServerInfo* info)
 {
     UpdateMessage("Reloading mods.");
@@ -543,7 +551,6 @@ void ConnectionManager::ReloadMods(RemoteServerInfo* info)
     if(m_bRetrying)
         Sleep(500); // going too fast here can cause the ui to just not ever start
 }
-
 
 void ConnectionManager::FinaliseJoiningServer(std::string& address)
 {
@@ -688,6 +695,37 @@ AUTOHOOK(retry, engine.dll + 0x73D10, int*, __fastcall, (__int64 a1))
 AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const CCommand* args))
 // clang-format on
 {
+	if(!g_pConnectionManager->IsConnecting())
+	{
+		if(g_pVanillaCompatibility->GetVanillaCompatibility())
+		{
+			g_pConnectionManager->SetMatchmaking();
+			return concommand_connect(args);
+		}
+
+		if(args->ArgC() < 2)
+			return concommand_connect(args);
+
+		const char* address = args->Arg(1);
+
+		auto mode = g_pConnectionManager->DetermineModeFromAddress(address);
+		if(g_pConnectionManager->IsRetrying())
+			mode = g_pConnectionManager->GetCurrentMode();
+		else
+			spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<int>(mode));
+
+		int argCount = args->ArgC();
+		bool useSCRPlaque = true;
+
+		if(argCount == 3)
+			atoi(args->Arg(2)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
+
+		g_pConnectionManager->Connect(address, mode, useSCRPlaque);
+
+		return 0;
+	}
+
+
 	return concommand_connect(args);
 }
 
@@ -702,6 +740,9 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 			g_pConnectionManager->SetMatchmaking();
 			return connectWithKey(args);
 		}
+
+		if(args->ArgC() < 3)
+			return connectWithKey(args);
 
 		const char* address = args->Arg(1);
 
@@ -981,6 +1022,11 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module)
 		"2.5",
 		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
 		"Max time in seconds to wait for a server info response when connecting to remote servers.");
+	Cvar_cl_resend_inforequest_interval_ms = new ConVar(
+		"cl_resend_inforequest_interval_ms",
+		"500",
+		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
+		"Interval in milliseconds between server info requests when connecting to a server.");
 	RegisterConCommand("connectWithRemoteId", ConCommand_connectWithRemoteId, "Connects to a server using its remote ID from the master server", FCVAR_CLIENTDLL);
 
 	SCR_BeginLoadingPlaque = module.Offset(0xB92E0).RCast<decltype(SCR_BeginLoadingPlaque)>();
