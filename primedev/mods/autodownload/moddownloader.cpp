@@ -377,15 +377,18 @@ bool ModDownloader::IsModLegit(fs::path modPath, std::string_view expectedChecks
 	}
 
 	// Convert hash to string using bytes raw values
-	ss << std::hex << std::setfill('0');
-	for (int i = 0; i < hashLength; i++)
-	{
-		ss << std::hex << std::setw(2) << static_cast<int>(hash.data()[i]);
-	}
+    ss << std::hex << std::setfill('0');
+    for (int i = 0; i < hashLength; i++)
+    {
+        ss << std::hex << std::setw(2) << static_cast<int>(hash.data()[i]);
+    }
 
-	spdlog::info("Expected checksum: {}", expectedChecksum.data());
-	spdlog::info("Computed checksum: {}", ss.str());
-	return expectedChecksum.compare(ss.str()) == 0;
+    std::string computedHash = ss.str();
+
+    spdlog::info("Expected checksum: {}", expectedChecksum);
+    spdlog::info("Computed checksum: {}", computedHash);
+
+    return std::string(expectedChecksum) == computedHash;
 }
 
 bool ModDownloader::IsModAuthorized(std::string_view modName, std::string_view modVersion)

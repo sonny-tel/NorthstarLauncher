@@ -127,6 +127,21 @@ public:
 
 public:
 	Mod(fs::path modPath, const char* jsonBuf);
+    bool IsCoreMod()
+    {
+        static const std::array<std::string_view, 4> coreMods = {
+            "Northstar.Client",
+            "Northstar.Coop",
+            "Northstar.CustomServers",
+            "Northstar.Custom"
+        };
+
+        return std::find(
+            coreMods.begin(),
+            coreMods.end(),
+            std::string_view{Name}
+        ) != coreMods.end();
+    }
 
 private:
 	void ParseConVars(rapidjson_document& json);

@@ -6,6 +6,7 @@
 #include "engine/r2engine.h"
 #include "core/tier0.h"
 #include "squirrel/squirrel.h"
+#include "engine/models.h"
 
 AUTOHOOK_INIT()
 
@@ -289,7 +290,6 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 	if(unverifiedModCount)
 		Interrupt("Connection failed: unverified mod downloading not implemented yet.");
 
-	int reloadCount = 0;
 
 	for(const auto& mod : info->requiredMods)
 	{
@@ -299,27 +299,40 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 
 		for(auto& existingMod : g_pModManager->m_LoadedMods)
 		{
-			if(existingMod.Name == mod.Name && existingMod.Version == mod.Version)
+			if(existingMod.Name == mod.Name )
 			{
-				found = true;
-
-				if(!existingMod.m_bEnabled)
+				if(existingMod.IsCoreMod())
 				{
-					reloadCount++;
-					existingMod.m_bEnabled = true;
+					found = true;
+					break;
 				}
 
-				break;
+				if(existingMod.Version == mod.Version)
+				{
+					found = true;
+					break;
+				}
 			}
 		}
 
 		if(found)
 			continue;
 
+		spdlog::info("Auto-downloading mod {} version {}", mod.Name, mod.Version);
 		g_pModDownloader->DownloadMod(mod.Name, mod.Version);
 
-		while(g_pModDownloader->modState.state == ModDownloader::DOWNLOADING && !IsCancelled())
-			Sleep(100);
+        while (!IsCancelled())
+        {
+            auto state = g_pModDownloader->modState.state;
+            if (state != ModDownloader::DOWNLOADING &&
+                state != ModDownloader::CHECKSUMING &&
+                state != ModDownloader::EXTRACTING)
+            {
+                break;
+            }
+
+            Sleep(100);
+        }
 
 		RETURN_IF_CANCELLED()
 
@@ -336,9 +349,9 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 				downloadAborted = true;
 				downloadFailed = false;
 				break;
-			case ModDownloader::FAILED: // Generic error message, should be avoided as much as possible
-				interruptMessage = "download failed";
-				break;
+			// case ModDownloader::FAILED: // Generic error message, should be avoided as much as possible
+			// 	interruptMessage = "download failed";
+			// 	break;
 			case ModDownloader::FAILED_READING_ARCHIVE:
 				interruptMessage = "failed reading archive";
 				break;
@@ -365,7 +378,7 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 		}
 
 		if(downloadAborted)
-			Interrupt();
+			Interrupt("aborted");
 
 		if(downloadFailed)
 			Interrupt(fmt::format("Download for {} v{} failed: {}", mod.Name, mod.Version, interruptMessage));
@@ -374,9 +387,7 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 	}
 
 	RETURN_IF_CANCELLED()
-
-	if(reloadCount > 0)
-		g_pModManager->LoadMods();
+	UpdateMessage();
 }
 
 void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::string& password)
@@ -456,7 +467,7 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 				info.ip.S_un.S_un_b.s_b2,
 				info.ip.S_un.S_un_b.s_b3,
 				info.ip.S_un.S_un_b.s_b4);
-			int port = ntohs(info.port);
+			int port = info.port;
 
 			std::string address = fmt::format("{}:{}", ip, port);
 
@@ -482,9 +493,55 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 			RETURN_IF_CANCELLED()
 
 			DownloadMods(true, serverInfo);
+
+			RETURN_IF_CANCELLED()
+
+			ReloadMods(serverInfo);
+
+			RETURN_IF_CANCELLED()
+
+			FinaliseJoiningServer(address);
 		});
 
 	authThread.detach();
+}
+
+void ConnectionManager::ReloadMods(RemoteServerInfo* info)
+{
+	UpdateMessage("Reloading mods.");
+
+    for (Mod& loaded : g_pModManager->m_LoadedMods)
+    {
+        bool isRequired = false;
+
+        for (const auto& required : info->requiredMods)
+        {
+            if (loaded.Name != required.Name)
+                continue;
+
+            if (loaded.IsCoreMod() || loaded.Version == required.Version)
+            {
+                isRequired = true;
+                break;
+            }
+        }
+
+        if (isRequired)
+            loaded.m_bEnabled = true;
+        else if (loaded.RequiredOnClient)
+            loaded.m_bEnabled = false;
+    }
+
+    g_pModManager->LoadMods();
+
+	Cbuf_AddText(
+		Cbuf_GetCurrentPlayer(),
+		"reload_localization; loadPlaylists; weapon_reparse; playerSettings_reparse; uiscript_reset",
+		cmd_source_t::kCommandSrcCode);
+
+	Cbuf_Execute();
+
+	Sleep(500); // going too fast here can cause the ui to just not ever start
 }
 
 void ConnectionManager::FinaliseJoiningServer(std::string& address)

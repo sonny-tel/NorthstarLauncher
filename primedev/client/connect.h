@@ -69,6 +69,7 @@ private:
 	void FinaliseJoiningServer(std::string& address);
 
 	void DownloadMods(bool remoteServer, RemoteServerInfo* info);
+	void ReloadMods(RemoteServerInfo* info);
 public:
 	void Connect(const std::string& address, eConnectionMode mode, bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
@@ -83,6 +84,7 @@ public:
 		g_pModDownloader->CancelDownload();
 
 		InvokeConnectionStoppedCallbacks(reason);
+		spdlog::info("Connection interrupted: {}", reason);
 
 		if(m_bUseSCRPlaque)
 			Cbuf_AddText(
