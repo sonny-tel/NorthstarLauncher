@@ -18,6 +18,9 @@ bool g_bRetryingConnection = false;
 
 ConnectionManager* g_pConnectionManager = nullptr;
 
+ConVar* Cvar_cl_resend_inforequest_timeout = nullptr;
+ConVar* Cvar_cl_resend_inforequest_timeout_remote = nullptr;
+
 void ConnectionManager::Connect(bool useSCRPlaque, std::string mapName)
 {
 	if(useSCRPlaque)
@@ -260,15 +263,18 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 	NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
 
 	float startTime = Plat_FloatTime();
-	float timeOut = g_pCVar->FindVar("cl_resend_timeout")->GetFloat();
+	float timeOut = g_pCVar->FindVar("cl_resend_inforequest_timeout")->GetFloat();
+
+	if(m_eCurrentMode == eConnectionMode::RemoteServer)
+		timeOut = g_pCVar->FindVar("cl_resend_inforequest_timeout_remote")->GetFloat();
 
 	UpdateMessage("#REQUESTING_CUSTOM_SERVER_INFO");
 
-	while(g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
+	while(!g_bReceivedServerInfo && !IsCancelled() && Plat_FloatTime() - startTime < timeOut)
 	{
-		int retryInterval = g_pCVar->FindVar("cl_resend_interval")->GetInt();
+		int retryInterval = g_pCVar->FindVar("cl_resend")->GetFloat();
 		NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
-		Sleep(retryInterval);
+		Sleep(retryInterval * 1000);
 	}
 }
 
@@ -965,6 +971,16 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module)
 
 	g_pConnectionManager = new ConnectionManager();
 
+	Cvar_cl_resend_inforequest_timeout = new ConVar(
+		"cl_resend_inforequest_timeout",
+		"10.0",
+		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
+		"Max time in seconds to wait for a server info response when connecting to non-remote servers.");
+	Cvar_cl_resend_inforequest_timeout_remote = new ConVar(
+		"cl_resend_inforequest_timeout_remote",
+		"2.5",
+		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
+		"Max time in seconds to wait for a server info response when connecting to remote servers.");
 	RegisterConCommand("connectWithRemoteId", ConCommand_connectWithRemoteId, "Connects to a server using its remote ID from the master server", FCVAR_CLIENTDLL);
 
 	SCR_BeginLoadingPlaque = module.Offset(0xB92E0).RCast<decltype(SCR_BeginLoadingPlaque)>();
