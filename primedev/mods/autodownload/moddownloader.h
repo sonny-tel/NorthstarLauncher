@@ -222,6 +222,8 @@ public:
 	struct MOD_STATE
 	{
 		ModInstallState state;
+		std::string name;
+		std::string version;
 		int progress;
 		int total;
 		float ratio;

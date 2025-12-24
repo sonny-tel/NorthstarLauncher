@@ -646,6 +646,8 @@ void ModDownloader::DownloadMod(std::string modName, std::string modVersion)
 
 	// Tell VM we're ready to download mod
 	modState.state = DOWNLOADING;
+	modState.name = modName;
+	modState.version = modVersion;
 
 	std::thread requestThread(
 		[this, modName, modVersion]()
@@ -1136,21 +1138,29 @@ ADD_SQFUNC("ModInstallState", NSGetModInstallState, "", "", ScriptContext::SERVE
 	else
 		modState.state = ModDownloader::NOT_FOUND;
 
+	// name
+	g_pSquirrel[context]->pushstring(sqvm, modState.name.c_str());
+	g_pSquirrel[context]->sealstructslot(sqvm, 0);
+
+	// version
+	g_pSquirrel[context]->pushstring(sqvm, modState.version.c_str());
+	g_pSquirrel[context]->sealstructslot(sqvm, 1);
+
 	// state
 	g_pSquirrel[context]->pushinteger(sqvm, modState.state);
-	g_pSquirrel[context]->sealstructslot(sqvm, 0);
+	g_pSquirrel[context]->sealstructslot(sqvm, 2);
 
 	// progress
 	g_pSquirrel[context]->pushinteger(sqvm, modState.progress);
-	g_pSquirrel[context]->sealstructslot(sqvm, 1);
+	g_pSquirrel[context]->sealstructslot(sqvm, 3);
 
 	// total
 	g_pSquirrel[context]->pushinteger(sqvm, modState.total);
-	g_pSquirrel[context]->sealstructslot(sqvm, 2);
+	g_pSquirrel[context]->sealstructslot(sqvm, 4);
 
 	// ratio
 	g_pSquirrel[context]->pushfloat(sqvm, modState.ratio);
-	g_pSquirrel[context]->sealstructslot(sqvm, 3);
+	g_pSquirrel[context]->sealstructslot(sqvm, 5);
 
 	return SQRESULT_NOTNULL;
 }
