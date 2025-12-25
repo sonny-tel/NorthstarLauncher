@@ -33,6 +33,13 @@ public:
 		P2P = 'P', // connectionless self auth hack only for p2p
 	};
 
+	enum class eModAcceptState
+	{
+		NOT_DECIDED = 0,
+		ACCEPTED = 1,
+		DENIED = 2
+	};
+
 private:
 	eConnectionMode m_eCurrentMode = eConnectionMode::Direct;
 	eConnectionMode m_eLastMode = eConnectionMode::Direct;
@@ -52,6 +59,7 @@ private:
 	std::string m_szLastServerPassword;
 	std::string m_szLastServerAddress;
 	bool m_bDownloadedMods = false;
+	eModAcceptState m_eModAcceptState = eModAcceptState::NOT_DECIDED;
 
 	void ConnectToLocalServer();
 	void ConnectToRemoteServer(const std::string& id, const std::string& password);
@@ -108,6 +116,7 @@ public:
 		m_bAuthSucessful = false;
 		m_bRetrying = false;
 		m_bDownloadedMods = false;
+		m_eModAcceptState = eModAcceptState::NOT_DECIDED;
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
@@ -120,6 +129,7 @@ public:
 	void SetMatchmaking() { m_eLastMode = m_eCurrentMode; m_eCurrentMode = eConnectionMode::Matchmaking; }
 	eConnectionMode DetermineModeFromAddress(const std::string& address);
 	bool IsRetrying() { return m_bRetrying; }
+	void SetModAcceptState(eModAcceptState state) { m_eModAcceptState = state; }
 };
 
 extern ConnectionManager* g_pConnectionManager;

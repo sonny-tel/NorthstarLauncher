@@ -282,9 +282,84 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 {
 	int unverifiedModCount = g_pModDownloader->GetTotalServerRequestedMods();
+	std::vector<ModDownloader::modentry_s> unverifiedMods = g_pModDownloader->GetServerRequestedMods();
 
-	if(unverifiedModCount)
-		Interrupt("Connection failed: unverified mod downloading not implemented yet.");
+	bool needToDownloadMods = false;
+
+	UpdateMessage("#CHECKING_REQUIRED_MODS");
+
+	for(const auto& mod : unverifiedMods)
+	{
+		bool found = false;
+
+		for(auto& existingMod : g_pModManager->m_LoadedMods)
+		{
+			if(existingMod.Name == mod.name )
+			{
+				if(existingMod.IsCoreMod())
+				{
+					found = true;
+					break;
+				}
+
+				if(existingMod.Version == mod.version)
+				{
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if(!found)
+		{
+			needToDownloadMods = true;
+			break;
+		}
+	}
+
+	for(RemoteModInfo& mod : info->requiredMods)
+	{
+		bool found = false;
+
+		for(auto& existingMod : g_pModManager->m_LoadedMods)
+		{
+			if(existingMod.Name == mod.Name )
+			{
+				if(existingMod.IsCoreMod())
+				{
+					found = true;
+					break;
+				}
+
+				if(existingMod.Version == mod.Version)
+				{
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if(!found)
+		{
+			needToDownloadMods = true;
+			break;
+		}
+	}
+
+	if(!needToDownloadMods)
+		return;
+
+	if(!m_bUseSCRPlaque && unverifiedModCount > 0)
+	{
+		g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConfirmDownloadMods", unverifiedModCount, info->name);
+		while(m_eModAcceptState == eModAcceptState::NOT_DECIDED && !IsCancelled())
+			Sleep(100);
+
+		if(m_eModAcceptState == eModAcceptState::DENIED)
+			Interrupt();
+
+		RETURN_IF_CANCELLED()
+	}
 
 	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_DownloadingModsStarted");
 
@@ -1012,6 +1087,18 @@ void ConCommand_connectWithRemoteId(const CCommand& args)
 		password = "";
 
 	g_pConnectionManager->Connect(remoteId, password, useSCRPlaque);
+}
+
+ADD_SQFUNC("void", NSDecideModDownload, "bool accept", "", ScriptContext::UI)
+{
+	bool accepted = g_pSquirrel[context]->getbool(sqvm, 1);
+
+	if (accepted)
+		g_pConnectionManager->SetModAcceptState(ConnectionManager::eModAcceptState::ACCEPTED);
+	else
+		g_pConnectionManager->SetModAcceptState(ConnectionManager::eModAcceptState::DENIED);
+
+	return SQRESULT_NULL;
 }
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module))

@@ -12,20 +12,7 @@ extern ModDownloader* g_pModDownloader;
 
 class ModDownloader
 {
-private:
-	struct modentry_s;
-
-	const char* VERIFICATION_FLAG = "-disablemodverification";
-	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
-	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
-	const float SERVER_MODINFO_TIMEOUT_SECONDS = 3.0f;
-	char* modsListUrl;
-	rapidjson::Document m_Document;
-	std::vector<modentry_s> m_ParsedSchemaMods;
-	bool m_bIsListeningForServerMods = false;
-	std::vector<modentry_s> m_ServerRequestedMods;
-	int m_iTotalServerRequestedMods = 0;
-
+public:
 	enum class VerifiedModPlatform
 	{
 		Unknown,
@@ -45,6 +32,18 @@ private:
 
 		std::string checksum;
 	};
+
+private:
+	const char* VERIFICATION_FLAG = "-disablemodverification";
+	const char* CUSTOM_MODS_URL_FLAG = "-customverifiedurl=";
+	const char* DEFAULT_MODS_LIST_URL = "https://raw.githubusercontent.com/R2Northstar/VerifiedMods/main/verified-mods.json";
+	const float SERVER_MODINFO_TIMEOUT_SECONDS = 3.0f;
+	char* modsListUrl;
+	rapidjson::Document m_Document;
+	std::vector<modentry_s> m_ParsedSchemaMods;
+	bool m_bIsListeningForServerMods = false;
+	std::vector<modentry_s> m_ServerRequestedMods;
+	int m_iTotalServerRequestedMods = 0;
 
 	VerifiedModPlatform resolvePlatform(std::string input)
 	{
