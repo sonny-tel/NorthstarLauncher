@@ -286,6 +286,7 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 	if(unverifiedModCount)
 		Interrupt("Connection failed: unverified mod downloading not implemented yet.");
 
+	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_DownloadingModsStarted");
 
 	for(const auto& mod : info->requiredMods)
 	{
@@ -316,6 +317,7 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 
 		spdlog::info("Auto-downloading mod {} version {}", mod.Name, mod.Version);
 		g_pModDownloader->DownloadMod(mod.Name, mod.Version);
+		m_bDownloadedMods = true;
 
         while (!IsCancelled())
         {
@@ -376,7 +378,10 @@ void ConnectionManager::DownloadMods(bool remoteServer, RemoteServerInfo* info)
 		RETURN_IF_CANCELLED()
 	}
 
+	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_DownloadingModsStopped");
+
 	RETURN_IF_CANCELLED()
+
 	UpdateMessage();
 }
 
@@ -469,16 +474,16 @@ void ConnectionManager::ConnectToRemoteServer(const std::string& id, const std::
 
 			RETURN_IF_CANCELLED()
 
-			std::string netAdr = fmt::format("[::ffff:{}]:{}", ip, port);
-			SendInfoRequestPacket(CNetAdr(netAdr.c_str()), false, true);
-
-			RETURN_IF_CANCELLED()
-
 			UpdateMessage("#MANIFESTO_FETCHING_TEXT");
 			g_pModDownloader->FetchModsListFromAPI();
 
 			while(g_pModDownloader->modState.state == ModDownloader::MANIFESTO_FETCHING && !IsCancelled())
 				Sleep(100);
+
+			RETURN_IF_CANCELLED()
+
+			std::string netAdr = fmt::format("[::ffff:{}]:{}", ip, port);
+			SendInfoRequestPacket(CNetAdr(netAdr.c_str()), false, true);
 
 			RETURN_IF_CANCELLED()
 
@@ -508,6 +513,9 @@ void ConnectionManager::ReloadMods(RemoteServerInfo* info)
     UpdateMessage("Reloading mods.");
 
     bool shouldReloadMods = false;
+
+	if(m_bDownloadedMods)
+		shouldReloadMods = true;
 
     for (Mod& loaded : g_pModManager->m_LoadedMods)
     {

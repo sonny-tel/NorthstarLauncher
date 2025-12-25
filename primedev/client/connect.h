@@ -51,6 +51,7 @@ private:
 	std::string m_szLastServerID;
 	std::string m_szLastServerPassword;
 	std::string m_szLastServerAddress;
+	bool m_bDownloadedMods = false;
 
 	void ConnectToLocalServer();
 	void ConnectToRemoteServer(const std::string& id, const std::string& password);
@@ -106,6 +107,7 @@ public:
 		m_flConnectionStartTime = 0.0f;
 		m_bAuthSucessful = false;
 		m_bRetrying = false;
+		m_bDownloadedMods = false;
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
