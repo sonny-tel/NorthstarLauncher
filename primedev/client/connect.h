@@ -60,6 +60,7 @@ private:
 	std::string m_szLastServerAddress;
 	bool m_bDownloadedMods = false;
 	eModAcceptState m_eModAcceptState = eModAcceptState::NOT_DECIDED;
+	bool m_bUnloadingRemoteModsOnMatchmaking = false;
 
 	void ConnectToLocalServer();
 	void ConnectToRemoteServer(const std::string& id, const std::string& password);
@@ -117,6 +118,7 @@ public:
 		m_bRetrying = false;
 		m_bDownloadedMods = false;
 		m_eModAcceptState = eModAcceptState::NOT_DECIDED;
+		m_bUnloadingRemoteModsOnMatchmaking = false;
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
@@ -130,6 +132,8 @@ public:
 	eConnectionMode DetermineModeFromAddress(const std::string& address);
 	bool IsRetrying() { return m_bRetrying; }
 	void SetModAcceptState(eModAcceptState state) { m_eModAcceptState = state; }
+	bool UnloadingRemoteModsOnMatchmaking() { return m_bUnloadingRemoteModsOnMatchmaking; }
+	void SetUnloadingRemoteModsOnMatchmaking(bool unloading) { m_bUnloadingRemoteModsOnMatchmaking = unloading; }
 };
 
 extern ConnectionManager* g_pConnectionManager;

@@ -21,6 +21,7 @@ ConnectionManager* g_pConnectionManager = nullptr;
 ConVar* Cvar_cl_resend_inforequest_timeout = nullptr;
 ConVar* Cvar_cl_resend_inforequest_timeout_remote = nullptr;
 ConVar* Cvar_cl_resend_inforequest_interval_ms = nullptr;
+ConVar* Cvar_cl_unload_remote_mods_on_matchmaking = nullptr;
 
 void ConnectionManager::Connect(bool useSCRPlaque, std::string mapName)
 {
@@ -732,6 +733,45 @@ AUTOHOOK(matchmake, engine.dll + 0xF220, int*, __fastcall, ())
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Vanilla);
 	g_pConnectionManager->SetMatchmaking();
 
+	if(Cvar_cl_unload_remote_mods_on_matchmaking->GetBool() && !g_pConnectionManager->UnloadingRemoteModsOnMatchmaking())
+	{
+		std::thread unloadThread([]()
+			{
+				g_pConnectionManager->SetUnloadingRemoteModsOnMatchmaking(true);
+
+				spdlog::info("Unloading remote requiredOnClient mods for matchmaking");
+
+				int affectedMods = 0;
+
+				for (auto& loaded : g_pModManager->m_LoadedMods)
+				{
+					if (loaded.RequiredOnClient && loaded.m_bIsRemote && loaded.m_bEnabled && !loaded.IsCoreMod())
+					{
+						affectedMods++;
+						loaded.m_bEnabled = false;
+					}
+				}
+
+				if( affectedMods > 0)
+				{
+					g_pModManager->LoadMods();
+					Cbuf_AddText(
+						Cbuf_GetCurrentPlayer(),
+						"reload_localization; loadPlaylists; weapon_reparse; playerSettings_reparse; uiscript_reset; matchmake",
+						cmd_source_t::kCommandSrcCode);
+				}
+
+				Cbuf_AddText(
+					Cbuf_GetCurrentPlayer(),
+					"matchmake",
+					cmd_source_t::kCommandSrcCode);
+
+				Cbuf_Execute();
+			});
+		unloadThread.detach();
+		return 0;
+	}
+
 	return matchmake();
 }
 
@@ -1122,6 +1162,11 @@ ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ConnectHooks, ConVar, (CModule module)
 		"500",
 		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
 		"Interval in milliseconds between server info requests when connecting to a server.");
+	Cvar_cl_unload_remote_mods_on_matchmaking = new ConVar(
+		"cl_unload_remote_mods_on_matchmaking",
+		"1",
+		FCVAR_CLIENTDLL | FCVAR_ARCHIVE_PLAYERPROFILE,
+		"Whether to unload remote requiredOnClient mods when joining matchmaking (vanilla) games.");
 	RegisterConCommand("connectWithRemoteId", ConCommand_connectWithRemoteId, "Connects to a server using its remote ID from the master server", FCVAR_CLIENTDLL);
 
 	SCR_BeginLoadingPlaque = module.Offset(0xB92E0).RCast<decltype(SCR_BeginLoadingPlaque)>();
