@@ -586,7 +586,7 @@ void ConnectionManager::ConnectToP2PServer(const std::string& address)
 
 void ConnectionManager::ReloadMods(RemoteServerInfo* info)
 {
-    UpdateMessage("Reloading mods.");
+    UpdateMessage("#RELOADING_MODS");
 
     bool shouldReloadMods = false;
 
