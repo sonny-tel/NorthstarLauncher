@@ -48,6 +48,7 @@ public:
 	    const auto& layer = EosLayer::Instance();
 	    return layer.IsInitialized() && layer.GetLocalUser() != nullptr;
 	}
+    bool EnsureLoggedIn();
 
 private:
     EosLayer() = default;
@@ -72,7 +73,7 @@ private:
 
     std::unique_ptr<FakeIpLayer> m_fakeIpLayer;
     std::thread m_pumpThread;
-    std::mutex m_tickMutex;
+    std::recursive_mutex m_tickMutex;
 
     std::string m_productName;
     std::string m_productVersion;

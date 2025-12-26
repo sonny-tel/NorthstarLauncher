@@ -316,9 +316,23 @@ void FakeIpLayer::PumpIncoming()
 
         if (sizeResult == EOS_EResult::EOS_InvalidAuth)
         {
-			auto& layer = EosLayer::Instance();
-			layer.LoginWithDeviceId();
-			continue;
+            NS::log::EOS->warn("LocalUserId invalid, attempting EOS re-login");
+
+            auto& layer = EosLayer::Instance();
+            if (!layer.LoginWithDeviceId())
+            {
+                NS::log::EOS->error("EOS re-login failed, stopping P2P receive");
+                return;
+            }
+
+			localUser = m_localUser.load(std::memory_order_acquire);
+            if (!localUser)
+            {
+                NS::log::EOS->error("EOS re-login succeeded but local user is null");
+                return;
+            }
+
+            continue;
         }
 
         if (sizeResult != EOS_EResult::EOS_Success)
