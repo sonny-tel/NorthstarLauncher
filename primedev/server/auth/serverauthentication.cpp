@@ -144,7 +144,6 @@ void ServerAuthenticationManager::AuthenticatePlayer(CClient* pPlayer, uint64_t 
 	strcpy(pPlayer->m_UID, sUid.c_str());
 
 	std::lock_guard<std::mutex> guard(m_AuthDataMutex);
-	spdlog::info("auth token {}", pAuthToken);
 	if (!pAuthToken)
 	{
 		pPlayer->m_iPersistenceReady = ePersistenceReady::READY_INSECURE;
