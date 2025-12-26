@@ -79,18 +79,29 @@ std::string BuildDisplayName()
 
 void EOS_CALL OnCreateDeviceIdCallback(const EOS_Connect_CreateDeviceIdCallbackInfo* data)
 {
-    auto* promise = static_cast<std::promise<EOS_EResult>*>(data->ClientData);
-    PromiseCleanup::SetValue(promise, data->ResultCode);
+    using PromisePtr = std::shared_ptr<std::promise<EOS_EResult>>;
+    auto* holder = static_cast<PromisePtr*>(data->ClientData);
+    if (!holder)
+        return;
+
+    PromiseCleanup::SetValue(holder->get(), data->ResultCode);
+    delete holder; // drop our ref; promise is destroyed when all shared_ptrs go away
 }
 
 void EOS_CALL OnConnectLoginCallback(const EOS_Connect_LoginCallbackInfo* data)
 {
-    auto* promise = static_cast<std::promise<eos::LoginCallbackPayload>*>(data->ClientData);
+    using PromisePtr = std::shared_ptr<std::promise<eos::LoginCallbackPayload>>;
+    auto* holder = static_cast<PromisePtr*>(data->ClientData);
+    if (!holder)
+        return;
+
     eos::LoginCallbackPayload payload{};
     payload.result = data->ResultCode;
     payload.user = data->LocalUserId;
     payload.continuanceToken = data->ContinuanceToken;
-    PromiseCleanup::SetValue(promise, payload);
+
+    PromiseCleanup::SetValue(holder->get(), payload);
+    delete holder; // same as above
 }
 
 void EOS_CALL OnIncomingConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* data)
@@ -286,9 +297,12 @@ bool EosLayer::CreateDeviceId()
     options.ApiVersion = EOS_CONNECT_CREATEDEVICEID_API_LATEST;
     options.DeviceModel = "PC Windows";
 
+    // heap‑allocate a copy of the shared_ptr so the callback always has a live promise
+    auto* holder = new std::shared_ptr<std::promise<EOS_EResult>>(promise);
+
     {
         SdkLock lock(GetSdkMutex());
-        EOS_Connect_CreateDeviceId(m_connectHandle, &options, promise.get(), &OnCreateDeviceIdCallback);
+        EOS_Connect_CreateDeviceId(m_connectHandle, &options, holder, &OnCreateDeviceIdCallback);
     }
 
     EOS_EResult result = EOS_EResult::EOS_UnexpectedError;
@@ -329,9 +343,11 @@ bool EosLayer::LoginWithDeviceId()
     loginOptions.Credentials = &credentials;
     loginOptions.UserLoginInfo = &userInfo;
 
+    auto* holder = new std::shared_ptr<std::promise<LoginCallbackPayload>>(promise);
+
     {
         SdkLock lock(GetSdkMutex());
-        EOS_Connect_Login(m_connectHandle, &loginOptions, promise.get(), &OnConnectLoginCallback);
+        EOS_Connect_Login(m_connectHandle, &loginOptions, holder, &OnConnectLoginCallback);
     }
 
     LoginCallbackPayload payload{};
