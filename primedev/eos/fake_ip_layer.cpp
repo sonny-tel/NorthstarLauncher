@@ -468,7 +468,6 @@ void FakeIpLayer::Clear()
         std::lock_guard guard(m_queueMutex);
         m_packets.clear();
     }
-    m_localEndpoint = {};
 }
 
 bool IsServerNetContext()

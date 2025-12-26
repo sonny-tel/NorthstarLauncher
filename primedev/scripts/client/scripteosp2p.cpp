@@ -6,6 +6,7 @@ ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 	auto& eosLayer = eos::EosLayer::Instance();
 	if(!eosLayer.IsInitialized() || !eosLayer.IsReady())
 	{
+		spdlog::info("EOS layer not initialized or ready");
 		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
@@ -13,6 +14,7 @@ ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 	eos::FakeIpLayer* ipLayer = eosLayer.GetFakeIpLayer();
 	if (!ipLayer)
 	{
+		spdlog::warn("Failed to get FakeIpLayer");
 		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
@@ -20,6 +22,7 @@ ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 	const eos::FakeEndpoint& endpoint = ipLayer->GetLocalEndpoint();
 	if (!endpoint.IsValid())
 	{
+		spdlog::warn("Local P2P endpoint is not valid");
 		g_pSquirrel[context]->pushstring(sqvm, "");
 		return SQRESULT_NOTNULL;
 	}
