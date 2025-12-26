@@ -453,7 +453,6 @@ void EosLayer::PumpOnce()
     catch (const std::exception& e)
     {
         NS::log::EOS->error("Exception in PumpOnce: {}", e.what());
-        throw;
     }
 }
 
