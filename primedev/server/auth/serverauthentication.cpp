@@ -43,6 +43,14 @@ void ServerAuthenticationManager::AddPlayer(CClient* pPlayer, const char* pToken
 {
 	PlayerAuthenticationData additionalData;
 
+	if (!pToken)
+	{
+		additionalData.pdataSize = PERSISTENCE_MAX_SIZE;
+		additionalData.usingLocalPdata = pPlayer->m_iPersistenceReady == ePersistenceReady::READY_INSECURE;
+		m_PlayerAuthenticationData.insert(std::make_pair(pPlayer, additionalData));
+		return;
+	}
+
 	auto remoteAuthData = m_RemoteAuthenticationData.find(pToken);
 	if (remoteAuthData != m_RemoteAuthenticationData.end())
 		additionalData.pdataSize = remoteAuthData->second.pdataSize;
@@ -130,13 +138,18 @@ void ServerAuthenticationManager::AuthenticatePlayer(CClient* pPlayer, uint64_t 
 	// for bot players, generate a new uid
 	if (pPlayer->m_bFakePlayer)
 		iUid = 0; // is this a good way of doing things :clueless:
-
 	std::string sUid = std::to_string(iUid);
 
 	// copy uuid
 	strcpy(pPlayer->m_UID, sUid.c_str());
 
 	std::lock_guard<std::mutex> guard(m_AuthDataMutex);
+	spdlog::info("auth token {}", pAuthToken);
+	if (!pAuthToken)
+	{
+		pPlayer->m_iPersistenceReady = ePersistenceReady::READY_INSECURE;
+		return;
+	}
 	auto authData = m_RemoteAuthenticationData.find(pAuthToken);
 	if (authData != m_RemoteAuthenticationData.end())
 	{
