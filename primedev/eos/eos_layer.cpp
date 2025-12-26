@@ -439,15 +439,12 @@ bool EosLayer::WaitForLogin(std::future<LoginCallbackPayload>& future,
 
 void EosLayer::PumpOnce()
 {
-    std::unique_lock<std::recursive_mutex> lock(m_tickMutex, std::try_to_lock);
-    if (!lock.owns_lock())
-        return;
-
+    std::lock_guard guard(m_tickMutex);
     try
     {
         if (m_platformHandle)
         {
-            SdkLock sdkLock(GetSdkMutex());
+            SdkLock lock(GetSdkMutex());
             EOS_Platform_Tick(m_platformHandle);
         }
         if (m_fakeIpLayer)
