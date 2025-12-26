@@ -1,5 +1,7 @@
 #include "squirrel/squirrel.h"
 #include "eos/eos_layer.h"
+#include "client/r2client.h"
+#include "engine/r2engine.h"
 
 ADD_SQFUNC("string", NSGetLocalP2PEndpointAddress, "", "", ScriptContext::UI)
 {
@@ -60,5 +62,33 @@ ADD_SQFUNC("int", NSGetLocalP2PEndpointPort, "", "", ScriptContext::UI)
 	}
 
 	g_pSquirrel[context]->pushinteger(sqvm, endpoint.port);
+	return SQRESULT_NOTNULL;
+}
+
+ADD_SQFUNC("bool", NSIsP2PConnection, "", "", ScriptContext::UI)
+{
+	CClientState* client = GetBaseLocalClient();
+
+	if(g_pCVar->FindVar("ns_has_agreed_allow_eos")->GetInt() != 1)
+	{
+		g_pSquirrel[context]->pushbool(sqvm, false);
+		return SQRESULT_NOTNULL;
+	}
+
+	std::string adrString = client->m_szServerAddress;
+
+	if(adrString.find("[3ffe:") != std::string::npos)
+	{
+		g_pSquirrel[context]->pushbool(sqvm, true);
+		return SQRESULT_NOTNULL;
+	}
+
+	if(g_pServerState && *g_pServerState >= ss_active)
+	{
+		g_pSquirrel[context]->pushbool(sqvm, true);
+		return SQRESULT_NOTNULL;
+	}
+
+	g_pSquirrel[context]->pushbool(sqvm, false);
 	return SQRESULT_NOTNULL;
 }

@@ -31,6 +31,8 @@ void ConnectionManager::Connect(bool useSCRPlaque, std::string mapName)
 	if(m_bConnecting)
 		return;
 
+	ResetState();
+
 	m_szMapName = mapName;
 	m_bUseSCRPlaque = useSCRPlaque;
 	m_bConnecting = true;
@@ -49,6 +51,8 @@ void ConnectionManager::Connect(const std::string& address, const std::string& p
 
 	if(m_bConnecting)
 		return;
+
+	ResetState();
 
 	m_szMapName = mapName;
 	m_bUseSCRPlaque = useSCRPlaque;
@@ -69,6 +73,8 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
 
 	if(m_bConnecting)
 		return;
+
+	ResetState();
 
 	m_szMapName = mapName;
 	m_bUseSCRPlaque = useSCRPlaque;
@@ -260,6 +266,10 @@ void ConnectionManager::AuthenticateToMasterServer()
 
 void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAuthUs, bool requestMods)
 {
+    g_bReceivedServerInfo = false;
+    if (serverAuthUs)
+        g_bReceivedAuthNotify = false;
+
 	char buffer[256];
 	bf_write msg(buffer, sizeof(buffer));
 	msg.WriteLong(CONNECTIONLESS_HEADER);
@@ -970,224 +980,6 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 	}
 
 	return connectWithKey(args);
-
-	// std::string mode = g_pCVar->FindVar("ns_server_auth_mode")->GetString();
-
-	// std::string address = args->Arg(1);
-
-	// std::string ipPart;
-	// int port;
-	// bool isV6 = false;
-
-	// if(!g_pConnectionManager->ParseAddress(address, ipPart, port, isV6))
-	// 	return connectWithKey(args);
-
-	// spdlog::info("Parsed connect address: ip='{}', port={}, isV6={}", ipPart, port, isV6 ? "true" : "false");
-
-
-	// if(mode == "matchmaking" || !g_bRetryingConnection)
-	// {
-	// 	g_pCVar->FindVar("ns_server_auth_mode")->SetValue("direct");
-	// 	return connectWithKey(args);
-	// }
-
-	// g_bRetryingConnection = false;
-
-	// std::string localUid = g_pLocalPlayerUserID;
-
-	// CCommand copyArgs = CCommand(*args);
-
-	// if(mode == localUid && !g_bConnectingToServer)
-	// {
-	// 	SCR_BeginLoadingPlaque(nullptr);
-	// 	std::thread authThread(
-	// 		[localUid, copyArgs]()
-	// 		{
-	// 			float startTime = Plat_FloatTime();
-
-	// 			g_pMasterServerManager->AuthenticateWithOwnServer(
-	// 				g_pLocalPlayerUserID,
-	// 				g_pMasterServerManager->m_sOwnClientAuthToken,
-	// 				{});
-
-	// 			while(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer &&
-	// 				  Plat_FloatTime() - startTime < 10.0f)
-	// 				Sleep(100);
-
-	// 			if(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
-	// 			{
-	// 				spdlog::error("Timed out authenticating with own server for uid {}", localUid);
-	// 				return;
-	// 			}
-
-	// 			spdlog::info("Successfully authenticated with own server for uid {}", localUid);
-
-	// 			if (g_pServerAuthentication->m_RemoteAuthenticationData.size())
-	// 				g_pCVar->FindVar("serverfilter")->SetValue(g_pServerAuthentication->m_RemoteAuthenticationData.begin()->first.c_str());
-
-	// 			std::string arg1 = copyArgs.Arg(1);
-	// 			std::string arg2 = copyArgs.Arg(2);
-	// 			g_bConnectingToServer = true;
-
-	// 			Cbuf_AddText(
-	// 				Cbuf_GetCurrentPlayer(),
-	// 				fmt::format("connectWithKey {} {}", arg1, arg2).c_str(), cmd_source_t::kCommandSrcCode);
-	// 		});
-
-	// 	authThread.detach();
-	// 	return 0;
-	// }
-
-	// int index = -1;
-
-	// for(int i = 0; i < g_pMasterServerManager->m_vRemoteServers.size(); i++)
-	// {
-	// 	if(std::string(g_pMasterServerManager->m_vRemoteServers[i].id) == mode)
-	// 	{
-	// 		index = i;
-	// 		break;
-	// 	}
-	// }
-
-	// if(!mode.empty() && index != -1 && !g_bConnectingToServer)
-	// {
-	// 	SCR_BeginLoadingPlaque(nullptr);
-	// 	std::thread authThread(
-	// 		[mode, copyArgs, index]()
-	// 		{
-	// 			float startTime = Plat_FloatTime();
-
-    //             g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer = false;
-    //             g_pMasterServerManager->m_bHasPendingConnectionInfo = false;
-
-	// 			const char* password = g_pCVar->FindVar("ns_last_server_password")->GetString();
-
-	// 			g_pMasterServerManager->AuthenticateWithServer(
-	// 				g_pLocalPlayerUserID,
-	// 				g_pMasterServerManager->m_sOwnClientAuthToken,
-	// 				g_pMasterServerManager->m_vRemoteServers[index],
-	// 				password);
-
-	// 			while(!g_pMasterServerManager->m_bHasPendingConnectionInfo &&
-	// 				  Plat_FloatTime() - startTime < 10.0f)
-	// 				Sleep(100);
-
-	// 			if(!g_pMasterServerManager->m_bSuccessfullyAuthenticatedWithGameServer)
-	// 			{
-	// 				spdlog::error("Timed out authenticating with server for uid {}", mode);
-	// 				return;
-	// 			}
-
-	// 			spdlog::info("Successfully authenticated with server for uid {}", mode);
-
-	// 			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
-	// 			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
-
-	// 			g_bConnectingToServer = true;
-
-	// 			Cbuf_AddText(
-	// 				Cbuf_GetCurrentPlayer(),
-	// 				fmt::format(
-	// 					"connect {}.{}.{}.{}:{}",
-	// 					info.ip.S_un.S_un_b.s_b1,
-	// 					info.ip.S_un.S_un_b.s_b2,
-	// 					info.ip.S_un.S_un_b.s_b3,
-	// 					info.ip.S_un.S_un_b.s_b4,
-	// 					info.port)
-	// 					.c_str(),
-	// 				cmd_source_t::kCommandSrcCode);
-	// 		});
-
-	// 	authThread.detach();
-	// 	return 0;
-	// }
-
-	// if(!g_bConnectingToServer)
-	// {
-	// 	SCR_BeginLoadingPlaque(nullptr);
-	// 	std::thread authThread(
-	// 		[mode, copyArgs]()
-	// 		{
-	// 		char buffer[256];
-
-	// 		bf_write msg(buffer, sizeof(buffer));
-	// 		msg.WriteLong(CONNECTIONLESS_HEADER);
-	// 		msg.WriteChar(A2S_REQUESTCUSTOMSERVERINFO);
-	// 		msg.WriteLong(CUSTOMSERVERINFO_VERSION);
-	// 		msg.WriteByte(false);
-	// 		msg.WriteLong(MODDOWNLOADINFO_VERSION);
-	// 		msg.WriteByte(1);
-	// 		msg.WriteString(g_pLocalPlayerUserID);
-	// 		msg.WriteString(g_pMasterServerManager->m_sOwnClientAuthToken);
-
-	// 		std::string arg1 = copyArgs.Arg(1);
-	// 		std::string arg2 = copyArgs.Arg(2);
-	// 		netadr_t addr;
-
-	// 		if(arg1.find(']') != std::string::npos)
-	// 			addr = CNetAdr(arg1.c_str());
-	// 		else if(arg1.find(':') != std::string::npos)
-	// 		{
-	// 			std::string ip = arg1.substr(0, arg1.find(':'));
-	// 			std::string portStr = arg1.substr(arg1.find(':') + 1);
-	// 			int port = std::stoi(portStr);
-	// 			std::string address = fmt::format("[::ffff:{}]:{}", ip, port);
-	// 			addr = CNetAdr(address.c_str());
-	// 		}
-
-	// 		g_bNextServerAuthUs = true;
-
-	// 		NET_SendPacket(
-	// 			nullptr,
-	// 			NS_CLIENT,
-	// 			&addr,
-	// 			msg.GetData(),
-	// 			msg.GetNumBytesWritten(),
-	// 			nullptr,
-	// 			false,
-	// 			0,
-	// 			true);
-
-	// 		float startListeningTime = Plat_FloatTime();
-
-	// 		while(!g_bReceivedServerInfo && Plat_FloatTime() - startListeningTime < 2.5f)
-	// 			Sleep(100);
-
-	// 		g_bNextServerAuthUs = false;
-
-	// 		if(!g_bNextServerAllowingAuthUs)
-	// 		{
-	// 			spdlog::warn("Timed out waiting for server info response from server");
-
-	// 			g_bConnectingToServer = true;
-
-	// 			Cbuf_AddText(
-	// 				Cbuf_GetCurrentPlayer(),
-	// 				fmt::format("connectWithKey {} {}", arg1, arg2).c_str(), cmd_source_t::kCommandSrcCode);
-	// 			return;
-	// 		}
-
-	// 		startListeningTime = Plat_FloatTime();
-
-	// 		while(!g_bReceivedAuthNotify && Plat_FloatTime() - startListeningTime < 5.0f)
-	// 			Sleep(100);
-
-	// 		if(!g_bReceivedAuthNotify)
-	// 			spdlog::warn("Timed out waiting for authentication notify from server");
-
-	// 		g_bConnectingToServer = true;
-
-	// 		Cbuf_AddText(
-	// 			Cbuf_GetCurrentPlayer(),
-	// 			fmt::format("connectWithKey {} {}", arg1, arg2).c_str(), cmd_source_t::kCommandSrcCode);
-	// 		});
-	// 	authThread.detach();
-	// 	return 0;
-	// }
-
-	// g_bConnectingToServer = false;
-
-	// return connectWithKey(args);
 }
 
 void ConCommand_connectWithRemoteId(const CCommand& args)

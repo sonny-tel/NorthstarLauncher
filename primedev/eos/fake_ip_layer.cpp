@@ -13,6 +13,8 @@
 #include "eos_threading.h"
 #include "eos_layer.h"
 
+ConVar* Cvar_eos_current_endpoint = nullptr;
+
 namespace
 {
 
@@ -455,6 +457,7 @@ void FakeIpLayer::UpdateLocalEndpoint()
     if (InetNtopA(AF_INET6, const_cast<in6_addr*>(&m_localEndpoint.address), buffer, sizeof(buffer)))
     {
         NS::log::EOS->info("Local FakeIPv6 [{}]:{}", buffer, m_localEndpoint.port);
+		Cvar_eos_current_endpoint->SetValue(fmt::format("[{}]:{}", buffer, m_localEndpoint.port).c_str());
     }
 }
 
@@ -490,3 +493,12 @@ uint16_t GetPretendRemotePort()
 }
 
 } // namespace eos
+
+ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", EOSFakeIPLayer, ConVar, (CModule module))
+{
+	Cvar_eos_current_endpoint = new ConVar(
+		"eos_current_endpoint",
+		"",
+		FCVAR_REPLICATED,
+		"The host's EOS Fake IP Layer endpoint. (readonly)");
+}

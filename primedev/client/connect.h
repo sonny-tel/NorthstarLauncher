@@ -87,24 +87,40 @@ public:
 	void Connect(bool useSCRPlaque = true, std::string mapName = "");
 	void Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName = "");
 
-	template <typename... Args>
-	void Interrupt(const std::string& reason = "", Args... args)
-	{
-		m_bFailed = true;
-		m_bConnecting = false;
-		m_eCurrentMode = m_eLastMode;
-		m_szFailReason = reason;
-		g_pModDownloader->CancelDownload();
+    template <typename... Args>
+    void Interrupt(const std::string& reason = "", Args... args)
+    {
+        // mark this attempt as failed
+        m_bFailed = true;
+        m_szFailReason = reason;
 
-		InvokeConnectionStoppedCallbacks(reason);
-		spdlog::info("Connection interrupted: {}", Localize(reason.c_str(), args...));
+        // clear connection-state flags so a new attempt starts clean
+        m_bConnecting = false;
+        m_flConnectionStartTime = 0.0f;
+        m_bAuthSucessful = false;
+        m_bRetrying = false;
+        m_bDownloadedMods = false;
+        m_eModAcceptState = eModAcceptState::NOT_DECIDED;
+        m_bUnloadingRemoteModsOnMatchmaking = false;
+        // keep modes sane
+        m_eCurrentMode = m_eLastMode;
 
-		if(m_bUseSCRPlaque)
-			Cbuf_AddText(
-				Cbuf_GetCurrentPlayer(),
-				fmt::format("disconnect \"{}\"", Localize(reason.c_str(), args...)).c_str(),
-				cmd_source_t::kCommandSrcCode);
-	}
+        // stop any in‑flight downloads
+        g_pModDownloader->CancelDownload();
+
+        // notify UI
+        InvokeConnectionStoppedCallbacks(reason);
+        spdlog::info("Connection interrupted: {}", Localize(reason.c_str(), args...));
+
+        // optionally kick the engine back to main menu if we own the plaque
+        if (m_bUseSCRPlaque)
+        {
+            Cbuf_AddText(
+                Cbuf_GetCurrentPlayer(),
+                fmt::format("disconnect \"{}\"", Localize(reason.c_str(), args...)).c_str(),
+                cmd_source_t::kCommandSrcCode);
+        }
+    }
 	void Retrying(bool retrying) { m_bRetrying = retrying; }
 	void Finalise() { m_bConnecting = false; InvokeConnectionStoppedCallbacks(); }
 	void ResetState()

@@ -28,7 +28,7 @@ MasterServerManager* g_pMasterServerManager;
 
 ConVar* Cvar_ns_masterserver_hostname;
 ConVar* Cvar_ns_curl_log_enable;
-ConVar* Cvar_ns_server_auth_mode;
+ConVar* Cvar_ns_last_server_id;
 ConVar* Cvar_ns_last_server_password;
 
 RemoteServerInfo::RemoteServerInfo(
@@ -655,8 +655,7 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
                 }
                 else
                 {
-                    // Local / self-hosted: keep existing entries and only replace our own.
-                    g_pCVar->FindVar("ns_server_auth_mode")->SetValue(authInfoJson["id"].GetString());
+                    g_pCVar->FindVar("ns_last_server_id")->SetValue(authInfoJson["id"].GetString());
 
                     auto* serverFilterVar = g_pCVar->FindVar("serverfilter");
                     const char* oldToken = serverFilterVar ? serverFilterVar->GetString() : "";
@@ -691,144 +690,153 @@ void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char*
 
 void MasterServerManager::AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password)
 {
-	// dont wait, just stop if we're trying to do 2 auth requests at once
-	if (m_bAuthenticatingWithGameServer)
-		return;
+    // dont wait, just stop if we're trying to do 2 auth requests at once
+    if (m_bAuthenticatingWithGameServer)
+        return;
 
-	m_bAuthenticatingWithGameServer = true;
-	m_bScriptAuthenticatingWithGameServer = true;
-	m_bSuccessfullyAuthenticatedWithGameServer = false;
-	m_sAuthFailureReason = "Authentication Failed";
+    m_bAuthenticatingWithGameServer = true;
+    m_bScriptAuthenticatingWithGameServer = true;
+    m_bSuccessfullyAuthenticatedWithGameServer = false;
+    m_sAuthFailureReason = "Authentication Failed";
 
-	std::string uidStr(uid);
-	std::string tokenStr(playerToken);
-	std::string serverIdStr(server.id);
-	std::string passwordStr(password);
+    std::string uidStr(uid);
+    std::string tokenStr(playerToken);
+    std::string serverIdStr(server.id);
 
-	std::thread requestThread(
-		[this, uidStr, tokenStr, serverIdStr, passwordStr, server]()
-		{
-			// esnure that any persistence saving is done, so we know masterserver has newest
-			while (m_bSavingPersistentData)
-				Sleep(100);
+    // password may be null, normalise it to empty string
+    std::string passwordStr = password ? password : "";
 
-			spdlog::info("Attempting authentication with server of id \"{}\"", serverIdStr);
+    std::thread requestThread(
+        [this, uidStr, tokenStr, serverIdStr, passwordStr, server]()
+        {
+            // esnure that any persistence saving is done, so we know masterserver has newest
+            while (m_bSavingPersistentData)
+                Sleep(100);
 
-			CURL* curl = curl_easy_init();
-			SetCommonHttpClientOptions(curl);
+            spdlog::info("Attempting authentication with server of id \"{}\"", serverIdStr);
 
-			std::string readBuffer;
-			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+            CURL* curl = curl_easy_init();
+            SetCommonHttpClientOptions(curl);
 
-			{
-				char* escapedPassword = curl_easy_escape(curl, passwordStr.c_str(), (int)passwordStr.length());
+            std::string readBuffer;
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-				curl_easy_setopt(
-					curl,
-					CURLOPT_URL,
-					fmt::format(
-						"{}/client/auth_with_server?id={}&playerToken={}&server={}&password={}",
-						Cvar_ns_masterserver_hostname->GetString(),
-						uidStr,
-						tokenStr,
-						serverIdStr,
-						escapedPassword)
-						.c_str());
+            {
+                // passwordStr is always a valid std::string here (may be empty)
+                char* escapedPassword = curl_easy_escape(curl, passwordStr.c_str(), (int)passwordStr.length());
 
-				curl_free(escapedPassword);
-			}
+                curl_easy_setopt(
+                    curl,
+                    CURLOPT_URL,
+                    fmt::format(
+                        "{}/client/auth_with_server?id={}&playerToken={}&server={}&password={}",
+                        Cvar_ns_masterserver_hostname->GetString(),
+                        uidStr,
+                        tokenStr,
+                        serverIdStr,
+                        escapedPassword ? escapedPassword : "")
+                        .c_str());
 
-			CURLcode result = curl_easy_perform(curl);
-			ScopeGuard cleanup(
-				[&]
-				{
-					m_bAuthenticatingWithGameServer = false;
-					m_bScriptAuthenticatingWithGameServer = false;
-					curl_easy_cleanup(curl);
-				});
+                if (escapedPassword)
+                    curl_free(escapedPassword);
+            }
 
-			if (result == CURLcode::CURLE_OK)
-			{
-				m_bSuccessfullyConnected = true;
+            CURLcode result = curl_easy_perform(curl);
+            ScopeGuard cleanup(
+                [&]
+                {
+                    m_bAuthenticatingWithGameServer = false;
+                    m_bScriptAuthenticatingWithGameServer = false;
+                    curl_easy_cleanup(curl);
+                });
 
-				rapidjson_document connectionInfoJson;
-				connectionInfoJson.Parse(readBuffer.c_str());
+            if (result == CURLcode::CURLE_OK)
+            {
+                m_bSuccessfullyConnected = true;
 
-				if (connectionInfoJson.HasParseError())
-				{
-					spdlog::error(
-						"Failed reading masterserver authentication response: encountered parse error \"{}\"",
-						rapidjson::GetParseError_En(connectionInfoJson.GetParseError()));
-					return;
-				}
+                rapidjson_document connectionInfoJson;
+                connectionInfoJson.Parse(readBuffer.c_str());
 
-				if (!connectionInfoJson.IsObject())
-				{
-					spdlog::error("Failed reading masterserver authentication response: root object is not an object");
-					return;
-				}
+                if (connectionInfoJson.HasParseError())
+                {
+                    spdlog::error(
+                        "Failed reading masterserver authentication response: encountered parse error \"{}\"",
+                        rapidjson::GetParseError_En(connectionInfoJson.GetParseError()));
+                    return;
+                }
 
-				if (connectionInfoJson.HasMember("error"))
-				{
-					spdlog::error("Failed reading masterserver response: got fastify error response");
-					spdlog::error(readBuffer);
+                if (!connectionInfoJson.IsObject())
+                {
+                    spdlog::error("Failed reading masterserver authentication response: root object is not an object");
+                    return;
+                }
 
-					if (connectionInfoJson["error"].HasMember("msg"))
-						m_sAuthFailureReason = connectionInfoJson["error"]["msg"].GetString();
-					else if (connectionInfoJson["error"].HasMember("enum"))
-						m_sAuthFailureReason = connectionInfoJson["error"]["enum"].GetString();
-					else
-						m_sAuthFailureReason = "No error message provided";
+                if (connectionInfoJson.HasMember("error"))
+                {
+                    spdlog::error("Failed reading masterserver response: got fastify error response");
+                    spdlog::error(readBuffer);
 
-					return;
-				}
+                    if (connectionInfoJson["error"].HasMember("msg"))
+                        m_sAuthFailureReason = connectionInfoJson["error"]["msg"].GetString();
+                    else if (connectionInfoJson["error"].HasMember("enum"))
+                        m_sAuthFailureReason = connectionInfoJson["error"]["enum"].GetString();
+                    else
+                        m_sAuthFailureReason = "No error message provided";
 
-				if (!connectionInfoJson["success"].IsTrue())
-				{
-					spdlog::error("Authentication with masterserver failed: \"success\" is not true");
-					return;
-				}
+                    return;
+                }
 
-				if (!connectionInfoJson.HasMember("success") || !connectionInfoJson.HasMember("ip") ||
-					!connectionInfoJson["ip"].IsString() || !connectionInfoJson.HasMember("port") ||
-					!connectionInfoJson["port"].IsNumber() || !connectionInfoJson.HasMember("authToken") ||
-					!connectionInfoJson["authToken"].IsString())
-				{
-					spdlog::error("Failed reading masterserver authentication response: malformed json object");
-					return;
-				}
+                if (!connectionInfoJson["success"].IsTrue())
+                {
+                    spdlog::error("Authentication with masterserver failed: \"success\" is not true");
+                    return;
+                }
 
-				m_pendingConnectionInfo.ip.S_un.S_addr = inet_addr(connectionInfoJson["ip"].GetString());
-				m_pendingConnectionInfo.port = (unsigned short)connectionInfoJson["port"].GetUint();
-				m_pendingConnectionInfo.serverId = serverIdStr;
+                if (!connectionInfoJson.HasMember("success") || !connectionInfoJson.HasMember("ip") ||
+                    !connectionInfoJson["ip"].IsString() || !connectionInfoJson.HasMember("port") ||
+                    !connectionInfoJson["port"].IsNumber() || !connectionInfoJson.HasMember("authToken") ||
+                    !connectionInfoJson["authToken"].IsString())
+                {
+                    spdlog::error("Failed reading masterserver authentication response: malformed json object");
+                    return;
+                }
 
-				g_pCVar->FindVar("ns_server_auth_mode")->SetValue(serverIdStr.c_str());
-				g_pCVar->FindVar("ns_last_server_password")->SetValue(passwordStr.c_str());
+                m_pendingConnectionInfo.ip.S_un.S_addr = inet_addr(connectionInfoJson["ip"].GetString());
+                m_pendingConnectionInfo.port = (unsigned short)connectionInfoJson["port"].GetUint();
+                m_pendingConnectionInfo.serverId = serverIdStr;
 
-				strncpy_s(
-					m_pendingConnectionInfo.authToken,
-					sizeof(m_pendingConnectionInfo.authToken),
-					connectionInfoJson["authToken"].GetString(),
-					sizeof(m_pendingConnectionInfo.authToken) - 1);
+                // fix: correct convar name is "ns_last_server_id"
+                g_pCVar->FindVar("ns_last_server_id")->SetValue(serverIdStr.c_str());
 
-				m_bHasPendingConnectionInfo = true;
-				m_bSuccessfullyAuthenticatedWithGameServer = true;
+                if (passwordStr.empty())
+                    g_pCVar->FindVar("ns_last_server_password")->SetValue("");
+                else
+                    g_pCVar->FindVar("ns_last_server_password")->SetValue(passwordStr.c_str());
 
-				m_currentServer = server;
-				m_sCurrentServerPassword = passwordStr;
-			}
-			else
-			{
-				spdlog::error("Failed authenticating with server: error {}", curl_easy_strerror(result));
-				m_bSuccessfullyConnected = false;
-				m_bSuccessfullyAuthenticatedWithGameServer = false;
-				m_bScriptAuthenticatingWithGameServer = false;
-			}
-		});
+                strncpy_s(
+                    m_pendingConnectionInfo.authToken,
+                    sizeof(m_pendingConnectionInfo.authToken),
+                    connectionInfoJson["authToken"].GetString(),
+                    sizeof(m_pendingConnectionInfo.authToken) - 1);
 
-	requestThread.detach();
+                m_bHasPendingConnectionInfo = true;
+                m_bSuccessfullyAuthenticatedWithGameServer = true;
+
+                m_currentServer = server;
+                m_sCurrentServerPassword = passwordStr;
+            }
+            else
+            {
+                spdlog::error("Failed authenticating with server: error {}", curl_easy_strerror(result));
+                m_bSuccessfullyConnected = false;
+                m_bSuccessfullyAuthenticatedWithGameServer = false;
+                m_bScriptAuthenticatingWithGameServer = false;
+            }
+        });
+
+    requestThread.detach();
 }
 
 void MasterServerManager::WritePlayerPersistentData(const char* playerId, const char* pdata, size_t pdataSize)
@@ -1143,7 +1151,7 @@ void ConCommand_ns_try_join_serverid(const CCommand& args)
 
 			RemoteServerConnectionInfo& info = g_pMasterServerManager->m_pendingConnectionInfo;
 
-			g_pCVar->FindVar("ns_server_auth_mode")->SetValue(info.serverId.c_str());
+			g_pCVar->FindVar("ns_last_server_id")->SetValue(info.serverId.c_str());
 
 			g_pCVar->FindVar("serverfilter")->SetValue(info.authToken);
 			Cbuf_AddText(
@@ -1182,7 +1190,7 @@ ON_DLL_LOAD_RELIESON("engine.dll", MasterServer, (ConCommand, ServerPresence), (
 
 	Cvar_ns_masterserver_hostname = new ConVar("ns_masterserver_hostname", "127.0.0.1", FCVAR_NONE, "");
 	Cvar_ns_curl_log_enable = new ConVar("ns_curl_log_enable", "0", FCVAR_NONE, "Whether curl should log to the console");
-	Cvar_ns_server_auth_mode = new ConVar("ns_server_auth_mode", "", FCVAR_NONE, "The last used server authentication mode");
+	Cvar_ns_last_server_id = new ConVar("ns_last_server_id", "", FCVAR_NONE, "The last used server id");
 	Cvar_ns_last_server_password = new ConVar("ns_last_server_password", "", FCVAR_NONE, "The last used server password");
 
 	RegisterConCommand("ns_fetchservers", ConCommand_ns_fetchservers, "Fetch all servers from the masterserver", FCVAR_CLIENTDLL);
