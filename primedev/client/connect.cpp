@@ -90,10 +90,23 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
 		ConnectToRemoteServer(m_szLastServerID, m_szLastServerPassword);
 		break;
 	case eConnectionMode::P2P:
+		ConnectToP2PServer(address);
 		break;
 	case eConnectionMode::Direct:
+		m_bConnecting = false;
+		if(!m_bRetrying)
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format("connect \"{}\"", address).c_str(),
+				cmd_source_t::kCommandSrcCode);
+		else
+			Cbuf_AddText(
+				Cbuf_GetCurrentPlayer(),
+				fmt::format("retry", address).c_str(),
+				cmd_source_t::kCommandSrcCode);
 		break;
 	default:
+		Interrupt("Unknown connection mode");
 		break;
 	}
 }
@@ -277,6 +290,20 @@ void ConnectionManager::SendInfoRequestPacket(const CNetAdr& addr, bool serverAu
 		int retryInterval = g_pCVar->FindVar("cl_resend_inforequest_interval_ms")->GetInt();
 		NET_SendPacket(nullptr, NS_CLIENT, &addr, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false, 0, true);
 		Sleep(retryInterval);
+	}
+
+
+	startTime = Plat_FloatTime();
+
+	if(serverAuthUs)
+	{
+		while(!g_bReceivedAuthNotify && Plat_FloatTime() - startTime < timeOut && !IsCancelled())
+			Sleep(100);
+
+		RETURN_IF_CANCELLED()
+
+		if(!g_bReceivedAuthNotify)
+			Interrupt("#AUTHENTICATION_FAILED_BODY");
 	}
 }
 
@@ -581,7 +608,40 @@ void ConnectionManager::ConnectToP2PServer(const std::string& address)
 {
 	g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
 
+	std::thread authThread([&, address]()
+		{
+			AuthenticateToMasterServer();
 
+			RETURN_IF_CANCELLED()
+
+			spdlog::info("Authenticating with P2P server for uid {}", g_pLocalPlayerUserID);
+
+			std::string ip;
+			int port;
+			bool isV6;
+
+			if(!ParseAddress(address, ip, port, isV6) || !isV6 || port == -1 || ip.empty())
+			{
+				Interrupt("Failed to authenticate with P2P server: invalid p2p address");
+				return;
+			}
+
+			std::string formattedIP = fmt::format("[{}]:{}", ip, port);
+
+			spdlog::info("P2P server address parsed as {}", formattedIP);
+
+			in_addr6 addr6;
+
+			CNetAdr addr = CNetAdr(formattedIP.c_str());
+
+			SendInfoRequestPacket(addr, true, false);
+
+			RETURN_IF_CANCELLED()
+
+			FinaliseJoiningServer(formattedIP);
+		});
+
+	authThread.detach();
 }
 
 void ConnectionManager::ReloadMods(RemoteServerInfo* info)
@@ -818,38 +878,61 @@ AUTOHOOK(retry, engine.dll + 0x73D10, int*, __fastcall, (__int64 a1))
 AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const CCommand* args))
 // clang-format on
 {
-	if(!g_pConnectionManager->IsConnecting())
-	{
-		if(g_pVanillaCompatibility->GetVanillaCompatibility())
-		{
-			g_pConnectionManager->SetMatchmaking();
-			return concommand_connect(args);
-		}
+    spdlog::info("connect command called with {} args", args->ArgC());
 
-		if(args->ArgC() < 2)
-			return concommand_connect(args);
+    if (!g_pConnectionManager->IsConnecting())
+    {
+        if (g_pVanillaCompatibility->GetVanillaCompatibility())
+        {
+            g_pConnectionManager->SetMatchmaking();
+            return concommand_connect(args);
+        }
 
-		const char* address = args->Arg(1);
+        std::string cmd = args->GetCommandString();
 
-		auto mode = g_pConnectionManager->DetermineModeFromAddress(address);
-		if(g_pConnectionManager->IsRetrying())
-			mode = g_pConnectionManager->GetCurrentMode();
-		else
-			spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<int>(mode));
+        auto firstSpace = cmd.find(' ');
+        if (firstSpace == std::string::npos)
+            return concommand_connect(args);
 
-		int argCount = args->ArgC();
-		bool useSCRPlaque = true;
+        std::string rest = cmd.substr(firstSpace + 1);
 
-		if(argCount == 3)
-			atoi(args->Arg(2)) == 0 ? useSCRPlaque = false : useSCRPlaque = true;
+        auto nonSpace = rest.find_first_not_of(" \t");
+        if (nonSpace == std::string::npos)
+            return concommand_connect(args);
+        rest = rest.substr(nonSpace);
 
-		g_pConnectionManager->Connect(address, mode, useSCRPlaque);
+        std::string address;
+        bool useSCRPlaque = true;
 
-		return 0;
-	}
+        auto sep = rest.find_first_of(" \t");
+        if (sep == std::string::npos)
+        {
+            address = rest;
+        }
+        else
+        {
+            address = rest.substr(0, sep);
 
+            auto flagStart = rest.find_first_not_of(" \t", sep);
+            if (flagStart != std::string::npos)
+            {
+                std::string flag = rest.substr(flagStart);
+                if (!flag.empty() && flag[0] == '0')
+                    useSCRPlaque = false;
+            }
+        }
 
-	return concommand_connect(args);
+        auto mode = g_pConnectionManager->DetermineModeFromAddress(address.c_str());
+        if (g_pConnectionManager->IsRetrying())
+            mode = g_pConnectionManager->GetCurrentMode();
+        else
+            spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<char>(mode));
+
+        g_pConnectionManager->Connect(address, mode, useSCRPlaque);
+        return 0;
+    }
+
+    return concommand_connect(args);
 }
 
 // clang-format off

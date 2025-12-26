@@ -519,160 +519,174 @@ void MasterServerManager::RequestMainMenuPromos()
 
 void MasterServerManager::AuthenticateWithOwnServer(const char* uid, const char* playerToken, netadr_t addr)
 {
-	// dont wait, just stop if we're trying to do 2 auth requests at once
-	if (m_bAuthenticatingWithGameServer)
-		return;
+    // dont wait, just stop if we're trying to do 2 auth requests at once
+    if (m_bAuthenticatingWithGameServer)
+        return;
 
-	m_bAuthenticatingWithGameServer = true;
-	m_bScriptAuthenticatingWithGameServer = true;
-	m_bSuccessfullyAuthenticatedWithGameServer = false;
-	m_sAuthFailureReason = "Authentication Failed";
+    m_bAuthenticatingWithGameServer = true;
+    m_bScriptAuthenticatingWithGameServer = true;
+    m_bSuccessfullyAuthenticatedWithGameServer = false;
+    m_sAuthFailureReason = "Authentication Failed";
 
-	std::string uidStr(uid);
-	std::string tokenStr(playerToken);
+    std::string uidStr(uid);
+    std::string tokenStr(playerToken);
 
-	std::thread requestThread(
-		[this, uidStr, tokenStr, addr]()
-		{
-			CURL* curl = curl_easy_init();
-			SetCommonHttpClientOptions(curl);
+    std::thread requestThread(
+        [this, uidStr, tokenStr, addr]()
+        {
+            CURL* curl = curl_easy_init();
+            SetCommonHttpClientOptions(curl);
 
-			std::string readBuffer;
-			curl_easy_setopt(
-				curl,
-				CURLOPT_URL,
-				fmt::format("{}/client/auth_with_self?id={}&playerToken={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr)
-					.c_str());
-			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+            std::string readBuffer;
+            curl_easy_setopt(
+                curl,
+                CURLOPT_URL,
+                fmt::format("{}/client/auth_with_self?id={}&playerToken={}", Cvar_ns_masterserver_hostname->GetString(), uidStr, tokenStr)
+                    .c_str());
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteToStringBufferCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-			CURLcode result = curl_easy_perform(curl);
-			ScopeGuard cleanup(
-				[&]
-				{
-					m_bAuthenticatingWithGameServer = false;
-					m_bScriptAuthenticatingWithGameServer = false;
+            CURLcode result = curl_easy_perform(curl);
+            ScopeGuard cleanup(
+                [&]
+                {
+                    m_bAuthenticatingWithGameServer = false;
+                    m_bScriptAuthenticatingWithGameServer = false;
 
-					if (m_bNewgameAfterSelfAuth)
-					{
-						// pretty sure this is threadsafe?
-						Cbuf_AddText(Cbuf_GetCurrentPlayer(), "ns_end_reauth_and_leave_to_lobby", cmd_source_t::kCommandSrcCode);
-						m_bNewgameAfterSelfAuth = false;
-					}
+                    if (m_bNewgameAfterSelfAuth)
+                    {
+                        // pretty sure this is threadsafe?
+                        Cbuf_AddText(Cbuf_GetCurrentPlayer(), "ns_end_reauth_and_leave_to_lobby", cmd_source_t::kCommandSrcCode);
+                        m_bNewgameAfterSelfAuth = false;
+                    }
 
-					curl_easy_cleanup(curl);
-				});
+                    curl_easy_cleanup(curl);
+                });
 
-			if (result == CURLcode::CURLE_OK)
-			{
-				m_bSuccessfullyConnected = true;
+            if (result == CURLcode::CURLE_OK)
+            {
+                m_bSuccessfullyConnected = true;
 
-				rapidjson_document authInfoJson;
-				authInfoJson.Parse(readBuffer.c_str());
+                rapidjson_document authInfoJson;
+                authInfoJson.Parse(readBuffer.c_str());
 
-				if (authInfoJson.HasParseError())
-				{
-					spdlog::error(
-						"Failed reading masterserver authentication response: encountered parse error \"{}\"",
-						rapidjson::GetParseError_En(authInfoJson.GetParseError()));
-					return;
-				}
+                if (authInfoJson.HasParseError())
+                {
+                    spdlog::error(
+                        "Failed reading masterserver authentication response: encountered parse error \"{}\"",
+                        rapidjson::GetParseError_En(authInfoJson.GetParseError()));
+                    return;
+                }
 
-				if (!authInfoJson.IsObject())
-				{
-					spdlog::error("Failed reading masterserver authentication response: root object is not an object");
-					return;
-				}
+                if (!authInfoJson.IsObject())
+                {
+                    spdlog::error("Failed reading masterserver authentication response: root object is not an object");
+                    return;
+                }
 
-				if (authInfoJson.HasMember("error"))
-				{
-					spdlog::error("Failed reading masterserver response: got fastify error response");
-					spdlog::error(readBuffer);
+                if (authInfoJson.HasMember("error"))
+                {
+                    spdlog::error("Failed reading masterserver response: got fastify error response");
+                    spdlog::error(readBuffer);
 
-					if (authInfoJson["error"].HasMember("msg"))
-						m_sAuthFailureReason = authInfoJson["error"]["msg"].GetString();
-					else if (authInfoJson["error"].HasMember("enum"))
-						m_sAuthFailureReason = authInfoJson["error"]["enum"].GetString();
-					else
-						m_sAuthFailureReason = "No error message provided";
+                    if (authInfoJson["error"].HasMember("msg"))
+                        m_sAuthFailureReason = authInfoJson["error"]["msg"].GetString();
+                    else if (authInfoJson["error"].HasMember("enum"))
+                        m_sAuthFailureReason = authInfoJson["error"]["enum"].GetString();
+                    else
+                        m_sAuthFailureReason = "No error message provided";
 
-					return;
-				}
+                    return;
+                }
 
-				if (!authInfoJson["success"].IsTrue())
-				{
-					spdlog::error("Authentication with masterserver failed: \"success\" is not true");
-					return;
-				}
+                if (!authInfoJson["success"].IsTrue())
+                {
+                    spdlog::error("Authentication with masterserver failed: \"success\" is not true");
+                    return;
+                }
 
-				if (!authInfoJson.HasMember("success") || !authInfoJson.HasMember("id") || !authInfoJson["id"].IsString() ||
-					!authInfoJson.HasMember("authToken") || !authInfoJson["authToken"].IsString() ||
-					!authInfoJson.HasMember("persistentData") || !authInfoJson["persistentData"].IsArray())
-				{
-					spdlog::error("Failed reading masterserver authentication response: malformed json object");
-					return;
-				}
+                if (!authInfoJson.HasMember("success") || !authInfoJson.HasMember("id") || !authInfoJson["id"].IsString() ||
+                    !authInfoJson.HasMember("authToken") || !authInfoJson["authToken"].IsString() ||
+                    !authInfoJson.HasMember("persistentData") || !authInfoJson["persistentData"].IsArray())
+                {
+                    spdlog::error("Failed reading masterserver authentication response: malformed json object");
+                    return;
+                }
 
-				RemoteAuthData newAuthData {};
-				strncpy_s(newAuthData.uid, sizeof(newAuthData.uid), authInfoJson["id"].GetString(), sizeof(newAuthData.uid) - 1);
+                RemoteAuthData newAuthData{};
+                strncpy_s(newAuthData.uid, sizeof(newAuthData.uid), authInfoJson["id"].GetString(), sizeof(newAuthData.uid) - 1);
 
-				newAuthData.pdataSize = authInfoJson["persistentData"].GetArray().Size();
-				newAuthData.pdata = new char[newAuthData.pdataSize];
-				// memcpy(newAuthData.pdata, authInfoJson["persistentData"].GetString(), newAuthData.pdataSize);
+                newAuthData.pdataSize = authInfoJson["persistentData"].GetArray().Size();
+                newAuthData.pdata = new char[newAuthData.pdataSize];
 
-				int i = 0;
-				// note: persistentData is a uint8array because i had problems getting strings to behave, it sucks but it's just how it be
-				// unfortunately potentially refactor later
-				for (auto& byte : authInfoJson["persistentData"].GetArray())
-				{
-					if (!byte.IsUint() || byte.GetUint() > 255)
-					{
-						spdlog::error("Failed reading masterserver authentication response: malformed json object");
-						return;
-					}
+                int i = 0;
+                for (auto& byte : authInfoJson["persistentData"].GetArray())
+                {
+                    if (!byte.IsUint() || byte.GetUint() > 255)
+                    {
+                        spdlog::error("Failed reading masterserver authentication response: malformed json object");
+                        return;
+                    }
 
-					newAuthData.pdata[i++] = static_cast<char>(byte.GetUint());
-				}
+                    newAuthData.pdata[i++] = static_cast<char>(byte.GetUint());
+                }
 
-				std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);
+                const char* newToken = authInfoJson["authToken"].GetString();
 
-				if(addr.GetType() == NA_IP)
-				{
-					spdlog::info("Sending client auth notify");
-					char notifyBuffer[256];
-					bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
-					notifyWriteBuffer.WriteLong(CONNECTIONLESS_HEADER);
-					notifyWriteBuffer.WriteChar(S2C_CLIENTNOTIFY);
-					notifyWriteBuffer.WriteLong(CLIENTNOTIFY_VERSION);
-					notifyWriteBuffer.WriteLong(NOTIFY_AUTHENTICATED);
-					notifyWriteBuffer.WriteFloat(Plat_FloatTime());
-					notifyWriteBuffer.WriteString(authInfoJson["authToken"].GetString());
+                std::lock_guard<std::mutex> guard(g_pServerAuthentication->m_AuthDataMutex);
 
-					NET_SendPacket(nullptr, NS_SERVER, &addr, notifyWriteBuffer.GetData(), notifyWriteBuffer.GetNumBytesWritten(), nullptr, false, 0, true);
-				}
-				else
-				{
-					g_pCVar->FindVar("ns_server_auth_mode")->SetValue(authInfoJson["id"].GetString());
-					g_pServerAuthentication->m_RemoteAuthenticationData.clear();
-				}
+                if (addr.GetType() == NA_IP)
+                {
+                    // Remote server: notify it and just (over)write our entry by new token.
+                    spdlog::info("Sending client auth notify");
+                    char notifyBuffer[256];
+                    bf_write notifyWriteBuffer(notifyBuffer, sizeof(notifyBuffer));
+                    notifyWriteBuffer.WriteLong(CONNECTIONLESS_HEADER);
+                    notifyWriteBuffer.WriteChar(S2C_CLIENTNOTIFY);
+                    notifyWriteBuffer.WriteLong(CLIENTNOTIFY_VERSION);
+                    notifyWriteBuffer.WriteLong(NOTIFY_AUTHENTICATED);
+                    notifyWriteBuffer.WriteFloat(Plat_FloatTime());
+                    notifyWriteBuffer.WriteString(newToken);
 
-				g_pServerAuthentication->m_RemoteAuthenticationData.insert(
-					std::make_pair(authInfoJson["authToken"].GetString(), newAuthData));
+                    NET_SendPacket(nullptr, NS_SERVER, &addr, notifyWriteBuffer.GetData(), notifyWriteBuffer.GetNumBytesWritten(), nullptr, false, 0, true);
 
-				m_bSuccessfullyAuthenticatedWithGameServer = true;
+                    g_pServerAuthentication->m_RemoteAuthenticationData[newToken] = newAuthData;
+                }
+                else
+                {
+                    // Local / self-hosted: keep existing entries and only replace our own.
+                    g_pCVar->FindVar("ns_server_auth_mode")->SetValue(authInfoJson["id"].GetString());
 
-			}
-			else
-			{
-				spdlog::error("Failed authenticating with own server: error {}", curl_easy_strerror(result));
-				m_bSuccessfullyConnected = false;
-				m_bSuccessfullyAuthenticatedWithGameServer = false;
-				m_bScriptAuthenticatingWithGameServer = false;
-			}
-		});
+                    auto* serverFilterVar = g_pCVar->FindVar("serverfilter");
+                    const char* oldToken = serverFilterVar ? serverFilterVar->GetString() : "";
 
-	requestThread.detach();
+                    auto& map = g_pServerAuthentication->m_RemoteAuthenticationData;
+
+                    // If we had a previous token for this local player, remove that entry.
+                    if (oldToken && *oldToken && std::strcmp(oldToken, newToken) != 0)
+                    {
+                        auto it = map.find(oldToken);
+                        if (it != map.end())
+                            map.erase(it);
+                    }
+
+                    // Insert / overwrite the local player's pdata under the new token.
+                    map[newToken] = newAuthData;
+                }
+
+                m_bSuccessfullyAuthenticatedWithGameServer = true;
+            }
+            else
+            {
+                spdlog::error("Failed authenticating with own server: error {}", curl_easy_strerror(result));
+                m_bSuccessfullyConnected = false;
+                m_bSuccessfullyAuthenticatedWithGameServer = false;
+                m_bScriptAuthenticatingWithGameServer = false;
+            }
+        });
+
+    requestThread.detach();
 }
 
 void MasterServerManager::AuthenticateWithServer(const char* uid, const char* playerToken, RemoteServerInfo server, const char* password)

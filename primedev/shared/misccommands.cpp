@@ -45,8 +45,11 @@ void ConCommand_ns_end_reauth_and_leave_to_lobby(const CCommand& arg)
 		// this won't set playlist correctly on remote clients, don't think they can set playlist until they've left which sorta
 		// fucks things should maybe set this in HostState_NewGame?
 		R2::SetCurrentPlaylist("tdm");
-		strcpy(g_pHostState->m_levelName, "mp_lobby");
-		g_pHostState->m_iNextState = HostState_t::HS_NEW_GAME;
+		std::string cmd = fmt::format("map {}", "mp_lobby");
+		Cbuf_AddText(
+			Cbuf_GetCurrentPlayer(),
+			cmd.c_str(),
+			cmd_source_t::kCommandSrcCode);
 	}
 }
 

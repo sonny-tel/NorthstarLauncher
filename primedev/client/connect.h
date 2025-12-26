@@ -24,7 +24,7 @@ const int DISAGREED_TO_SEND_TOKEN = 2;
 class ConnectionManager
 {
 public:
-	enum class eConnectionMode
+	enum class eConnectionMode : char
 	{
 		Direct = 0, // unauthenticated direct connect
 		Matchmaking = 'V', // vanilla matchmaking

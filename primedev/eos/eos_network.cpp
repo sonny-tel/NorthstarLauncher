@@ -198,6 +198,14 @@ int WSAAPI HookedRecvFrom(SOCKET socketHandle,
                           sockaddr* from,
                           int* fromLen)
 {
+	uintptr_t evilahnetreceivedatagram = (uintptr_t)_ReturnAddress() - (uintptr_t)GetModuleHandleA("engine.dll");
+    if (evilahnetreceivedatagram != 0x21B5DB)
+    {
+        return g_realRecvFrom
+            ? g_realRecvFrom(socketHandle, buffer, length, flags, from, fromLen)
+            : SOCKET_ERROR;
+    }
+
     auto* layer = eos::EosLayer::Instance().GetFakeIpLayer();
     if (layer)
     {
