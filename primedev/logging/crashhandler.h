@@ -74,6 +74,7 @@ private:
 	std::string m_svError;
 
 	std::mutex m_Mutex;
+	bool m_bSymInit;
 };
 
 extern CCrashHandler* g_pCrashHandler;

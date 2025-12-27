@@ -7,6 +7,9 @@
 #include "plugins/pluginmanager.h"
 
 #include <minidumpapiset.h>
+#include <DbgHelp.h>
+
+#pragma comment(lib, "dbghelp.lib")
 
 #define CRASHHANDLER_MAX_FRAMES 32
 #define CRASHHANDLER_GETMODULEHANDLE_FAIL "GetModuleHandleExA failed!"
@@ -124,6 +127,10 @@ void CCrashHandler::Init()
 {
 	m_hExceptionFilter = AddVectoredExceptionHandler(TRUE, ExceptionFilter);
 	m_bHasSetConsolehandler = SetConsoleCtrlHandler(ConsoleCtrlRoutine, TRUE);
+
+    SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    m_bSymInit = SymInitialize(GetCurrentProcess(), nullptr, TRUE) == TRUE;
+	spdlog::info("Initialized symbol handler for crash reporting: {}", m_bSymInit ? "Success" : "Failed");
 }
 
 //-----------------------------------------------------------------------------
@@ -349,58 +356,111 @@ void CCrashHandler::FormatException()
 //-----------------------------------------------------------------------------
 void CCrashHandler::FormatCallstack()
 {
-	spdlog::error("Callstack:");
+    spdlog::error("Callstack:");
 
-	PVOID pFrames[CRASHHANDLER_MAX_FRAMES];
+    PVOID pFrames[CRASHHANDLER_MAX_FRAMES];
 
-	int iFrames = RtlCaptureStackBackTrace(0, CRASHHANDLER_MAX_FRAMES, pFrames, NULL);
+    int iFrames = RtlCaptureStackBackTrace(0, CRASHHANDLER_MAX_FRAMES, pFrames, NULL);
 
-	// Above call gives us frames after the crash occured, we only want to print the ones starting from where
-	// the exception was called
-	bool bSkipExceptionHandlingFrames = true;
+    // Above call gives us frames after the crash occured, we only want to print the ones starting from where
+    // the exception was called
+    bool bSkipExceptionHandlingFrames = true;
 
-	// We ran into an error when getting the offset, just print all frames
-	if (m_svCrashedOffset.empty())
-		bSkipExceptionHandlingFrames = false;
+    // We ran into an error when getting the offset, just print all frames
+    if (m_svCrashedOffset.empty())
+        bSkipExceptionHandlingFrames = false;
 
-	for (int i = 0; i < iFrames; i++)
-	{
-		const CHAR* pszModuleFileName;
+    for (int i = 0; i < iFrames; i++)
+    {
+        std::string svModuleFileName;
 
-		LPCSTR pAddress = static_cast<LPCSTR>(pFrames[i]);
-		HMODULE hModule;
-		if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, pAddress, &hModule))
-		{
-			pszModuleFileName = CRASHHANDLER_GETMODULEHANDLE_FAIL;
-			// If we fail here it's too late to do any damage control
-		}
-		else
-		{
-			CHAR szModulePath[MAX_PATH];
-			GetModuleFileNameExA(GetCurrentProcess(), hModule, szModulePath, sizeof(szModulePath));
-			pszModuleFileName = strrchr(szModulePath, '\\') + 1;
-		}
+        uintptr_t addr = reinterpret_cast<uintptr_t>(pFrames[i]);
+        LPCSTR pAddress = reinterpret_cast<LPCSTR>(addr);
 
-		// Get relative address
-		LPCSTR pCrashOffset = reinterpret_cast<LPCSTR>(pAddress - reinterpret_cast<LPCSTR>(hModule));
-		std::string svCrashOffset = fmt::format("{:#x}", reinterpret_cast<DWORD64>(pCrashOffset));
+        HMODULE hModule = nullptr;
+        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, pAddress, &hModule))
+        {
+            svModuleFileName = CRASHHANDLER_GETMODULEHANDLE_FAIL;
+        }
+        else
+        {
+            CHAR szModulePath[MAX_PATH] = {};
+            if (GetModuleFileNameExA(GetCurrentProcess(), hModule, szModulePath, sizeof(szModulePath)))
+            {
+                const CHAR* pSlash = strrchr(szModulePath, '\\');
+                svModuleFileName = pSlash ? (pSlash + 1) : szModulePath;
+            }
+            else
+            {
+                svModuleFileName = CRASHHANDLER_GETMODULEHANDLE_FAIL;
+            }
+        }
 
-		// Should we log this frame
-		if (bSkipExceptionHandlingFrames)
-		{
-			if (m_svCrashedModule == pszModuleFileName && m_svCrashedOffset == svCrashOffset)
-			{
-				bSkipExceptionHandlingFrames = false;
-			}
-			else
-			{
-				continue;
-			}
-		}
+        uintptr_t moduleBase = reinterpret_cast<uintptr_t>(hModule);
+        uintptr_t offset = moduleBase ? (addr - moduleBase) : addr;
+        std::string svCrashOffset = fmt::format("{:#x}", static_cast<uint64_t>(offset));
 
-		// Log module + offset
-		spdlog::error("\t{} + {:#x}", pszModuleFileName, reinterpret_cast<DWORD64>(pCrashOffset));
-	}
+        if (bSkipExceptionHandlingFrames)
+        {
+            if (m_svCrashedModule == svModuleFileName && m_svCrashedOffset == svCrashOffset)
+                bSkipExceptionHandlingFrames = false;
+            else
+                continue;
+        }
+
+        bool printed = false;
+        if (m_bSymInit)
+        {
+            DWORD64 symAddr = static_cast<DWORD64>(addr);
+
+            alignas(SYMBOL_INFO) char symBuffer[sizeof(SYMBOL_INFO) + 256];
+            PSYMBOL_INFO pSym = reinterpret_cast<PSYMBOL_INFO>(symBuffer);
+            pSym->SizeOfStruct = sizeof(SYMBOL_INFO);
+            pSym->MaxNameLen = 255;
+
+            DWORD64 displacement = 0;
+            if (SymFromAddr(GetCurrentProcess(), symAddr, &displacement, pSym))
+            {
+                IMAGEHLP_LINE64 line;
+                memset(&line, 0, sizeof(line));
+                line.SizeOfStruct = sizeof(line);
+                DWORD lineDisp = 0;
+
+                if (SymGetLineFromAddr64(GetCurrentProcess(), symAddr, &lineDisp, &line))
+                {
+                    std::string svFileName = line.FileName ? line.FileName : "";
+
+                    const char* marker1 = "NorthstarLauncher\\";
+                    const char* marker2 = "NorthstarLauncher/";
+                    size_t pos = svFileName.find(marker1);
+                    if (pos == std::string::npos)
+                        pos = svFileName.find(marker2);
+                    if (pos != std::string::npos)
+                        svFileName = svFileName.substr(pos);
+
+                    spdlog::error(
+                        "\t{}!{}+0x{:x} [{}:{}]",
+                        svModuleFileName,
+                        pSym->Name,
+                        static_cast<uint64_t>(displacement),
+                        svFileName,
+                        line.LineNumber);
+                }
+                else
+                {
+                    spdlog::error(
+                        "\t{}!{}+0x{:x}",
+                        svModuleFileName,
+                        pSym->Name,
+                        static_cast<uint64_t>(displacement));
+                }
+                printed = true;
+            }
+        }
+
+        if (!printed)
+            spdlog::error("\t{} + {:#x}", svModuleFileName, static_cast<uint64_t>(offset));
+    }
 }
 
 //-----------------------------------------------------------------------------
