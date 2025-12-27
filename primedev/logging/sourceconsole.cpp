@@ -47,11 +47,12 @@ void SourceConsoleSink::custom_sink_it_(const custom_log_msg& msg)
 	g_pGameConsole->m_pConsole->m_pConsolePanel->ColorPrint(msg.origin->SRCColor, ("[" + name + "]").c_str());
 	g_pGameConsole->m_pConsole->m_pConsolePanel->Print(" ");
 
-	if(client->m_nSignonState >= eSignonState::CONNECTED)
-	{
-		g_pGameConsole->m_pConsole->m_pConsolePanel->Print(("[" + std::to_string(client->m_flServerUptime) + "]").c_str());
-		g_pGameConsole->m_pConsole->m_pConsolePanel->Print(" ");
-	}
+    if(client->m_nSignonState >= eSignonState::CONNECTED)
+    {
+        const std::string uptimeStr = fmt::format("{:.3f}", client->m_flServerUptime);
+        g_pGameConsole->m_pConsole->m_pConsolePanel->Print(("[" + uptimeStr + "]").c_str());
+        g_pGameConsole->m_pConsole->m_pConsolePanel->Print(" ");
+    }
 
 	if(msg.level != spdlog::level::info)
 		g_pGameConsole->m_pConsole->m_pConsolePanel->ColorPrint(levelColor, fmt::to_string(formatted).c_str());
