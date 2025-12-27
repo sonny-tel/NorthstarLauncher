@@ -25,101 +25,111 @@ ConVar* Cvar_cl_unload_remote_mods_on_matchmaking = nullptr;
 
 void ConnectionManager::Connect(bool useSCRPlaque, std::string mapName)
 {
-	if(useSCRPlaque)
-		SCR_BeginLoadingPlaque(nullptr);
+    const char* mp_gamemode = g_pCVar->FindVar("mp_gamemode") ? g_pCVar->FindVar("mp_gamemode")->GetString() : "";
+    bool isSolo = (strcmp(mp_gamemode, "solo") == 0);
+    m_bSolo = isSolo;
 
-	if(m_bConnecting)
-		return;
+    if (useSCRPlaque && !isSolo)
+        SCR_BeginLoadingPlaque(nullptr);
 
-	ResetState();
+    if (m_bConnecting)
+        return;
 
-	m_szMapName = mapName;
-	m_bUseSCRPlaque = useSCRPlaque;
-	m_bConnecting = true;
-	m_eLastMode = m_eCurrentMode;
-	m_eCurrentMode = eConnectionMode::LocalServer;
+    ResetState();
 
-	InvokeConnectionStartCallbacks();
+    m_szMapName    = mapName;
+    m_bUseSCRPlaque = useSCRPlaque;
+    m_bConnecting  = true;
+    m_eLastMode    = m_eCurrentMode;
+    m_eCurrentMode = eConnectionMode::LocalServer;
 
-	ConnectToLocalServer();
+    InvokeConnectionStartCallbacks();
+
+    ConnectToLocalServer();
 }
 
 void ConnectionManager::Connect(const std::string& address, const std::string& password, bool useSCRPlaque, std::string mapName)
 {
-	if(useSCRPlaque)
-		SCR_BeginLoadingPlaque(nullptr);
+    const char* mp_gamemode = g_pCVar->FindVar("mp_gamemode") ? g_pCVar->FindVar("mp_gamemode")->GetString() : "";
+    bool isSolo = (strcmp(mp_gamemode, "solo") == 0);
+    m_bSolo = isSolo;
 
-	if(m_bConnecting)
-		return;
+    if (useSCRPlaque && !isSolo)
+        SCR_BeginLoadingPlaque(nullptr);
 
-	ResetState();
+    if (m_bConnecting)
+        return;
 
-	m_szMapName = mapName;
-	m_bUseSCRPlaque = useSCRPlaque;
-	m_bConnecting = true;
-	m_eLastMode = m_eCurrentMode;
-	m_eCurrentMode = eConnectionMode::RemoteServer;
-	m_szLastServerID = address;
+    ResetState();
 
-	InvokeConnectionStartCallbacks();
+    m_szMapName        = mapName;
+    m_bUseSCRPlaque    = useSCRPlaque;
+    m_bConnecting      = true;
+    m_eLastMode        = m_eCurrentMode;
+    m_eCurrentMode     = eConnectionMode::RemoteServer;
+    m_szLastServerID   = address;
+    m_szLastServerPassword = password;
 
-	ConnectToRemoteServer(address, password);
+    InvokeConnectionStartCallbacks();
+
+    ConnectToRemoteServer(address, password);
 }
 
 void ConnectionManager::Connect(const std::string& address, ConnectionManager::eConnectionMode mode, bool useSCRPlaque, std::string mapName)
 {
-	if(useSCRPlaque)
-		SCR_BeginLoadingPlaque(nullptr);
+    const char* mp_gamemode = g_pCVar->FindVar("mp_gamemode") ? g_pCVar->FindVar("mp_gamemode")->GetString() : "";
+    bool isSolo = (strcmp(mp_gamemode, "solo") == 0);
+    m_bSolo = isSolo;
 
-	if(m_bConnecting)
-		return;
+    if (useSCRPlaque && !isSolo)
+        SCR_BeginLoadingPlaque(nullptr);
 
-	ResetState();
+    if (m_bConnecting)
+        return;
 
-	m_szMapName = mapName;
-	m_bUseSCRPlaque = useSCRPlaque;
-	m_bConnecting = true;
-	m_eLastMode = m_eCurrentMode;
-	m_eCurrentMode = mode;
+    ResetState();
 
-	if(useSCRPlaque)
-		SCR_BeginLoadingPlaque(nullptr);
+    m_szMapName     = mapName;
+    m_bUseSCRPlaque = useSCRPlaque;
+    m_bConnecting   = true;
+    m_eLastMode     = m_eCurrentMode;
+    m_eCurrentMode  = mode;
 
-	InvokeConnectionStartCallbacks();
+    InvokeConnectionStartCallbacks();
 
-	switch(mode)
-	{
-	case eConnectionMode::LocalServer:
-		ConnectToLocalServer();
-		break;
-	case eConnectionMode::RemoteServer:
-		ConnectToRemoteServer(m_szLastServerID, m_szLastServerPassword);
-		break;
-	case eConnectionMode::P2P:
-		ConnectToP2PServer(address);
-		break;
-	case eConnectionMode::Direct:
-		m_bConnecting = false;
-		if(!m_bRetrying)
-			Cbuf_AddText(
-				Cbuf_GetCurrentPlayer(),
-				fmt::format("connect \"{}\"", address).c_str(),
-				cmd_source_t::kCommandSrcCode);
-		else
-			Cbuf_AddText(
-				Cbuf_GetCurrentPlayer(),
-				fmt::format("retry", address).c_str(),
-				cmd_source_t::kCommandSrcCode);
-		break;
-	default:
-		Interrupt("Unknown connection mode");
-		break;
-	}
+    switch (mode)
+    {
+    case eConnectionMode::LocalServer:
+        ConnectToLocalServer();
+        break;
+    case eConnectionMode::RemoteServer:
+        ConnectToRemoteServer(m_szLastServerID, m_szLastServerPassword);
+        break;
+    case eConnectionMode::P2P:
+        ConnectToP2PServer(address);
+        break;
+    case eConnectionMode::Direct:
+        m_bConnecting = false;
+        if (!m_bRetrying)
+            Cbuf_AddText(
+                Cbuf_GetCurrentPlayer(),
+                fmt::format("connect \"{}\"", address).c_str(),
+                cmd_source_t::kCommandSrcCode);
+        else
+            Cbuf_AddText(
+                Cbuf_GetCurrentPlayer(),
+                "retry",
+                cmd_source_t::kCommandSrcCode);
+        break;
+    default:
+        Interrupt("Unknown connection mode");
+        break;
+    }
 }
 
 void ConnectionManager::InvokeConnectionStartCallbacks()
 {
-	bool scriptManagedLoading = !m_bUseSCRPlaque;
+	bool scriptManagedLoading = !m_bUseSCRPlaque && !m_bSolo;
 
 	g_pSquirrel[ScriptContext::UI]->AsyncCall("NSUICodeCallback_ConnectionStarted", scriptManagedLoading);
 }
@@ -933,6 +943,13 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
         }
 
         auto mode = g_pConnectionManager->DetermineModeFromAddress(address.c_str());
+
+        const char* mp_gamemode = g_pCVar->FindVar("mp_gamemode") ? g_pCVar->FindVar("mp_gamemode")->GetString() : "";
+        bool isSolo = (mp_gamemode && strcmp(mp_gamemode, "solo") == 0);
+
+        if (isSolo && mode == ConnectionManager::eConnectionMode::LocalServer)
+            return concommand_connect(args);
+
         if (g_pConnectionManager->IsRetrying())
             mode = g_pConnectionManager->GetCurrentMode();
         else

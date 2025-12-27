@@ -61,6 +61,7 @@ private:
 	bool m_bDownloadedMods = false;
 	eModAcceptState m_eModAcceptState = eModAcceptState::NOT_DECIDED;
 	bool m_bUnloadingRemoteModsOnMatchmaking = false;
+	bool m_bSolo = false;
 
 	void ConnectToLocalServer();
 	void ConnectToRemoteServer(const std::string& id, const std::string& password);
@@ -90,11 +91,9 @@ public:
     template <typename... Args>
     void Interrupt(const std::string& reason = "", Args... args)
     {
-        // mark this attempt as failed
         m_bFailed = true;
         m_szFailReason = reason;
 
-        // clear connection-state flags so a new attempt starts clean
         m_bConnecting = false;
         m_flConnectionStartTime = 0.0f;
         m_bAuthSucessful = false;
@@ -102,17 +101,14 @@ public:
         m_bDownloadedMods = false;
         m_eModAcceptState = eModAcceptState::NOT_DECIDED;
         m_bUnloadingRemoteModsOnMatchmaking = false;
-        // keep modes sane
         m_eCurrentMode = m_eLastMode;
+		m_bSolo = false;
 
-        // stop any in‑flight downloads
         g_pModDownloader->CancelDownload();
 
-        // notify UI
         InvokeConnectionStoppedCallbacks(reason);
         spdlog::info("Connection interrupted: {}", Localize(reason.c_str(), args...));
 
-        // optionally kick the engine back to main menu if we own the plaque
         if (m_bUseSCRPlaque)
         {
             Cbuf_AddText(
@@ -135,6 +131,7 @@ public:
 		m_bDownloadedMods = false;
 		m_eModAcceptState = eModAcceptState::NOT_DECIDED;
 		m_bUnloadingRemoteModsOnMatchmaking = false;
+		m_bSolo = false;
 	}
 
 	bool ParseAddress(const std::string& address, std::string& ip, int& port, bool& isV6);
