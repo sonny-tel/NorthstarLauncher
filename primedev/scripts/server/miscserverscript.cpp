@@ -10,7 +10,7 @@
 
 ADD_SQFUNC("void", NSEarlyWritePlayerPersistenceForLeave, "entity player", "", ScriptContext::SERVER)
 {
-	const CBasePlayer* pPlayer = g_pSquirrel[context]->template getentity<CBasePlayer>(sqvm, 1);
+	const CPlayer* pPlayer = g_pSquirrel[context]->template getentity<CPlayer>(sqvm, 1);
 	if (!pPlayer)
 	{
 		spdlog::warn("NSEarlyWritePlayerPersistenceForLeave got null player");
@@ -44,7 +44,7 @@ ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SE
 		g_pSquirrel[context]->pushbool(sqvm, false);
 		return SQRESULT_NOTNULL;
 	}
-	const CBasePlayer* pPlayer = g_pSquirrel[ScriptContext::SERVER]->template getentity<CBasePlayer>(sqvm, 1);
+	const CPlayer* pPlayer = g_pSquirrel[ScriptContext::SERVER]->template getentity<CPlayer>(sqvm, 1);
 	if (!pPlayer)
 	{
 		spdlog::warn("NSIsPlayerLocalPlayer got null player");
@@ -75,7 +75,7 @@ ADD_SQFUNC(
 	"Disconnects the player from the server with the given reason",
 	ScriptContext::SERVER)
 {
-	const CBasePlayer* pPlayer = g_pSquirrel[context]->template getentity<CBasePlayer>(sqvm, 1);
+	const CPlayer* pPlayer = g_pSquirrel[context]->template getentity<CPlayer>(sqvm, 1);
 	const char* reason = g_pSquirrel[context]->getstring(sqvm, 2);
 
 	if (!pPlayer)

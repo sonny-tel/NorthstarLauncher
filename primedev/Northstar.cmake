@@ -180,6 +180,8 @@ add_library(
     "server/ai_navmesh.cpp"
     "server/ai_navmesh.h"
     "server/buildainfile.cpp"
+	"server/player.cpp"
+	"server/player.h"
     "server/r2server.cpp"
     "server/r2server.h"
     "server/serverchathooks.cpp"

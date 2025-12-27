@@ -90,4 +90,18 @@ typedef struct netpacket_s
 } netpacket_t;
 #pragma pack(pop)
 
+extern int* net_error;
 extern int (*NET_SendPacket)(CNetChan* pChan, int iSocket, const netadr_t* toAdr, const uint8_t* pData, unsigned int nLen, void* pVoicePayload, bool bCompress, int unMillisecondsDelay, bool bEncrypt);
+
+int NET_GetLastError()
+{
+	if (net_error)
+		return *net_error;
+	return 0;
+}
+
+void NET_ClearLastError()
+{
+	if (net_error)
+		*net_error = 0;
+}
