@@ -114,14 +114,13 @@ public:
 	int m_nRetryNumber; //0x0070 unk_true_on_connecting_and_connected
 	int m_nChallengeRetryLimit;
 	char encrypted_connection_MAYBE;
-	char gap79[3];
 	netadr_t addr;
 	bool m_bUnk_used_during_auth;
 	char m_bSendChallengeRequest;
 	char m_bDoNetParamsReconnect_MAYBE;
 	char field_97;
+	__int64 aragtawt;
 	eSignonState m_nSignonState; //0x0098 m_nSignonState
-	char pad_009C[4]; //0x009C
 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
 	int32_t m_nServerCount; //0x00A8 m_nServerCount
 	int32_t m_nInSequenceNr; //0x00AC m_nInSequenceNr
@@ -133,7 +132,7 @@ public:
 	int32_t m_nProcessedDeltaTick; //0x0154 m_nProcessedDeltaTick
 	int32_t m_nProcessedStringTableAckTick; //0x0158 m_nProcessedStringTableAckTick
 	bool m_bPendingTicksAvailable; //0x015C m_bPendingTicksAvailable
-	char N00000252[3];
+	char N00000252[1];
 	bool m_bPaused;
 	uint8_t unk_byte; //0x0161 unk_byte
 	uint32_t N0000023C; //0x0162
@@ -171,9 +170,7 @@ public:
 	bool unk_bool; //0xFAD8
 	char pad_FADE[13]; //0xFADE
 	char m_szServerAddress[1024]; //0xFAE6
-#pragma pack(push, 1)
 	ClientDataBlockReceiver m_DataBlockReceiver; //0xFEE6
-#pragma pack(pop)
 	char m_szErrorMessage[512]; //0xFF28
 	uint32_t pad_fish; //0x10128
 	int32_t m_nTimeSinceLastUserCmd; //0x1012C
@@ -240,3 +237,6 @@ public:
 	virtual bool ProcessNetProfileFrame(void* msg);
 	virtual bool ProcessNetProfileTotals(void* msg);
 };
+
+constexpr int a = offsetof(CClientState, m_nSignonState);
+constexpr int b = 0x0098;
