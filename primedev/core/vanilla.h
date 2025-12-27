@@ -22,7 +22,7 @@ public:
 	bool GetVanillaCompatibility() { return m_bLastCompatabilityMode == CompatibilityMode::Vanilla; }
 
 private:
-	CompatibilityMode m_bLastCompatabilityMode = CompatibilityMode::Northstar;
+	CompatibilityMode m_bLastCompatabilityMode = CompatibilityMode::Vanilla;
 };
 
 inline VanillaCompatibility* g_pVanillaCompatibility;

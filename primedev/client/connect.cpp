@@ -902,12 +902,6 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
 
     if (!g_pConnectionManager->IsConnecting())
     {
-        if (g_pVanillaCompatibility->GetVanillaCompatibility())
-        {
-            g_pConnectionManager->SetMatchmaking();
-            return concommand_connect(args);
-        }
-
         std::string cmd = args->GetCommandString();
 
         auto firstSpace = cmd.find(' ');
@@ -950,6 +944,12 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
         if (isSolo && mode == ConnectionManager::eConnectionMode::LocalServer)
             return concommand_connect(args);
 
+		if(mode != ConnectionManager::eConnectionMode::LocalServer || mode != ConnectionManager::eConnectionMode::P2P || !isSolo )
+		{
+			if(g_pConnectionManager->GetCurrentMode() == ConnectionManager::eConnectionMode::Matchmaking)
+				return concommand_connect(args);
+		}
+
         if (g_pConnectionManager->IsRetrying())
             mode = g_pConnectionManager->GetCurrentMode();
         else
@@ -968,11 +968,8 @@ AUTOHOOK(connectWithKey, engine.dll + 0x768C0, int*, __fastcall, (const CCommand
 {
 	if(!g_pConnectionManager->IsConnecting())
 	{
-		if(g_pVanillaCompatibility->GetVanillaCompatibility())
-		{
-			g_pConnectionManager->SetMatchmaking();
+		if(g_pConnectionManager->GetCurrentMode() == ConnectionManager::eConnectionMode::Matchmaking)
 			return connectWithKey(args);
-		}
 
 		if(args->ArgC() < 3)
 			return connectWithKey(args);
