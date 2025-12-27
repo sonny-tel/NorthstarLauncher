@@ -157,6 +157,7 @@ add_library(
     "scripts/client/scriptoriginauth.cpp"
     "scripts/client/scriptserverbrowser.cpp"
     "scripts/client/scriptservertoclientstringcommand.cpp"
+	"scripts/client/scriptsignonstate.cpp"
     "scripts/client/scriptpresence.cpp"
     "scripts/server/miscserverfixes.cpp"
     "scripts/server/miscserverscript.cpp"
@@ -180,8 +181,8 @@ add_library(
     "server/ai_navmesh.cpp"
     "server/ai_navmesh.h"
     "server/buildainfile.cpp"
-	"server/player.cpp"
-	"server/player.h"
+    "server/player.cpp"
+    "server/player.h"
     "server/r2server.cpp"
     "server/r2server.h"
     "server/serverchathooks.cpp"
@@ -304,9 +305,13 @@ target_compile_definitions(
 
 set_target_properties(
     NorthstarDLL
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${NS_BINARY_DIR}
-               OUTPUT_NAME Northstar
+    PROPERTIES OUTPUT_NAME Northstar
                LINK_FLAGS "/MANIFEST:NO /DEBUG"
+               RUNTIME_OUTPUT_DIRECTORY "${NS_BINARY_DIR}"
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG "${NS_BINARY_DIR}"
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE "${NS_BINARY_DIR}"
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${NS_BINARY_DIR}"
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${NS_BINARY_DIR}"
     )
 
 add_custom_command(

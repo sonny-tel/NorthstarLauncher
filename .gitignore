@@ -376,3 +376,6 @@ MigrationBackup/
 
 # Do not ship eos files
 primedev/thirdparty/eossdk/*
+
+# Ignore user config
+config.cmake

@@ -103,23 +103,23 @@ public:
 	virtual ~ClientDataBlockReceiver();
 };
 
+
+// total travesty, still needs to be adjusted because live compiler reaction idfk
 class CClientState : public CClientSnapshotManager, public INetChannelHandler, public IConnectionlessPacketHandler
 {
 public:
 	int32_t m_Socket; //0x0058
-	int32_t _padding_0; //0x005C
 	CNetChan *m_NetChannel; //0x0060 m_NetChannel
-	int64_t unk_while_connecting; //0x0068 unk_while_connecting
-	bool unk_true_on_connecting_and_connected; //0x0070 unk_true_on_connecting_and_connected
-	char pad_0071[3]; //0x0071
-	uint8_t unk_flag; //0x0074 unk_flag
-	char pad_0075[7]; //0x0075
-	uint16_t unk_flag_2; //0x007C unk_flag_2
-	char pad_007E[12]; //0x007E
-	int32_t N00000191; //0x008A
-	uint16_t N000001BB; //0x008E
-	uint32_t N000001BD; //0x0090
-	bool silentconnect_flag_maybe; //0x0094
+	double m_flConnectTime; //0x0068 unk_while_connecting
+	int m_nRetryNumber; //0x0070 unk_true_on_connecting_and_connected
+	int m_nChallengeRetryLimit;
+	char encrypted_connection_MAYBE;
+	char gap79[3];
+	netadr_t addr;
+	bool m_bUnk_used_during_auth;
+	char m_bSendChallengeRequest;
+	char m_bDoNetParamsReconnect_MAYBE;
+	char field_97;
 	eSignonState m_nSignonState; //0x0098 m_nSignonState
 	char pad_009C[4]; //0x009C
 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
@@ -194,7 +194,7 @@ public:
 	bool N00012BDE; //0x10178
 	char pad_10179[3]; //0x10179
 	int32_t N0000DD17; //0x1017C
-	char pad_10180[4]; //0x10180
+	int pad_10180; //0x10180
 	float m_flServerUptime; //0x10184
 	bool m_bIsWatchingReplay;
 	int unk_probably_replay_related_or_pad;

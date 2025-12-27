@@ -41,7 +41,11 @@ target_compile_definitions(
 
 set_target_properties(
     loader_wsock32_proxy
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${NS_BINARY_DIR}/bin/x64_retail
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${NS_BINARY_DIR}/bin/x64_retail"
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG "${NS_BINARY_DIR}/bin/x64_retail"
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE "${NS_BINARY_DIR}/bin/x64_retail"
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${NS_BINARY_DIR}/bin/x64_retail"
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${NS_BINARY_DIR}/bin/x64_retail"
                OUTPUT_NAME wsock32
                LINK_FLAGS "/MANIFEST:NO /DEBUG"
     )
