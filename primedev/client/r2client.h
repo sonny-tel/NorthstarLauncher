@@ -237,6 +237,3 @@ public:
 	virtual bool ProcessNetProfileFrame(void* msg);
 	virtual bool ProcessNetProfileTotals(void* msg);
 };
-
-constexpr int a = offsetof(CClientState, m_nSignonState);
-constexpr int b = 0x0098;
