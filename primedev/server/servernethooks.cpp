@@ -270,6 +270,118 @@ static bool ProcessCustomServerInfoRequest(netpacket_t* packet, bf_read& msg)
 	return true;
 }
 
+static size_t CurlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    size_t totalSize = size * nmemb;
+    auto* s = static_cast<std::string*>(userp);
+    s->append(static_cast<char*>(contents), totalSize);
+    return totalSize;
+}
+
+void DoEntitlementCheck(const std::string& access_token)
+{
+    auto doGet = [&](const char* url) {
+        CURL* curl = curl_easy_init();
+        if (!curl)
+        {
+            spdlog::error("curl_easy_init failed for {}", url);
+            return;
+        }
+
+        std::string response;
+        std::string authHeader = "Authorization: Bearer " + access_token;
+
+        struct curl_slist* headers = nullptr;
+        headers = curl_slist_append(headers, authHeader.c_str());
+        headers = curl_slist_append(headers, "X-Expand-Results: true");
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+            spdlog::error("EA GET {} failed: {}", url, curl_easy_strerror(res));
+        }
+        else
+        {
+            spdlog::info("EA GET {} response: {}", url, response);
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    };
+
+    doGet("https://gateway.ea.com/proxy/identity/pids/me");
+    doGet("https://gateway.ea.com/proxy/identity/pids/me/entitlements");
+	doGet("https://gateway.ea.com/proxy/identity/pids/me/personas");
+}
+
+void CheckTokenStuff(char* buf)
+{
+    std::string token = std::string(buf);
+
+    std::thread([token]() {
+        CURL* curl = curl_easy_init();
+        if (!curl)
+        {
+            spdlog::error("curl_easy_init failed");
+            return;
+        }
+
+        std::string response;
+
+        curl_easy_setopt(curl, CURLOPT_URL, "https://accounts.ea.com/connect/token");
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
+        std::string postFields =
+            "client_id=TITANFALL3-PC-CLIENT"
+            "&client_secret=AfTHaAUwgiSUBrVgbzSj4ZryoqhIpcVajTcU7lEcTaLvZE2Wbn8DSS2kt1ePimbicIqqzO8"
+            "&grant_type=authorization_code"
+            "&code=" + token +
+            "&token_type=jws";
+
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+            spdlog::error("EA token request failed: {}", curl_easy_strerror(res));
+        }
+        else
+        {
+            spdlog::info("EA token raw response: {}", response);
+
+            rapidjson::Document doc;
+            doc.Parse(response.c_str());
+            if (doc.HasParseError())
+            {
+                spdlog::error("Failed to parse EA token JSON (offset {}): {}",
+                              doc.GetErrorOffset(), (int)doc.GetParseError());
+            }
+            else if (doc.HasMember("access_token") && doc["access_token"].IsString())
+            {
+                const char* accessToken = doc["access_token"].GetString();
+                spdlog::info("EA access_token: {}", accessToken);
+
+                // Use access_token as Bearer for the two identity endpoints
+                DoEntitlementCheck(std::string(accessToken));
+            }
+            else
+            {
+                spdlog::warn("EA token JSON has no string access_token field");
+            }
+        }
+
+        curl_easy_cleanup(curl);
+    }).detach();
+}
+
 AUTOHOOK(CServer__ProcessConnectionlessPacket, engine.dll + 0x117800, bool, __fastcall, (void* a1, netpacket_t* packet))
 {
 	// packet->data consists of 0xFFFFFFFF (int32 -1) to indicate packets aren't split, followed by a header consisting of a single
@@ -296,6 +408,42 @@ AUTOHOOK(CServer__ProcessConnectionlessPacket, engine.dll + 0x117800, bool, __fa
 			return true;
 		case A2S_REQUESTCUSTOMSERVERINFO:
 			return ProcessCustomServerInfoRequest(packet, msg);
+        case 'A':
+        {
+            char buffer[512];
+
+            int32_t v0 = msg.ReadLong();
+            int32_t v1 = msg.ReadLong();
+            int32_t v2 = msg.ReadLong();
+            int32_t v3 = msg.ReadLong();
+            int64_t v4 = msg.ReadLongLong();
+
+            msg.ReadString(buffer, sizeof(buffer)); // first string
+            spdlog::info("A pkt str1: {}", buffer);
+
+            msg.ReadString(buffer, sizeof(buffer)); // second string
+            spdlog::info("A pkt str2: {}", buffer);
+
+            int32_t v5 = msg.ReadLong();
+            int32_t v6 = msg.ReadLong();
+
+            msg.ReadBits(buffer, 128);
+
+            int f1 = msg.ReadOneBit();
+            int f2 = msg.ReadOneBit();
+            int hasNucleusTok = msg.ReadOneBit();
+
+            if (hasNucleusTok)
+            {
+                if (msg.ReadString(buffer, sizeof(buffer)))
+                {
+                    spdlog::info("Received nucleus token: {}", buffer);
+					CheckTokenStuff(buffer);
+				}
+                else
+                    spdlog::warn("Failed to read nucleus token (overflow)");
+            }
+        }
 		default:
 			break;
 		}

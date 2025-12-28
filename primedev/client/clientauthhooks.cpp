@@ -2,6 +2,10 @@
 #include "core/convar/convar.h"
 #include "core/vanilla.h"
 #include "masterserver/masterserver.h"
+#include "client/origin.h"
+
+
+
 
 ConVar* Cvar_ns_has_agreed_to_send_token;
 char* pDummy3P = const_cast<char*>("Protocol 3: Protect the Pilot");
@@ -9,10 +13,12 @@ char* pDummy3P = const_cast<char*>("Protocol 3: Protect the Pilot");
 static char* (*__fastcall o_pAuth3PToken)() = nullptr;
 static char* __fastcall h_Auth3PToken()
 {
-	if (g_pCVar->FindVar("serverfilter")->GetBool() && g_pMasterServerManager->m_sOwnClientAuthToken[0])
-		return pDummy3P;
+	// return (char*)"this is a really obvious string to see";
+	// if(g_pVanillaCompatibility->GetVanillaCompatibility())
+	// 	return o_pAuth3PToken();
+	// else
+		return const_cast<char*>(g_szNorthstarToken[0] == '\0' ? pDummy3P : g_szNorthstarToken);
 
-	return o_pAuth3PToken();
 }
 
 ON_DLL_LOAD_CLIENT_RELIESON("engine.dll", ClientAuthHooks, ConVar, (CModule module))
