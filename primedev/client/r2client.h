@@ -121,6 +121,7 @@ public:
 	char field_97;
 	int unkmaybepadidk;
 	int usedinconnectionlesspacketM;
+	int __padding;
 	eSignonState m_nSignonState; //0x0098 m_nSignonState
 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
 	int32_t m_nServerCount; //0x00A8 m_nServerCount
