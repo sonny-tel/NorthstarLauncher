@@ -401,6 +401,34 @@ bool EosLayer::LoginWithDeviceId()
     return false;
 }
 
+bool EosLayer::RequestReloginAsync()
+{
+    // If EOS isn't initialized, don't try to re-login.
+    if (!IsInitialized())
+        return false;
+
+    bool expected = false;
+    if (!m_reloginInProgress.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+    {
+        // Already trying to re-login; don't spam.
+        return false;
+    }
+
+    std::thread([this]()
+    {
+        NS::log::EOS->warn("LocalUserId invalid, attempting EOS re-login");
+
+        if (!LoginWithDeviceId())
+        {
+            NS::log::EOS->error("EOS re-login failed, stopping P2P receive");
+        }
+
+        m_reloginInProgress.store(false, std::memory_order_release);
+    }).detach();
+
+    return true;
+}
+
 bool EosLayer::WaitForResult(std::future<EOS_EResult>& future,
                              EOS_EResult* outResult,
                              int timeoutMs)

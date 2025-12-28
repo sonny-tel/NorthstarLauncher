@@ -48,6 +48,7 @@ public:
 	    const auto& layer = EosLayer::Instance();
 	    return layer.IsInitialized() && layer.GetLocalUser() != nullptr;
 	}
+	bool RequestReloginAsync();
 
 private:
     EosLayer() = default;
@@ -81,6 +82,7 @@ private:
     EOS_NotificationId m_connectionEstablishedNotificationId = EOS_INVALID_NOTIFICATIONID;
 
     std::atomic<EOS_ProductUserId> m_localUser{ nullptr };
+    std::atomic<bool> m_reloginInProgress{ false };
 };
 
 } // namespace eos

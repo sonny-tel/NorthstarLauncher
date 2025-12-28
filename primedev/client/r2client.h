@@ -119,7 +119,8 @@ public:
 	char m_bSendChallengeRequest;
 	char m_bDoNetParamsReconnect_MAYBE;
 	char field_97;
-	__int64 aragtawt;
+	int unkmaybepadidk;
+	int usedinconnectionlesspacketM;
 	eSignonState m_nSignonState; //0x0098 m_nSignonState
 	double m_flNextCmdTime; //0x00A0 m_flNextCmdTime
 	int32_t m_nServerCount; //0x00A8 m_nServerCount

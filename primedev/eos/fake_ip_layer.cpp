@@ -316,23 +316,15 @@ void FakeIpLayer::PumpIncoming()
 
         if (sizeResult == EOS_EResult::EOS_InvalidAuth)
         {
-            NS::log::EOS->warn("LocalUserId invalid, attempting EOS re-login");
-
             auto& layer = EosLayer::Instance();
-            if (!layer.LoginWithDeviceId())
+            // Only log when we actually start a new re-login attempt.
+            if (layer.RequestReloginAsync())
             {
-                NS::log::EOS->error("EOS re-login failed, stopping P2P receive");
-                return;
+                NS::log::EOS->warn("LocalUserId invalid, re-login scheduled");
             }
 
-			localUser = m_localUser.load(std::memory_order_acquire);
-            if (!localUser)
-            {
-                NS::log::EOS->error("EOS re-login succeeded but local user is null");
-                return;
-            }
-
-            continue;
+            // Stop processing incoming packets until auth is fixed.
+            return;
         }
 
         if (sizeResult != EOS_EResult::EOS_Success)
