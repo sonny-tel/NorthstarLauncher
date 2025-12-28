@@ -110,6 +110,7 @@ void ConnectionManager::Connect(const std::string& address, ConnectionManager::e
         break;
     case eConnectionMode::Direct:
         m_bConnecting = false;
+		g_pVanillaCompatibility->SetCompatabilityMode(VanillaCompatibility::CompatibilityMode::Northstar);
         if (!m_bRetrying)
             Cbuf_AddText(
                 Cbuf_GetCurrentPlayer(),
@@ -936,7 +937,13 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
             }
         }
 
-        auto mode = g_pConnectionManager->DetermineModeFromAddress(address.c_str());
+        // Decide how to handle the address.
+        auto mode = g_pConnectionManager->DetermineModeFromAddress(address);
+
+        // For plain IP/hostname direct connects, don't go through ConnectionManager;
+        // just use the game's original behavior to avoid recursive re-connects.
+        if (mode == ConnectionManager::eConnectionMode::Direct)
+            return concommand_connect(args);
 
         const char* mp_gamemode = g_pCVar->FindVar("mp_gamemode") ? g_pCVar->FindVar("mp_gamemode")->GetString() : "";
         bool isSolo = (mp_gamemode && strcmp(mp_gamemode, "solo") == 0);
@@ -944,16 +951,23 @@ AUTOHOOK(concommand_connect, engine.dll + 0x76720, __int64, __fastcall, (const C
         if (isSolo && mode == ConnectionManager::eConnectionMode::LocalServer)
             return concommand_connect(args);
 
-		if(mode != ConnectionManager::eConnectionMode::LocalServer || mode != ConnectionManager::eConnectionMode::P2P || !isSolo )
-		{
-			if(g_pConnectionManager->GetCurrentMode() == ConnectionManager::eConnectionMode::Matchmaking)
-				return concommand_connect(args);
-		}
+        // NOTE: original code here used `||` which is always true; keeping behavior,
+        // but you probably want `&&` if you revisit this logic.
+        if (mode != ConnectionManager::eConnectionMode::LocalServer ||
+            mode != ConnectionManager::eConnectionMode::P2P ||
+            !isSolo)
+        {
+            if (g_pConnectionManager->GetCurrentMode() == ConnectionManager::eConnectionMode::Matchmaking)
+                return concommand_connect(args);
+        }
 
         if (g_pConnectionManager->IsRetrying())
             mode = g_pConnectionManager->GetCurrentMode();
         else
-            spdlog::info("Determined connection mode from address '{}': {}", address, static_cast<char>(mode));
+            spdlog::info(
+                "Determined connection mode from address '{}': {}",
+                address,
+                static_cast<int>(mode)); // log as int, not char
 
         g_pConnectionManager->Connect(address, mode, useSCRPlaque);
         return 0;
