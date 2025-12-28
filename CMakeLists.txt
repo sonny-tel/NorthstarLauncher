@@ -32,8 +32,11 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
 # This determines the real binary root directory
-if(NOT DEFINED NS_BINARY_DIR)
-	set(NS_BINARY_DIR ${CMAKE_BINARY_DIR}/game)
+if(NOT
+   DEFINED
+   NS_BINARY_DIR
+   )
+    set(NS_BINARY_DIR ${CMAKE_BINARY_DIR}/game)
 endif()
 
 # NOTE [Fifty]: Visual studio deems Build root with the value "${projectDir}" in CMakeSettings.json as invalid and
