@@ -157,7 +157,7 @@ add_library(
     "scripts/client/scriptoriginauth.cpp"
     "scripts/client/scriptserverbrowser.cpp"
     "scripts/client/scriptservertoclientstringcommand.cpp"
-	"scripts/client/scriptsignonstate.cpp"
+    "scripts/client/scriptsignonstate.cpp"
     "scripts/client/scriptpresence.cpp"
     "scripts/server/miscserverfixes.cpp"
     "scripts/server/miscserverscript.cpp"
