@@ -362,11 +362,7 @@ void CCrashHandler::FormatCallstack()
 
     int iFrames = RtlCaptureStackBackTrace(0, CRASHHANDLER_MAX_FRAMES, pFrames, NULL);
 
-    // Above call gives us frames after the crash occured, we only want to print the ones starting from where
-    // the exception was called
     bool bSkipExceptionHandlingFrames = true;
-
-    // We ran into an error when getting the offset, just print all frames
     if (m_svCrashedOffset.empty())
         bSkipExceptionHandlingFrames = false;
 
@@ -411,50 +407,57 @@ void CCrashHandler::FormatCallstack()
         bool printed = false;
         if (m_bSymInit)
         {
-            DWORD64 symAddr = static_cast<DWORD64>(addr);
-
-            alignas(SYMBOL_INFO) char symBuffer[sizeof(SYMBOL_INFO) + 256];
-            PSYMBOL_INFO pSym = reinterpret_cast<PSYMBOL_INFO>(symBuffer);
-            pSym->SizeOfStruct = sizeof(SYMBOL_INFO);
-            pSym->MaxNameLen = 255;
-
-            DWORD64 displacement = 0;
-            if (SymFromAddr(GetCurrentProcess(), symAddr, &displacement, pSym))
+            try
             {
-                IMAGEHLP_LINE64 line;
-                memset(&line, 0, sizeof(line));
-                line.SizeOfStruct = sizeof(line);
-                DWORD lineDisp = 0;
+                DWORD64 symAddr = static_cast<DWORD64>(addr);
 
-                if (SymGetLineFromAddr64(GetCurrentProcess(), symAddr, &lineDisp, &line))
+                alignas(SYMBOL_INFO) char symBuffer[sizeof(SYMBOL_INFO) + 256];
+                PSYMBOL_INFO pSym = reinterpret_cast<PSYMBOL_INFO>(symBuffer);
+                pSym->SizeOfStruct = sizeof(SYMBOL_INFO);
+                pSym->MaxNameLen = 255;
+
+                DWORD64 displacement = 0;
+                if (SymFromAddr(GetCurrentProcess(), symAddr, &displacement, pSym))
                 {
-                    std::string svFileName = line.FileName ? line.FileName : "";
+                    IMAGEHLP_LINE64 line;
+                    memset(&line, 0, sizeof(line));
+                    line.SizeOfStruct = sizeof(line);
+                    DWORD lineDisp = 0;
 
-                    const char* marker1 = "NorthstarLauncher\\";
-                    const char* marker2 = "NorthstarLauncher/";
-                    size_t pos = svFileName.find(marker1);
-                    if (pos == std::string::npos)
-                        pos = svFileName.find(marker2);
-                    if (pos != std::string::npos)
-                        svFileName = svFileName.substr(pos);
+                    if (SymGetLineFromAddr64(GetCurrentProcess(), symAddr, &lineDisp, &line) && line.FileName)
+                    {
+                        std::string svFileName = line.FileName;
 
-                    spdlog::error(
-                        "\t{}!{}+0x{:x} [{}:{}]",
-                        svModuleFileName,
-                        pSym->Name,
-                        static_cast<uint64_t>(displacement),
-                        svFileName,
-                        line.LineNumber);
+                        const char* marker1 = "NorthstarLauncher\\";
+                        const char* marker2 = "NorthstarLauncher/";
+                        size_t pos = svFileName.find(marker1);
+                        if (pos == std::string::npos)
+                            pos = svFileName.find(marker2);
+                        if (pos != std::string::npos)
+                            svFileName = svFileName.substr(pos);
+
+                        spdlog::error(
+                            "\t{}!{}+0x{:x} [{}:{}]",
+                            svModuleFileName,
+                            pSym->Name,
+                            static_cast<uint64_t>(displacement),
+                            svFileName,
+                            line.LineNumber);
+                    }
+                    else
+                    {
+                        spdlog::error(
+                            "\t{}!{}+0x{:x}",
+                            svModuleFileName,
+                            pSym->Name,
+                            static_cast<uint64_t>(displacement));
+                    }
+                    printed = true;
                 }
-                else
-                {
-                    spdlog::error(
-                        "\t{}!{}+0x{:x}",
-                        svModuleFileName,
-                        pSym->Name,
-                        static_cast<uint64_t>(displacement));
-                }
-                printed = true;
+            }
+            catch(std::exception& e)
+            {
+                printed = false;
             }
         }
 
@@ -462,7 +465,6 @@ void CCrashHandler::FormatCallstack()
             spdlog::error("\t{} + {:#x}", svModuleFileName, static_cast<uint64_t>(offset));
     }
 }
-
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
