@@ -47,6 +47,7 @@ static_assert(sizeof(PakLoadFuncs) == 0x110);
 
 PakLoadFuncs* g_pakLoadApi;
 PakLoadManager* g_pPakLoadManager;
+static std::recursive_mutex g_pakLoadMgrMutex;
 
 static char* pszCurrentMapRpakPath = nullptr;
 static PakHandle* piCurrentMapRpakHandle = nullptr;
@@ -64,20 +65,24 @@ static unsigned int (*o_pGetPakPatchNumber)(const char* pPakPath) = nullptr;
 // Also cleans up any mod Paks that are already unloaded.
 void PakLoadManager::UnloadAllModPaks()
 {
-	NS::log::rpak->info("Reloading RPaks on next map load...");
-	for (auto& modPak : m_modPaks)
-	{
-		modPak.m_markedForDelete = true;
-	}
-	// clean up any paks that are both marked for unload and already unloaded
-	CleanUpUnloadedPaks();
-	SetForceReloadOnMapLoad(true);
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
+    NS::log::rpak->info("Reloading RPaks on next map load...");
+    for (auto& modPak : m_modPaks)
+    {
+        modPak.m_markedForDelete = true;
+    }
+    // clean up any paks that are both marked for unload and already unloaded
+    CleanUpUnloadedPaks();
+    SetForceReloadOnMapLoad(true);
 }
 
 // Tracks all Paks related to a mod.
 void PakLoadManager::TrackModPaks(Mod& mod)
 {
-	const fs::path modPakPath("./" / mod.m_ModDirectory / "paks");
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
+    const fs::path modPakPath("./" / mod.m_ModDirectory / "paks");
 
 	for (auto& modRpakEntry : mod.Rpaks)
 	{
@@ -97,38 +102,44 @@ void PakLoadManager::TrackModPaks(Mod& mod)
 // Untracks all paks that aren't currently loaded and are marked for unload.
 void PakLoadManager::CleanUpUnloadedPaks()
 {
-	auto fnRemovePredicate = [](ModPak_t& pak) -> bool { return pak.m_markedForDelete && pak.m_handle == PakHandle::INVALID; };
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
 
-	m_modPaks.erase(std::remove_if(m_modPaks.begin(), m_modPaks.end(), fnRemovePredicate), m_modPaks.end());
+    auto fnRemovePredicate = [](ModPak_t& pak) -> bool { return pak.m_markedForDelete && pak.m_handle == PakHandle::INVALID; };
+
+    m_modPaks.erase(std::remove_if(m_modPaks.begin(), m_modPaks.end(), fnRemovePredicate), m_modPaks.end());
 }
 
 // Unloads all paks that are marked for unload.
 void PakLoadManager::UnloadMarkedPaks()
 {
-	++m_reentranceCounter;
-	const ScopeGuard guard([&]() { --m_reentranceCounter; });
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
 
-	(*o_pCModelLoader_UnreferenceAllModels)(*ppModelLoader);
-	(*o_pCleanMaterialSystemStuff)();
+    ++m_reentranceCounter;
+    const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
-	for (auto& modPak : m_modPaks)
-	{
-		if (modPak.m_handle == PakHandle::INVALID || !modPak.m_markedForDelete)
-			continue;
+    (*o_pCModelLoader_UnreferenceAllModels)(*ppModelLoader);
+    (*o_pCleanMaterialSystemStuff)();
 
-		g_pakLoadApi->UnloadPak(modPak.m_handle, *o_pCleanMaterialSystemStuff);
-		modPak.m_handle = PakHandle::INVALID;
-	}
+    for (auto& modPak : m_modPaks)
+    {
+        if (modPak.m_handle == PakHandle::INVALID || !modPak.m_markedForDelete)
+            continue;
+
+        g_pakLoadApi->UnloadPak(modPak.m_handle, *o_pCleanMaterialSystemStuff);
+        modPak.m_handle = PakHandle::INVALID;
+    }
 }
 
 // Loads all modded paks for the given map.
 void PakLoadManager::LoadModPaksForMap(const char* mapName)
 {
-	++m_reentranceCounter;
-	const ScopeGuard guard([&]() { --m_reentranceCounter; });
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
 
-	for (auto& modPak : m_modPaks)
-	{
+    ++m_reentranceCounter;
+    const ScopeGuard guard([&]() { --m_reentranceCounter; });
+
+    for (auto& modPak : m_modPaks)
+    {
 		// don't load paks that are already loaded
 		if (modPak.m_handle != PakHandle::INVALID)
 			continue;
@@ -144,8 +155,10 @@ void PakLoadManager::LoadModPaksForMap(const char* mapName)
 // Unloads all modded map paks.
 void PakLoadManager::UnloadModPaks()
 {
-	++m_reentranceCounter;
-	const ScopeGuard guard([&]() { --m_reentranceCounter; });
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
+    ++m_reentranceCounter;
+    const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
 	(*o_pCModelLoader_UnreferenceAllModels)(*ppModelLoader);
 	(*o_pCleanMaterialSystemStuff)();
@@ -172,6 +185,8 @@ void PakLoadManager::UnloadModPaks()
 // Called after a Pak was loaded.
 void PakLoadManager::OnPakLoaded(std::string& originalPath, std::string& resultingPath, PakHandle resultingHandle)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	if (IsVanillaCall())
 	{
 		// add entry to loaded vanilla rpaks
@@ -184,6 +199,8 @@ void PakLoadManager::OnPakLoaded(std::string& originalPath, std::string& resulti
 // Called before a Pak was unloaded.
 void PakLoadManager::OnPakUnloading(PakHandle handle)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	UnloadDependentPaks(handle);
 
 	if (IsVanillaCall())
@@ -241,6 +258,8 @@ static bool VanillaHasPak(const char* pakName)
 // If vanilla doesn't have an rpak for this path, tries to map it to a modded rpak of the same name.
 void PakLoadManager::FixupPakPath(std::string& pakPath)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	if (VanillaHasPak(pakPath.c_str()))
 		return;
 
@@ -261,6 +280,8 @@ void PakLoadManager::FixupPakPath(std::string& pakPath)
 // Loads all "Preload" Paks. todo: deprecate Preload.
 void PakLoadManager::LoadPreloadPaks()
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	++m_reentranceCounter;
 	const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
@@ -276,6 +297,8 @@ void PakLoadManager::LoadPreloadPaks()
 // Causes all "Postload" paks to be loaded again.
 void PakLoadManager::ReloadPostloadPaks()
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	++m_reentranceCounter;
 	const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
@@ -289,12 +312,16 @@ void PakLoadManager::ReloadPostloadPaks()
 // Wrapper for Pak load API.
 void* PakLoadManager::OpenFile(const char* path)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	return g_pakLoadApi->OpenFile(path);
 }
 
 // Loads Paks that depend on this Pak.
 void PakLoadManager::LoadDependentPaks(std::string& path, PakHandle handle)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	++m_reentranceCounter;
 	const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
@@ -315,6 +342,8 @@ void PakLoadManager::LoadDependentPaks(std::string& path, PakHandle handle)
 // Unloads Paks that depend on this Pak.
 void PakLoadManager::UnloadDependentPaks(PakHandle handle)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	++m_reentranceCounter;
 	const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
@@ -361,6 +390,8 @@ static void HandlePakAliases(std::string& originalPath)
 static bool (*o_pLoadMapRpaks)(char* mapPath) = nullptr;
 static bool h_LoadMapRpaks(char* mapPath)
 {
+    std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
+
 	// unload all mod rpaks that are marked for unload
 	g_pPakLoadManager->UnloadMarkedPaks();
 	g_pPakLoadManager->CleanUpUnloadedPaks();
@@ -387,7 +418,7 @@ static bool h_LoadMapRpaks(char* mapPath)
 	}
 
 	char mapRpakStr[272];
-	snprintf(mapRpakStr, 272, "%s.rpak", mapName.c_str());
+	snprintf(mapRpakStr, sizeof(mapRpakStr), "%s.rpak", mapName.c_str());
 
 	// if level being loaded is the same as current level, do nothing
 	if (!g_pPakLoadManager->GetForceReloadOnMapLoad() && !strcmp(mapRpakStr, pszCurrentMapRpakPath))
@@ -416,12 +447,14 @@ static bool h_LoadMapRpaks(char* mapPath)
 		*piCurrentMapPatchRpakHandle = PakHandle::INVALID;
 	}
 
-	*piCurrentMapRpakHandle = g_pakLoadApi->LoadRpakFileAsync(mapRpakStr, *rpakMemoryAllocator, 7);
+	char* mapRpakStrDup = _strdup(mapRpakStr);
+	*piCurrentMapRpakHandle = g_pakLoadApi->LoadRpakFileAsync(mapRpakStrDup, *rpakMemoryAllocator, 7);
 
 	// load special _patch rpak (seemingly used for dev things?)
 	char levelPatchRpakStr[272];
-	snprintf(levelPatchRpakStr, 272, "%s_patch.rpak", mapName.c_str());
-	*piCurrentMapPatchRpakHandle = g_pakLoadApi->LoadRpakFileAsync(levelPatchRpakStr, *rpakMemoryAllocator, 7);
+	snprintf(levelPatchRpakStr, sizeof(levelPatchRpakStr), "%s_patch.rpak", mapName.c_str());
+	char* levelPatchRpakStrDup = _strdup(levelPatchRpakStr);
+	*piCurrentMapPatchRpakHandle = g_pakLoadApi->LoadRpakFileAsync(levelPatchRpakStrDup, *rpakMemoryAllocator, 7);
 
 	// we just reloaded the paks, so we don't need to force it again
 	g_pPakLoadManager->SetForceReloadOnMapLoad(false);
@@ -458,7 +491,8 @@ PakHandle, __fastcall, (const char* pPath, void* memoryAllocator, int flags))
 		}
 	}
 
-	PakHandle iPakHandle = LoadPakAsync(resultingPath.c_str(), memoryAllocator, flags);
+	char* path = strdup(resultingPath.c_str());
+	PakHandle iPakHandle = LoadPakAsync(path, memoryAllocator, flags);
 	NS::log::rpak->info("LoadPakAsync {} {}", resultingPath, iPakHandle);
 
 	g_pPakLoadManager->OnPakLoaded(svOriginalPath, resultingPath, iPakHandle);
@@ -480,37 +514,39 @@ void*, __fastcall, (PakHandle nPakHandle, void* pCallback))
 // we hook this exclusively for resolving stbsp paths, but seemingly it's also used for other stuff like vpk, rpak, mprj and starpak loads
 // tbh this actually might be for memory mapped files or something, would make sense i think
 // clang-format off
-HOOK(OpenFileHook, o_pOpenFile, 
+HOOK(OpenFileHook, o_pOpenFile,
 void*, __fastcall, (const char* pPath, void* pCallback))
 // clang-format on
 {
 	// NOTE [Fifty]: For some reason some users are getting pPath as null when
 	//               loading a server, o_pOpenFile uses CreateFileA and checks
 	//               its return value so this is completely safe
-	if (pPath == NULL)
-	{
-		return o_pOpenFile(pPath, pCallback);
-	}
+    if (pPath == NULL)
+    {
+        return o_pOpenFile(pPath, pCallback);
+    }
 
-	fs::path path(pPath);
-	std::string newPath = "";
-	fs::path filename = path.filename();
+    fs::path path(pPath);
+    std::string newPath;
+    bool changedPath = false;
+    fs::path filename = path.filename();
 
-	if (path.extension() == ".stbsp")
-	{
-		if (IsDedicatedServer())
-			return nullptr;
+    if (path.extension() == ".stbsp")
+    {
+        if (IsDedicatedServer())
+            return nullptr;
 
-		NS::log::rpak->info("LoadStreamBsp: {}", filename.string());
+        NS::log::rpak->info("LoadStreamBsp: {}", filename.string());
 
-		// resolve modded stbsp path so we can load mod stbsps
-		auto modFile = g_pModManager->m_ModFiles.find(g_pModManager->NormaliseModFilePath(fs::path("maps" / filename)));
-		if (modFile != g_pModManager->m_ModFiles.end())
-		{
-			newPath = (modFile->second.m_pOwningMod->m_ModDirectory / "mod" / modFile->second.m_Path).string();
-			pPath = newPath.c_str();
-		}
-	}
+        // resolve modded stbsp path so we can load mod stbsps
+        auto modFile = g_pModManager->m_ModFiles.find(
+            g_pModManager->NormaliseModFilePath(fs::path("maps" / filename)));
+        if (modFile != g_pModManager->m_ModFiles.end())
+        {
+            newPath = (modFile->second.m_pOwningMod->m_ModDirectory / "mod" / modFile->second.m_Path).string();
+            changedPath = true;
+        }
+    }
 	else if (path.extension() == ".starpak")
 	{
 		if (IsDedicatedServer())
@@ -528,40 +564,43 @@ void*, __fastcall, (const char* pPath, void* pCallback))
 		// path.begin() being the first directory, r2 in this case, which is guaranteed anyway,
 		// so increment the iterator with ++ to get the first actual directory, * just gets the actual value
 		// then we compare to "paks" to determine if it's a vanilla rpak or not
-		if (*++path.begin() != "paks")
-		{
+        if (*++path.begin() != "paks")
+        {
 			// remove the r2\ from the start used for path lookups
 			std::string starpakPath = path.string().substr(3);
 			// hash the starpakPath to compare with stored entries
 			size_t hashed = STR_HASH(starpakPath);
 
 			// loop through all loaded mods
-			for (Mod& mod : g_pModManager->m_LoadedMods)
-			{
-				// ignore non-loaded mods
-				if (!mod.m_bEnabled)
-					continue;
+            for (Mod& mod : g_pModManager->m_LoadedMods)
+            {
+                if (!mod.m_bEnabled)
+                    continue;
 
-				// loop through the stored starpak paths
-				for (size_t hash : mod.StarpakPaths)
-				{
-					if (hash == hashed)
-					{
-						// construct new path
-						newPath = (mod.m_ModDirectory / "paks" / starpakPath).string();
-						// set path to the new path
-						pPath = newPath.c_str();
-						goto LOG_STARPAK;
-					}
-				}
-			}
-		}
+                for (size_t hash : mod.StarpakPaths)
+                {
+                    if (hash == hashed)
+                    {
+                        newPath = (mod.m_ModDirectory / "paks" / starpakPath).string();
+                        changedPath = true;
+                        goto LOG_STARPAK;
+                    }
+                }
+            }
+        }
 
-	LOG_STARPAK:
-		NS::log::rpak->info("LoadStreamPak: {}", filename.string());
-	}
 
-	return o_pOpenFile(pPath, pCallback);
+    LOG_STARPAK:
+        NS::log::rpak->info("LoadStreamPak: {}", filename.string());
+    }
+
+    // If we didn't change the path, just call the original with the original pPath
+    if (!changedPath)
+        return o_pOpenFile(pPath, pCallback);
+
+    // We changed the path: pass a heap‑backed copy (engine may keep it)
+    char* dup = _strdup(newPath.c_str());
+    return o_pOpenFile(dup, pCallback);
 }
 
 ON_DLL_LOAD("engine.dll", RpakFilesystem, (CModule module))
