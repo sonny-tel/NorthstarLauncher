@@ -140,16 +140,17 @@ void PakLoadManager::LoadModPaksForMap(const char* mapName)
 
     for (auto& modPak : m_modPaks)
     {
-		// don't load paks that are already loaded
-		if (modPak.m_handle != PakHandle::INVALID)
-			continue;
-		std::cmatch matches;
-		if (!std::regex_match(mapName, matches, modPak.m_mapRegex))
-			continue;
+        // don't load paks that are already loaded
+        if (modPak.m_handle != PakHandle::INVALID)
+            continue;
+        std::cmatch matches;
+        if (!std::regex_match(mapName, matches, modPak.m_mapRegex))
+            continue;
 
-		modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(modPak.m_path.c_str(), *rpakMemoryAllocator, 7);
-		m_mapPaks.push_back(modPak.m_pathHash);
-	}
+        char* pathDup = _strdup(modPak.m_path.c_str());
+        modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(pathDup, *rpakMemoryAllocator, 7);
+        m_mapPaks.push_back(modPak.m_pathHash);
+    }
 }
 
 // Unloads all modded map paks.
@@ -282,16 +283,17 @@ void PakLoadManager::LoadPreloadPaks()
 {
     std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
 
-	++m_reentranceCounter;
-	const ScopeGuard guard([&]() { --m_reentranceCounter; });
+    ++m_reentranceCounter;
+    const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
-	for (auto& modPak : m_modPaks)
-	{
-		if (modPak.m_markedForDelete || modPak.m_handle != PakHandle::INVALID || !modPak.m_preload)
-			continue;
+    for (auto& modPak : m_modPaks)
+    {
+        if (modPak.m_markedForDelete || modPak.m_handle != PakHandle::INVALID || !modPak.m_preload)
+            continue;
 
-		modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(modPak.m_path.c_str(), *rpakMemoryAllocator, 7);
-	}
+        char* pathDup = _strdup(modPak.m_path.c_str());
+        modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(pathDup, *rpakMemoryAllocator, 7);
+    }
 }
 
 // Causes all "Postload" paks to be loaded again.
@@ -322,21 +324,21 @@ void PakLoadManager::LoadDependentPaks(std::string& path, PakHandle handle)
 {
     std::lock_guard<std::recursive_mutex> lock(g_pakLoadMgrMutex);
 
-	++m_reentranceCounter;
-	const ScopeGuard guard([&]() { --m_reentranceCounter; });
+    ++m_reentranceCounter;
+    const ScopeGuard guard([&]() { --m_reentranceCounter; });
 
-	const size_t hash = STR_HASH(path);
-	for (auto& modPak : m_modPaks)
-	{
-		if (modPak.m_handle != PakHandle::INVALID)
-			continue;
-		if (modPak.m_dependentPakHash != hash)
-			continue;
+    const size_t hash = STR_HASH(path);
+    for (auto& modPak : m_modPaks)
+    {
+        if (modPak.m_handle != PakHandle::INVALID)
+            continue;
+        if (modPak.m_dependentPakHash != hash)
+            continue;
 
-		// load pak
-		modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(modPak.m_path.c_str(), *rpakMemoryAllocator, 7);
-		m_dependentPaks.emplace_back(handle, hash);
-	}
+        char* pathDup = _strdup(modPak.m_path.c_str());
+        modPak.m_handle = g_pakLoadApi->LoadRpakFileAsync(pathDup, *rpakMemoryAllocator, 7);
+        m_dependentPaks.emplace_back(handle, hash);
+    }
 }
 
 // Unloads Paks that depend on this Pak.
