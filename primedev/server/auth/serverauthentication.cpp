@@ -102,7 +102,7 @@ bool ServerAuthenticationManager::IsDuplicateAccount(CClient* pPlayer, const cha
 
 	bool bHasUidPlayer = false;
 	for (int i = 0; i < g_pGlobals->m_nMaxClients; i++)
-		if (&g_pClientArray[i] != pPlayer && !strcmp(pPlayerUid, g_pClientArray[i].m_UID))
+		if (&g_pClientArray[i] != pPlayer && !strcmp(pPlayerUid, g_pClientArray[i].m_szPlatformID))
 			return true;
 
 	return false;
@@ -141,7 +141,7 @@ void ServerAuthenticationManager::AuthenticatePlayer(CClient* pPlayer, uint64_t 
 	std::string sUid = std::to_string(iUid);
 
 	// copy uuid
-	strcpy(pPlayer->m_UID, sUid.c_str());
+	strcpy(pPlayer->m_szPlatformID, sUid.c_str());
 
 	std::lock_guard<std::mutex> guard(m_AuthDataMutex);
 	if (!pAuthToken)
@@ -177,13 +177,13 @@ bool ServerAuthenticationManager::RemovePlayerAuthData(CClient* pPlayer)
 		return false;
 
 	// hack for special case where we're on a local server, so we erase our own newly created auth data on disconnect
-	if (m_bNeedLocalAuthForNewgame && !strcmp(pPlayer->m_UID, g_pLocalPlayerUserID))
+	if (m_bNeedLocalAuthForNewgame && !strcmp(pPlayer->m_szPlatformID, g_pLocalPlayerUserID))
 		return false;
 
 	// we don't have our auth token at this point, so lookup authdata by uid
 	for (auto& auth : m_RemoteAuthenticationData)
 	{
-		if (!strcmp(pPlayer->m_UID, auth.second.uid))
+		if (!strcmp(pPlayer->m_szPlatformID, auth.second.uid))
 		{
 			// pretty sure this is fine, since we don't iterate after the erase
 			// i think if we iterated after it'd be undefined behaviour tho
@@ -203,7 +203,7 @@ void ServerAuthenticationManager::WritePersistentData(CClient* pPlayer)
 	if (pPlayer->m_iPersistenceReady == ePersistenceReady::READY_REMOTE)
 	{
 		g_pMasterServerManager->WritePlayerPersistentData(
-			pPlayer->m_UID, (const char*)pPlayer->m_PersistenceBuffer, m_PlayerAuthenticationData[pPlayer].pdataSize);
+			pPlayer->m_szPlatformID, (const char*)pPlayer->m_PersistenceBuffer, m_PlayerAuthenticationData[pPlayer].pdataSize);
 	}
 	else if (Cvar_ns_auth_allow_insecure_write->GetBool())
 	{

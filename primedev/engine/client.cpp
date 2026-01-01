@@ -12,7 +12,7 @@ CClientExtended* CClient::GetClientExtended() const
 
 void CClient::Disconnect(const Reputation_t nRepLevel, const char* reason, ...)
 {
-	if (m_Signon != eSignonState::NONE)
+	if (m_nSignonState != eSignonState::NONE)
 	{
 		char szBuf[1024];
 		{

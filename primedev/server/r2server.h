@@ -6,6 +6,7 @@
 #include "util/utlmemory.h"
 
 #define MAX_PLAYERS 32
+#define MAX_TEAMS 32
 
 class CClientExtended;
 
@@ -59,7 +60,7 @@ public:
 	float m_fCPUPercent; //0x5AE780
 	float m_fStartTime; //0x5AE784
 	float m_fLastCPUCheckTime; //0x5AE788
-	char pad_5AE78C[4184]; //0x5AE78C
+	bool m_bTeams[MAX_TEAMS];
 
 	static CClientExtended* sm_ClientsExtended[MAX_PLAYERS];
 }; //Size: 0x5AF7E4
