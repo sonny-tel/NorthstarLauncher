@@ -2,6 +2,7 @@
 
 CBaseEntity* (*Server_GetEntityByIndex)(int index);
 CServer* g_pServer = nullptr;
+CClientExtended CServer::sm_ClientsExtended[MAX_PLAYERS];
 
 ON_DLL_LOAD("server.dll", R2GameServer, (CModule module))
 {

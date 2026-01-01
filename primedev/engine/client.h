@@ -81,33 +81,6 @@ public:
 	int GetUserID(void) const { return m_nUserID; }
 	CClientExtended* GetClientExtended(void) const;
 
-	// uint32_t m_nUserID;
-	// edict_t m_nHandle;
-	// char m_szServerName[64]; // 0x16 ( Size: 64 )
-	// int m_nReputation;
-	// char _unk_0x56[508]; // 0x56 ( Size: 514 )
-	// KeyValues* m_ConVars; // 0x258 ( Size: 8 )
-	// char _unk_0x260[64]; // 0x260 ( Size: 64 )
-	// eSignonState m_Signon; // 0x2a0 ( Size: 4 )
-	// int32_t m_nDeltaTick; // 0x2a4 ( Size: 4 )
-	// uint64_t m_nOriginID; // 0x2a8 ( Size: 8 )
-	// int32_t m_nStringTableAckTick; // 0x2b0 ( Size: 4 )
-	// int32_t m_nSignonTick; // 0x2b4 ( Size: 4 )
-	// char _unk_0x2b8[160]; // 0x2b8 ( Size: 180 )
-	// char m_ClanTag[16]; // 0x358 ( Size: 16 )
-	// char _unk_0x368[284]; // 0x368 ( Size: 284 )
-	// bool m_bFakePlayer; // 0x484 ( Size: 1 )
-	// bool m_bReceivedPacket; // 0x485 ( Size: 1 )
-	// bool m_bLowViolence; // 0x486 ( Size: 1 )
-	// bool m_bFullyAuthenticated; // 0x487 ( Size: 1 )
-	// char _unk_0x488[24]; // 0x488 ( Size: 24 )
-	// ePersistenceReady m_iPersistenceReady; // 0x4a0 ( Size: 1 )
-	// char _unk_0x4a1[89]; // 0x4a1 ( Size: 89 )
-	// char m_PersistenceBuffer[PERSISTENCE_MAX_SIZE]; // 0x4fa ( Size: 56781 )
-	// char _unk_0xe2c7[4665]; // 0xe2c7 ( Size: 4665 )
-	// char m_UID[32]; // 0xf500 ( Size: 32 )
-	// char _unk_0xf520[123400]; // 0xf520 ( Size: 123400 )
-
 	uint32_t m_nUserID; //0x0010
 	uint16_t m_nHandle; //0x0014
 	char m_szServerName[256]; //0x0016

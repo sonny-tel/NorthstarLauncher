@@ -16,6 +16,8 @@ extern CBaseEntity* (*Server_GetEntityByIndex)(int index);
 class CServer : public IConnectionlessPacketHandler
 {
 public:
+	CClientExtended* GetClientExtended(const int nIndex) { return &sm_ClientsExtended[nIndex]; }
+
 	int32_t m_State; //0x0008
 	int32_t m_Socket; //0x000C
 	int32_t m_nTickCount; //0x0010
@@ -62,7 +64,7 @@ public:
 	float m_fLastCPUCheckTime; //0x5AE788
 	bool m_bTeams[MAX_TEAMS];
 
-	static CClientExtended* sm_ClientsExtended[MAX_PLAYERS];
+	static CClientExtended sm_ClientsExtended[MAX_PLAYERS];
 }; //Size: 0x5AF7E4
 
 extern CServer* g_pServer;
