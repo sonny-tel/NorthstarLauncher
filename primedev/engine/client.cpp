@@ -1,8 +1,14 @@
 #include "client.h"
+#include "server/r2server.h"
 
 void (*CClient__Disconnect)(void* self, uint32_t unknownButAlways1, const char* reason, ...);
 void (*CClient__SendDataBlock)(void* self, bf_write* msg);
 CClient* g_pClientArray;
+
+CClientExtended* CClient::GetClientExtended() const
+{
+	return nullptr;
+}
 
 void CClient::Disconnect(const Reputation_t nRepLevel, const char* reason, ...)
 {

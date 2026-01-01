@@ -83,7 +83,9 @@ enum class NetMessageType : int
 };
 
 enum class NSCustomNetMessages : int
-{ };
+{
+	net_SendPersistenceChecksum = static_cast<int>(NetMessageType::__NEXT_INDEX__),
+};
 
 class CNetMessage : public INetMessage
 {

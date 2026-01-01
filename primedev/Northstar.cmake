@@ -210,6 +210,8 @@ add_library(
     "shared/maxplayers.h"
     "shared/misccommands.cpp"
     "shared/misccommands.h"
+	"shared/persistence.cpp"
+    "shared/persistence.h"
     "shared/playlist.cpp"
     "shared/playlist.h"
     "shared/signonstate.h"

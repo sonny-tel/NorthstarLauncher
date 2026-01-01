@@ -335,7 +335,7 @@ static void h_CClient__Disconnect(CClient* self, uint32_t unknownButAlways1, con
 	// this reason is used while connecting to a local server, hacky, but just ignore it
 	if (strcmp(pReason, "Connection closing"))
 	{
-		spdlog::info("Player {} disconnected: \"{}\"", self->m_Name, buf);
+		spdlog::info("Player {} disconnected: \"{}\"", self->m_szServerName, buf);
 
 		// dcing, write persistent data
 		if (g_pServerAuthentication->m_PlayerAuthenticationData[self].needPersistenceWriteOnLeave)
