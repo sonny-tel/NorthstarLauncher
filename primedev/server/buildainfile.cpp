@@ -87,15 +87,16 @@ struct CAI_Node
 	float unk4[MAX_HULLS]; // i have no fucking clue, calculated using some kind of demon hell function float magic
 
 	CUtlVector<CAI_NodeLink*> m_Links;
-	short unk6; // should match up to unk4 on disk
+	int unk6; // should match up to unk4 on disk
 	char unk7[16]; // padding until next bit
-	short unk8; // should match up to unk5 on disk
-	char unk9[8]; // padding until next bit
+	int unk8; // should match up to unk5 on disk
+	char unk9[4]; // padding until next bit
 	char unk10[8]; // should match up to unk6 on disk
+	char padTail[4]; // tail padding to match engine size (0xA8)
 };
 #pragma pack(pop)
 
-static_assert(sizeof(CAI_Node) == 164);
+static_assert(sizeof(CAI_Node) == 168);
 
 #pragma pack(push, 1)
 struct CAI_NodeOld
@@ -120,10 +121,10 @@ struct CAI_NodeOld
 	char unk5[16];
 	int linkcount;
 	int unk11; // bad name lmao
-	short unk6; // should match up to unk4 on disk
+	int unk6; // should match up to unk4 on disk
 	char unk7[16]; // padding until next bit
-	short unk8; // should match up to unk5 on disk
-	char unk9[8]; // padding until next bit
+	int unk8; // should match up to unk5 on disk
+	char unk9[4]; // padding until next bit
 	char unk10[8]; // should match up to unk6 on disk
 };
 #pragma pack(pop)
@@ -181,27 +182,45 @@ struct UnkNodeStruct0
 	char pad3[16]; // pad to +80
 	int unkcount1;
 
-	char pad4[132];
+	char pad4[128]; // pad to +0xD4
+	float unk4; // derived from unk5 on load
 	char unk5;
+	char pad6[7];
 };
 #pragma pack(pop)
+
+static_assert(sizeof(UnkNodeStruct0) == 0xE0);
+static_assert(offsetof(UnkNodeStruct0, unk4) == 0xD4);
+static_assert(offsetof(UnkNodeStruct0, unk5) == 0xD8);
 
 int* pUnkStruct0Count;
 UnkNodeStruct0*** pppUnkNodeStruct0s;
 
-#pragma pack(push, 1)
 struct UnkLinkStruct1
 {
 	short unk0;
 	short unk1;
-	int unk2;
+	float unk2;
+	char unk3;
+	char unk4;
+	char unk5;
+	char pad0;
+};
+static_assert(sizeof(UnkLinkStruct1) == 12);
+
+#pragma pack(push, 1)
+struct UnkLinkStruct1Disk
+{
+	short unk0;
+	short unk1;
+	float unk2;
 	char unk3;
 	char unk4;
 	char unk5;
 };
 #pragma pack(pop)
 
-static_assert(sizeof(UnkLinkStruct1) == 11);
+static_assert(sizeof(UnkLinkStruct1Disk) == 11);
 
 int* pUnkLinkStruct1Count;
 UnkLinkStruct1*** pppUnkStruct1s;
@@ -309,12 +328,6 @@ CAI_NetworkManager** g_ppAINetworkManager = nullptr;
 
 void DumpAINInfo(CAI_Network* aiNetwork)
 {
-	if (sub_387F80)
-	{
-		// save traverse ex nodes!
-		sub_387F80(0, aiNetwork);
-	}
-
 	fs::path writePath(fmt::format("{}/maps/graphs", g_pModName));
 	writePath /= g_pGlobals->m_pMapName;
 	writePath += ".ain";
@@ -363,8 +376,8 @@ void DumpAINInfo(CAI_Network* aiNetwork)
 		}
 
 		memcpy(diskNode.unk3, aiNode->unk3, sizeof(diskNode.unk3));
-		diskNode.unk4 = aiNode->unk6;
-		diskNode.unk5 = aiNode->unk8;
+		diskNode.unk4 = static_cast<short>(aiNode->unk6);
+		diskNode.unk5 = static_cast<short>(aiNode->unk8);
 		memcpy(diskNode.unk6, aiNode->unk10, sizeof(diskNode.unk6));
 
 		spdlog::info("writing node {} from {} to {:x}", aiNode->m_iID, (void*)aiNode, writeStream.tellp());
@@ -516,7 +529,7 @@ void DumpAINInfo(CAI_Network* aiNetwork)
 	{
 		// disk and memory structs are literally identical here so just directly write
 		spdlog::info("writing unknown link struct {} at {:x}", i, writeStream.tellp());
-		writeStream.write((char*)(*pppUnkStruct1s)[i], sizeof(*(*pppUnkStruct1s)[i]));
+		writeStream.write((char*)(*pppUnkStruct1s)[i], sizeof(UnkLinkStruct1Disk));
 	}
 
 	// some weird int idk what this is used for
@@ -543,6 +556,15 @@ void DumpAINInfo(CAI_Network* aiNetwork)
 	writeStream.close();
 }
 
+static __int64(__fastcall* o_pCAI_NetworkBuilder__BuildPathPatrol)(void* builder, CAI_Network* aiNetwork) = nullptr;
+static __int64 __fastcall h_CAI_NetworkBuilder__BuildPathPatrol(void* builder, CAI_Network* aiNetwork)
+{
+	__int64 result = o_pCAI_NetworkBuilder__BuildPathPatrol(builder, aiNetwork);
+	if (sub_387F80)
+		sub_387F80((__int64)builder, aiNetwork);
+	return result;
+}
+
 static void(__fastcall* o_pCAI_NetworkBuilder__Build)(void* builder, CAI_Network* aiNetwork, void* unknown) = nullptr;
 static void __fastcall h_CAI_NetworkBuilder__Build(void* builder, CAI_Network* aiNetwork, void* unknown)
 {
@@ -565,6 +587,10 @@ static void __fastcall h_LoadAINFile(void* aimanager, void* buf, const char* fil
 
 ON_DLL_LOAD("server.dll", BuildAINFile, (CModule module))
 {
+	o_pCAI_NetworkBuilder__BuildPathPatrol =
+		module.Offset(0x387DC0).RCast<decltype(o_pCAI_NetworkBuilder__BuildPathPatrol)>();
+	HookAttach(&(PVOID&)o_pCAI_NetworkBuilder__BuildPathPatrol, (PVOID)h_CAI_NetworkBuilder__BuildPathPatrol);
+
 	o_pCAI_NetworkBuilder__Build = module.Offset(0x385E20).RCast<decltype(o_pCAI_NetworkBuilder__Build)>();
 	HookAttach(&(PVOID&)o_pCAI_NetworkBuilder__Build, (PVOID)h_CAI_NetworkBuilder__Build);
 
