@@ -58,7 +58,7 @@ ADD_SQFUNC("bool", NSIsPlayerLocalPlayer, "entity player", "", ScriptContext::SE
 		return SQRESULT_NOTNULL;
 	}
 	CClient* pClient = &g_pClientArray[pPlayer->m_nPlayerIndex - 1];
-	g_pSquirrel[context]->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_UID));
+	g_pSquirrel[context]->pushbool(sqvm, !strcmp(g_pLocalPlayerUserID, pClient->m_szPlatformID));
 	return SQRESULT_NOTNULL;
 }
 

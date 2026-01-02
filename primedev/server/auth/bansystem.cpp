@@ -199,9 +199,9 @@ void ConCommand_ban(const CCommand& args)
 	{
 		CClient* player = &g_pClientArray[i];
 
-		if (!strcmp(player->m_Name, args.Arg(1)) || !strcmp(player->m_UID, args.Arg(1)))
+		if (!strcmp(player->m_szServerName, args.Arg(1)) || !strcmp(player->m_szPlatformID, args.Arg(1)))
 		{
-			g_pBanSystem->BanUID(strtoull(player->m_UID, nullptr, 10));
+			g_pBanSystem->BanUID(strtoull(player->m_szPlatformID, nullptr, 10));
 			player->Disconnect(REP_REMOVE_ONLY, "Banned from server");
 			break;
 		}
@@ -236,26 +236,26 @@ int ConCommand_banCompletion(const char* const partial, char commands[COMMAND_CO
 	for (int i = 0; i < GetMaxPlayers() && numCompletions < COMMAND_COMPLETION_MAXITEMS - 2; i++)
 	{
 		CClient* client = &g_pClientArray[i];
-		if (client->m_Signon < eSignonState::CONNECTED)
+		if (client->m_nSignonState < eSignonState::CONNECTED)
 			continue;
 
-		if (!strncmp(query, client->m_Name, queryLength))
+		if (!strncmp(query, client->m_szServerName, queryLength))
 		{
 			strncpy(commands[numCompletions], cmdName, cmdLength);
 			strncpy_s(
 				commands[numCompletions++] + cmdLength,
 				COMMAND_COMPLETION_ITEM_LENGTH,
-				client->m_Name,
+				client->m_szServerName,
 				COMMAND_COMPLETION_ITEM_LENGTH - cmdLength);
 		}
 
-		if (!strncmp(query, client->m_UID, queryLength))
+		if (!strncmp(query, client->m_szPlatformID, queryLength))
 		{
 			strncpy(commands[numCompletions], cmdName, cmdLength);
 			strncpy_s(
 				commands[numCompletions++] + cmdLength,
 				COMMAND_COMPLETION_ITEM_LENGTH,
-				client->m_UID,
+				client->m_szPlatformID,
 				COMMAND_COMPLETION_ITEM_LENGTH - cmdLength);
 		}
 	}

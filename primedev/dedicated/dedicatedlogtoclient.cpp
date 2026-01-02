@@ -26,7 +26,7 @@ void DedicatedServerLogToClientSink::custom_sink_it_(const custom_log_msg& msg)
 	{
 		CClient* pClient = &g_pClientArray[i];
 
-		if (pClient->m_Signon >= eSignonState::CONNECTED)
+		if (pClient->m_nSignonState >= eSignonState::CONNECTED)
 		{
 			CGameClient__ClientPrintf(pClient, sLogMessage.c_str());
 

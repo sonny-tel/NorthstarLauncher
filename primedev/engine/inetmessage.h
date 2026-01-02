@@ -10,9 +10,9 @@ class INetMessageHandler
 {
 public:
 	virtual ~INetMessageHandler(void) = 0;
-	virtual void ProcessStringCmd(void* msg) = 0;
-	virtual void ProcessSetConVar(void* msg) = 0;
-	virtual void ProcessSignonState(void* msg) = 0;
+	virtual bool ProcessStringCmd(void* msg) = 0;
+	virtual bool ProcessSetConVar(void* msg) = 0;
+	virtual bool ProcessSignonState(void* msg) = 0;
 };
 
 class INetMessage
