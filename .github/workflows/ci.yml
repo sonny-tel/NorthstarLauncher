@@ -5,6 +5,9 @@ env:
   BUILD_PROFILE: Release
   NORTHSTAR_VERSION: 0.0.0.${{github.run_number}}
 
+permissions:
+  contents: read # Needed to write to GitHub draft release
+
 jobs:
   build:
     runs-on: windows-2022
