@@ -23,7 +23,7 @@ jobs:
       - name: Checkout EOS SDK
         uses: actions/checkout@v4
         with:
-          repository: sonny-tel/eos-ns
+          repository: r2ion/eos-ion
           token: ${{ secrets.EOS_PAT_TOKEN }}
           path: primedev/thirdparty/eossdk
       - name: Setup msvc
