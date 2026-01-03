@@ -870,11 +870,24 @@ AUTOHOOK(silentconnect, engine.dll + 0x76F00, int*, __fastcall, (__int64 a1))
 AUTOHOOK(Host_Disconnect, engine.dll + 0x15ABE0, void, __fastcall, (bool bShowMainMenu))
 //clang-format on
 {
+	g_pConnectionManager->Retrying(false);
 	g_pConnectionManager->Finalise();
 	g_pConnectionManager->ResetState();
 
 	Host_Disconnect(bShowMainMenu);
 }
+
+//clang-format off
+AUTOHOOK(concommand_disconnect, engine.dll + 0x15C080, int*, __fastcall, (__int64 args))
+//clang-format on
+{
+	g_pConnectionManager->Retrying(false);
+	g_pConnectionManager->Finalise();
+	g_pConnectionManager->ResetState();
+
+	return concommand_disconnect(args);
+}
+
 
 // clang-format off
 AUTOHOOK(CL_FullyConnected, engine.dll + 0x72D20, int, __fastcall, ())
