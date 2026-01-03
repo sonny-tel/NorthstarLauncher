@@ -206,7 +206,7 @@ void SquirrelManager::VMCreated(CSquirrelVM* newSqvm)
 	}
 
 	defconst(m_pSQVM, "MAX_FOLDER_SIZE", GetMaxSaveFolderSize() / 1024);
-
+	 
 	// define squirrel constants for northstar(.dll) version
 	constexpr int version[4] {NORTHSTAR_VERSION};
 	defconst(m_pSQVM, "NS_VERSION_MAJOR", version[0]);
