@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: r2ion/eos-ion
-          token: ${{ secrets.GITHUB_TOKEN  }}
+          token: ${{ secrets.EOS_PAT_TOKEN  }}
           path: primedev/thirdparty/eossdk
       - name: Setup msvc
         uses: ilammy/msvc-dev-cmd@v1
